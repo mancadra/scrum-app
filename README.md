@@ -1,2 +1,14 @@
-# scrum-app
-Scrum project management web-app built for the SMRPO course — supports sprint planning, backlog organization, and team collaboration.
+## Aplikacija
+Updateal project strukturo in uporabil Vite za React template, ker among other things podpira hotswapping modules, on the fly updates in ful lažje razvijat React
+
+Rabiš:
+node.js
+npm (pride z node)
+vite
+
+running the project: npm run dev
+
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
