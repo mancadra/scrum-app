@@ -3,7 +3,8 @@ Updateal project strukturo in uporabil Vite za React template, ker among other t
 
 Rabiš:
 node.js
-npm (pride z node)
+
+npm (npm pride z node)
 vite
 
 running the project: npm run dev
