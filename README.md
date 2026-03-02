@@ -2,9 +2,11 @@
 Updateal project strukturo in uporabil Vite za React template, ker among other things podpira hotswapping modules, on the fly updates in ful lažje razvijat React
 
 Rabiš:
+
 node.js
 
 npm (npm pride z node)
+
 vite
 
 running the project: npm run dev
