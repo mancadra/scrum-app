@@ -1,0 +1,57 @@
+.story-container{
+  background:white;
+  padding:30px;
+  border-radius:10px;
+  max-width:800px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
+}
+
+.story-form{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.story-form input,
+.story-form textarea,
+.story-form select{
+  padding:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+
+.story-form textarea{
+  min-height:80px;
+}
+
+.story-form button{
+  padding:10px;
+  border:none;
+  background:#2563eb;
+  color:white;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.story-form button:hover{
+  background:#1d4ed8;
+}
+
+.story-list{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+
+.story-card{
+  border:1px solid #eee;
+  padding:15px;
+  border-radius:8px;
+  background:#fafafa;
+}
+
+.message{
+  color:green;
+}

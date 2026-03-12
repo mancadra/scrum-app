@@ -1,35 +1,117 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useRef, useEffect } from "react";
+import "./App.css";
+import AddUserPage from "./pages/AddUserPage";
+import AddUserStoryPage from "./pages/AddUserStoryPage";
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [page, setPage] = useState("home");
+
+  const dropdownRef = useRef();
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  const openAddUser = () => {
+    setPage("addUser");
+    setDropdownOpen(false);
+  };
+
+  const openUserStory = () => {
+  setPage("story");
+  setDropdownOpen(false);
+};
+
+  const goHome = () => {
+    setPage("home");
+  };
+
+  // zapre dropdown če klikneš drugje
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app-container">
+
+      {/* NAVBAR */}
+      <nav className="navbar">
+
+        <div className="logo" onClick={goHome}>
+          Scrum Manager
+        </div>
+
+        <div className="user-menu" ref={dropdownRef}>
+
+          <button className="user-button" onClick={toggleDropdown}>
+            <div className="avatar">A</div>
+            Administrator
+            <span className="arrow">▼</span>
+          </button>
+
+          {dropdownOpen && (
+            <div className="dropdown">
+
+              <button onClick={openAddUser}>
+                Dodaj uporabnika
+              </button>
+
+              <button onClick={openUserStory}>
+              Dodaj uporabniško zgodbo
+              </button>
+
+              <button onClick={goHome}>
+                Domov
+              </button>
+
+              <hr />
+
+              <button className="logout">
+                Odjava
+              </button>
+
+            </div>
+          )}
+
+        </div>
+
+      </nav>
+
+      {/* CONTENT */}
+      <div className="content">
+
+        {page === "home" && (
+          <div className="home">
+
+            <h1>Dobrodošel v Scrum aplikaciji</h1>
+
+            <p>
+              Tukaj lahko administrator upravlja uporabnike in sistemske pravice.
+            </p>
+
+            <button className="primary-btn" onClick={openAddUser}>
+              Dodaj novega uporabnika
+            </button>
+
+          </div>
+        )}
+
+        {page === "addUser" && <AddUserPage />}
+        {page === "story" && <AddUserStoryPage />}
+
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+
+    </div>
+  );
 }
 
-export default App
+export default App;
