@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn } from '../../services/auth'
-import { getUsers, getProjectRoles, getProjects, createProject } from '../../services/projects'
+import { getUsers, getProjectRoles, getProjectUsers, getProjects, createProject } from '../../services/projects'
 import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
@@ -58,6 +58,35 @@ describe('getProjects', () => {
     })
 })
 
+describe('getProjectUsers', () => {
+    it('returns an empty array for a project with no members', async () => {
+        const project = await createProject('Integration GetProjectUsers Empty Test', '', [])
+        createdProjectIds.push(project.id)
+
+        const members = await getProjectUsers(project.id)
+
+        expect(Array.isArray(members)).toBe(true)
+        expect(members).toHaveLength(0)
+    })
+
+    it('returns members with user and role details', async () => {
+        const users = await getUsers()
+        const roles = await getProjectRoles()
+
+        const projectUsers = [{ id: users[0].id, projectRoleId: roles[0].id }]
+        const project = await createProject('Integration GetProjectUsers Members Test', '', projectUsers)
+        createdProjectIds.push(project.id)
+
+        const members = await getProjectUsers(project.id)
+
+        expect(members).toHaveLength(1)
+        expect(members[0].FK_userId).toBe(users[0].id)
+        expect(members[0].FK_projectRoleId).toBe(roles[0].id)
+        expect(members[0].Users).toMatchObject({ username: expect.any(String) })
+        expect(members[0].ProjectRoles).toMatchObject({ projectRole: expect.any(String) })
+    })
+})
+
 describe('createProject', () => {
     it('creates a project with no members', async () => {
         const project = await createProject('Integration Test Project', 'created by test', [])
@@ -94,5 +123,17 @@ describe('createProject', () => {
         createdProjectIds.push(project.id)
 
         await expect(createProject(name, '', [])).rejects.toThrow()
+    })
+
+    it('created project appears in getProjects', async () => {
+        const project = await createProject('Integration Visibility Test', 'should be listed', [])
+        createdProjectIds.push(project.id)
+
+        const projects = await getProjects()
+        const found = projects.find((p) => p.id === project.id)
+
+        expect(found).toBeDefined()
+        expect(found.name).toBe('Integration Visibility Test')
+        expect(found.description).toBe('should be listed')
     })
 })

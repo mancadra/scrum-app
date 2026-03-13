@@ -19,6 +19,16 @@ export async function getProjectRoles() {
     return data
 }
 
+export async function getProjectUsers(projectId) {
+    const { data, error } = await supabase
+        .from('ProjectUsers')
+        .select('FK_userId, FK_projectRoleId, Users(username, name, surname), ProjectRoles(projectRole)')
+        .eq('FK_projectId', projectId)
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
 export async function getProjects() {
     const { data, error } = await supabase
         .from('Projects')
@@ -30,6 +40,20 @@ export async function getProjects() {
 }
 
 export async function createProject(name, description, users) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) throw new Error('Not authenticated.')
+
+    const { data: roleData, error: roleError } = await supabase
+        .from('UserRoles')
+        .select('Roles(name)')
+        .eq('FK_userId', user.id)
+
+    if (roleError) throw new Error(roleError.message)
+
+    const isAdmin = roleData?.some(r => r.Roles?.name === 'Admin')
+    if (!isAdmin) throw new Error('Only admins can create projects.')
+
     const { data: project, error: projectError } = await supabase
         .from('Projects')
         .insert({ name, description })
