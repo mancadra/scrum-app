@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function AddUserPage() {
+export default function AdminPage() {
 
   const [users, setUsers] = useState([]);
   const [message, setMessage] = useState("");
