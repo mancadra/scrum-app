@@ -25,7 +25,7 @@ function mockChain(overrides) {
     return chain
 }
 
-function mockProductOwner(userId = 'po-uuid', projectId = 1) {
+function mockProductOwner(userId = 'po-uuid') {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
     return mockChain({
         maybeSingle: vi.fn().mockResolvedValue({
