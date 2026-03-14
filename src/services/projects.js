@@ -64,10 +64,10 @@ export async function createProject(name, description, users) {
     if (projectError) throw new Error(projectError.message)
 
     if (users && users.length > 0) {
-        const projectUsers = users.map((user) => ({
+        const projectUsers = users.map((projectUser) => ({
             FK_projectId: project.id,
-            FK_userId: user.id,
-            FK_projectRoleId: user.projectRoleId,
+            FK_userId: projectUser.id,
+            FK_projectRoleId: projectUser.projectRoleId,
         }))
 
         const { error: usersError } = await supabase
