@@ -1,7 +1,9 @@
 import { supabase } from "../config/supabase";
 
 export async function createTask(userStoryId, { description, timecomplexity, FK_proposedDeveloper = null }) {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
+    const session = data?.session
     const user = session?.user
     if (!user) throw new Error('Not authenticated.')
 
