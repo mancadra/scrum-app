@@ -1,0 +1,48 @@
+.product-backlog {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 20px;
+    font-family: Arial, sans-serif;
+    color: #102a43;
+}
+
+.product-backlog h1 {
+    text-align: center;
+    margin-bottom: 32px;
+    font-size: 2rem;
+}
+
+.backlog-section {
+    margin-bottom: 40px;
+    padding: 24px;
+    background: #f8fbff;
+    border: 1px solid #d9e2ec;
+    border-radius: 16px;
+}
+
+.backlog-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #0f172a;
+}
+
+.nested-section {
+    margin-top: 24px;
+}
+
+.nested-section h3 {
+    margin-bottom: 16px;
+    color: #334e68;
+}
+
+.storypoint-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.empty-state {
+    margin: 0;
+    color: #7b8794;
+    font-style: italic;
+}
