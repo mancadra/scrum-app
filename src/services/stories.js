@@ -58,7 +58,16 @@ export async function createUserStory(projectId, { name, description, acceptance
         const { error: testError } = await supabase
             .from('AcceptanceTests')
             .insert(tests)
-        if (testError) throw new Error(testError.message)
+
+        if (testError) {
+            // Compensate for failure by deleting the previously created UserStory
+            await supabase
+                .from('UserStories')
+                .delete()
+                .eq('id', story.id)
+
+            throw new Error(testError.message)
+        }
     }
 
     return story
