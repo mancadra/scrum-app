@@ -16,8 +16,8 @@ const createdTaskIds = []
 beforeAll(async () => {
     await signIn(TEST_USERNAME, TEST_PASSWORD)
 
-    const { data: session } = await supabase.auth.getSession()
-    TEST_USER_ID = session?.session?.user?.id
+    const { data: { session } } = await supabase.auth.getSession()
+    TEST_USER_ID = session?.user?.id
 
     // Create a temporary test project
     const { data: project, error: projectError } = await supabase
