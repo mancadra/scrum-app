@@ -48,7 +48,8 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         throw new Error('Only Scrum Masters and Developers can create tasks.')
     }
 
-    if (!description || description.trim() === '') throw new Error('Description is required.')
+    const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+    if (!normalizedDescription) throw new Error('Description is required.')
 
     if (timecomplexity === undefined || timecomplexity === null) {
         throw new Error('Time complexity is required.')
@@ -78,7 +79,7 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         .from('Tasks')
         .select('id')
         .eq('FK_userStoryId', userStoryId)
-        .eq('description', description)
+        .eq('description', normalizedDescription)
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)
@@ -86,7 +87,7 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
 
     const { data: task, error: taskError } = await supabase
         .from('Tasks')
-        .insert({ description, timecomplexity, FK_userStoryId: userStoryId, FK_proposedDeveloper })
+        .insert({ description: normalizedDescription, timecomplexity, FK_userStoryId: userStoryId, FK_proposedDeveloper })
         .select()
         .single()
 
