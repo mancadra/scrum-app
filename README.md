@@ -11,6 +11,8 @@ vite
 
 running the project: npm run dev
 
+running test: npm test
+
 
 ## Expanding the ESLint configuration
 
