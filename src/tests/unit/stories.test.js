@@ -17,6 +17,7 @@ function mockChain(overrides) {
     const chain = {
         select:      vi.fn().mockReturnThis(),
         insert:      vi.fn().mockReturnThis(),
+        delete:      vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
@@ -222,11 +223,14 @@ describe('createUserStory', () => {
             insert: vi.fn().mockResolvedValue({ error: { message: 'acceptance test insert failed' } }),
         })
 
+        const compensateChain = mockChain({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) })
+
         supabase.from
             .mockReturnValueOnce(memberChain)
             .mockReturnValueOnce(dupChain)
             .mockReturnValueOnce(storyChain)
             .mockReturnValueOnce(testsChain)
+            .mockReturnValueOnce(compensateChain)
 
         await expect(createUserStory(1, validInput)).rejects.toThrow('acceptance test insert failed')
     })
