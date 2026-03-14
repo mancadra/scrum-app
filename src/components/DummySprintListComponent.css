@@ -1,0 +1,65 @@
+.sprint-page {
+    padding: 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.sprint-page__title {
+    margin-bottom: 24px;
+    font-size: 32px;
+    color: blue;
+}
+
+.sprint-page__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.sprint-card {
+    text-align: left;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sprint-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+.sprint-card__title {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 20px;
+    color: blue;
+}
+
+.sprint-card__text {
+    margin: 6px 0;
+    color: #374151;
+}
+
+.sprint-page__actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 32px;
+}
+
+.sprint-page__add-button {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    background-color: #16a34a;
+    color: #ffffff;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.sprint-page__add-button:hover {
+    background-color: #15803d;
+}

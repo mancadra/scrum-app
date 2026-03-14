@@ -1,19 +1,2 @@
-## Aplikacija
-Updateal project strukturo in uporabil Vite za React template, ker among other things podpira hotswapping modules, on the fly updates in ful lažje razvijat React
-
-Rabiš:
-
-node.js
-
-npm (npm pride z node)
-
-vite
-
-running the project: npm run dev
-
-running test: npm test
-
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Basic starter page z dummy seznamom sprintov. Ko stisnes na create new sprint se odpre modal za ustvarjanje. Ko stisnes add se doda v seznam.
+Sprint cardi so clickable ampak ne naredijo se nicesar. Ni se dodanega preverjanja fieldov.

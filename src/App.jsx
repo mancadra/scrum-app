@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import "./App.css";
 import AddUserStoryPage from "./pages/ProductBacklogPage"; 
 import AdminPage from "./pages/AdminPage";
+import DummySprintListComponent from "./components/DummySprintListComponent.jsx";
 
 function App() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -61,7 +62,7 @@ function App() {
         </div>
       </nav>
 
-      <main className="content">
+     {/* <main className="content">
         {page === "home" && (
           <div className="home text-center">
             <h1>Dobrodošel v Scrum aplikaciji</h1>
@@ -75,6 +76,13 @@ function App() {
         {page === "AdminPage" && <AdminPage />}
         {page === "story" && <AddUserStoryPage />}
       </main>
+      KOMENTIRANO KER V TEM BRANCHU IMPLEMENTIRAM DRUGE STVARI
+      */}
+
+      <DummySprintListComponent />
+
+
+
     </div>
   );
 }
