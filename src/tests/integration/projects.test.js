@@ -9,6 +9,8 @@ const TEST_PASSWORD = 'testpassword123!'
 // track created project ids so we can clean up after tests
 const createdProjectIds = []
 
+const uniqueName = (base) => `${base} ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
 beforeAll(async () => {
     await signIn(TEST_USERNAME, TEST_PASSWORD)
 })
@@ -60,7 +62,7 @@ describe('getProjects', () => {
 
 describe('getProjectUsers', () => {
     it('returns an empty array for a project with no members', async () => {
-        const project = await createProject('Integration GetProjectUsers Empty Test', '', [])
+        const project = await createProject(uniqueName('Integration GetProjectUsers Empty Test'), '', [])
         createdProjectIds.push(project.id)
 
         const members = await getProjectUsers(project.id)
@@ -89,12 +91,13 @@ describe('getProjectUsers', () => {
 
 describe('createProject', () => {
     it('creates a project with no members', async () => {
-        const project = await createProject('Integration Test Project', 'created by test', [])
+        const name = uniqueName('Integration Test Project')
+        const project = await createProject(name, 'created by test', [])
         createdProjectIds.push(project.id)
 
         expect(project).toBeDefined()
         expect(project.id).toBeDefined()
-        expect(project.name).toBe('Integration Test Project')
+        expect(project.name).toBe(name)
     })
 
     it('creates a project and assigns users with roles', async () => {
@@ -103,7 +106,7 @@ describe('createProject', () => {
 
         const projectUsers = [{ id: users[0].id, projectRoleId: roles[0].id }]
 
-        const project = await createProject('Integration Test Project With Members', '', projectUsers)
+        const project = await createProject(uniqueName('Integration Test Project With Members'), '', projectUsers)
         createdProjectIds.push(project.id)
 
         // verify the assignment was written to the DB
@@ -118,7 +121,7 @@ describe('createProject', () => {
     })
 
     it('throws on duplicate project name', async () => {
-        const name = 'Integration Duplicate Test'
+        const name = uniqueName('Integration Duplicate Test')
         const project = await createProject(name, '', [])
         createdProjectIds.push(project.id)
 
@@ -126,14 +129,15 @@ describe('createProject', () => {
     })
 
     it('created project appears in getProjects', async () => {
-        const project = await createProject('Integration Visibility Test', 'should be listed', [])
+        const name = uniqueName('Integration Visibility Test')
+        const project = await createProject(name, 'should be listed', [])
         createdProjectIds.push(project.id)
 
         const projects = await getProjects()
         const found = projects.find((p) => p.id === project.id)
 
         expect(found).toBeDefined()
-        expect(found.name).toBe('Integration Visibility Test')
+        expect(found.name).toBe(name)
         expect(found.description).toBe('should be listed')
     })
 })
