@@ -40,7 +40,8 @@ export async function getProjects() {
 }
 
 export async function createProject(name, description, users) {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
     const user = session?.user
     if (!user) throw new Error('Not authenticated.')
 
