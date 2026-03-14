@@ -13,8 +13,8 @@ const createdStoryIds = []
 beforeAll(async () => {
     await signIn(TEST_USERNAME, TEST_PASSWORD)
 
-    const { data: session } = await supabase.auth.getSession()
-    TEST_USER_ID = session?.session?.user?.id
+    const { data: { session } } = await supabase.auth.getSession()
+    TEST_USER_ID = session?.user?.id
 
     const { data: existingPriorities } = await supabase.from('Priorities').select('id').limit(1)
     if (!existingPriorities || existingPriorities.length === 0) {
