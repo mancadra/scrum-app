@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { validatePassword } from '../../services/auth'
+
+vi.mock('../../config/supabase', () => ({
+    supabase: { from: vi.fn(), auth: {} },
+}))
 
 describe('validatePassword', () => {
     it('accepts a valid password', () => {
