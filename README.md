@@ -1,19 +1,11 @@
-## Aplikacija
-Updateal project strukturo in uporabil Vite za React template, ker among other things podpira hotswapping modules, on the fly updates in ful lažje razvijat React
-
-Rabiš:
-
-node.js
-
-npm (npm pride z node)
-
-vite
-
-running the project: npm run dev
-
-running test: npm test
+LoginPage, simple form submit, v console-log vidite login attempt
+Narejen tudi FirstTimeLoginPage ker je ideja da admin naredi userja in mu da starter geslo ko se pa user prvic prijavi, spremeni geslo na nekaj svojega
+V vnosu so ze omejitve dolzine 12-64 znakov, sanitising in etc. pa je se treba naredit. Password reveal button tudi ze implementiran.
 
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+
+Ker v React data teče navzdol (toraj deeper v component) in ne more nazaj gor, moramo urediti, da bo App.jsx component imel ves info o trenutnem userju.
+Nato pa bo sprint component vedel vse o storypointih, etc.

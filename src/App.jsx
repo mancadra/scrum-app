@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import "./App.css";
 import AddUserStoryPage from "./pages/ProductBacklogPage"; 
 import AdminPage from "./pages/AdminPage";
+import LoginPage from "./components/LoginPage.jsx";
+import FirstTimeLoginPage from "./components/FirstTimeLoginPage.jsx";
 
 function App() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -61,6 +63,7 @@ function App() {
         </div>
       </nav>
 
+{/* Commented da ima ta branch landing page default login page. Ko bomo vse mergali, se bo z react routerjem uredil vrstni red odpiranja
       <main className="content">
         {page === "home" && (
           <div className="home text-center">
@@ -75,6 +78,12 @@ function App() {
         {page === "AdminPage" && <AdminPage />}
         {page === "story" && <AddUserStoryPage />}
       </main>
+     zakomentiran during development, odkomentiraj ta komponent ko delas login mechanism
+      <LoginPage />
+
+
+      */}
+      <FirstTimeLoginPage />
     </div>
   );
 }
