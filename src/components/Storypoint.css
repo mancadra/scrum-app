@@ -48,6 +48,22 @@
   font-style: italic;
 }
 
+.storypoint-card__button {
+  align-self: flex-start;
+  border: none;
+  background: #1565c0;
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.storypoint-card__button:hover {
+  background: #0d47a1;
+}
+
 .priority {
   padding: 4px 10px;
   border-radius: 999px;

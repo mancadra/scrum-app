@@ -1,5 +1,6 @@
-//THIS IS STORYPOINT FOR PRODUCT BACKLOG, WE NEED TO MAKE A UNIFIED COMPONENT FOR THE TERM STORYPOINT
-function Storypoint({ storypoint }) {
+function Storypoint({ storypoint, onAddTimeRequired }) {
+  const showAddTimeButton = !storypoint.realised && !storypoint.assigned;
+
   return (
     <article className="storypoint-card">
       <div className="storypoint-card__header">
@@ -18,6 +19,10 @@ function Storypoint({ storypoint }) {
         <div>
           <strong>Assigned:</strong> {storypoint.assigned ? "Yes" : "No"}
         </div>
+        <div>
+          <strong>Time Required:</strong>{" "}
+          {storypoint.timeRequired !== null ? storypoint.timeRequired : "Not set"}
+        </div>
       </div>
 
       <div className="storypoint-card__tests">
@@ -33,6 +38,16 @@ function Storypoint({ storypoint }) {
         <strong>Comment:</strong>
         <p>{storypoint.comment || "No comment yet."}</p>
       </div>
+
+      {showAddTimeButton && (
+        <button
+          type="button"
+          className="storypoint-card__button"
+          onClick={() => onAddTimeRequired(storypoint)}
+        >
+          Add time required
+        </button>
+      )}
     </article>
   );
 }
