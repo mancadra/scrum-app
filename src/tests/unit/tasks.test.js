@@ -706,7 +706,7 @@ describe('acceptTask', () => {
     it('throws if task update fails', async () => {
         mockAcceptSetup()
         supabase.from.mockReturnValueOnce(
-            mockChain({ select: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) })
+            mockChain({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) })
         )
 
         await expect(acceptTask(10)).rejects.toThrow('update failed')
@@ -716,7 +716,7 @@ describe('acceptTask', () => {
         const updated = { ...mockUnassignedTask, FK_acceptedDeveloper: DEV_ID }
         mockAcceptSetup()
         supabase.from.mockReturnValueOnce(
-            mockChain({ select: vi.fn().mockResolvedValue({ data: [updated], error: null }) })
+            mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
         )
 
         const result = await acceptTask(10)
@@ -728,7 +728,7 @@ describe('acceptTask', () => {
         const updated = { ...taskProposedToMe, FK_acceptedDeveloper: DEV_ID }
         mockAcceptSetup(DEV_ID, { task: taskProposedToMe })
         supabase.from.mockReturnValueOnce(
-            mockChain({ select: vi.fn().mockResolvedValue({ data: [updated], error: null }) })
+            mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
         )
 
         const result = await acceptTask(10)
@@ -738,7 +738,7 @@ describe('acceptTask', () => {
     it('updates task with the current user as accepted developer', async () => {
         const updated = { ...mockUnassignedTask, FK_acceptedDeveloper: DEV_ID }
         mockAcceptSetup()
-        const updateChain = mockChain({ select: vi.fn().mockResolvedValue({ data: [updated], error: null }) })
+        const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
         supabase.from.mockReturnValueOnce(updateChain)
 
         await acceptTask(10)
