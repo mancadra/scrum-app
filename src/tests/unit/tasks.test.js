@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createTask } from '../../services/tasks'
+import { createTask, finishTask } from '../../services/tasks'
 import { supabase } from '../../config/supabase'
 
 vi.mock('../../config/supabase', () => ({
@@ -17,7 +17,9 @@ function mockChain(overrides) {
     const chain = {
         select:      vi.fn().mockReturnThis(),
         insert:      vi.fn().mockReturnThis(),
+        update:      vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
+        is:          vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
         ...overrides,
@@ -332,5 +334,118 @@ describe('createTask', () => {
             FK_userStoryId: 1,
             FK_proposedDeveloper: null,
         })
+    })
+})
+
+// ---
+
+const DEV_ID = 'dev-uuid'
+const mockUnfinishedTask = { id: 20, FK_acceptedDeveloper: DEV_ID, finished: false }
+const mockFinishedTask   = { id: 21, FK_acceptedDeveloper: DEV_ID, finished: true }
+
+function mockTaskFetch(task) {
+    supabase.from.mockReturnValueOnce(
+        mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: task, error: null }) })
+    )
+}
+
+function mockTimetableUpdate(error = null) {
+    supabase.from.mockReturnValueOnce(
+        mockChain({ is: vi.fn().mockResolvedValue({ error }) })
+    )
+}
+
+function mockTaskUpdate(result) {
+    supabase.from.mockReturnValueOnce(
+        mockChain({ single: vi.fn().mockResolvedValue(result) })
+    )
+}
+
+describe('finishTask', () => {
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+
+        await expect(finishTask(20)).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if task does not exist', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        )
+
+        await expect(finishTask(999)).rejects.toThrow('Task not found.')
+    })
+
+    it('throws if task fetch fails', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'task fetch failed' } }) })
+        )
+
+        await expect(finishTask(20)).rejects.toThrow('task fetch failed')
+    })
+
+    it('throws if task is already finished', async () => {
+        mockAuth(DEV_ID)
+        mockTaskFetch(mockFinishedTask)
+
+        await expect(finishTask(21)).rejects.toThrow('Task is already finished.')
+    })
+
+    it('throws if current user did not accept the task', async () => {
+        mockAuth('other-uuid')
+        mockTaskFetch(mockUnfinishedTask) // accepted by DEV_ID, not 'other-uuid'
+
+        await expect(finishTask(20)).rejects.toThrow('You can only finish a task you have accepted.')
+    })
+
+    it('throws if task has no accepted developer', async () => {
+        mockAuth(DEV_ID)
+        mockTaskFetch({ ...mockUnfinishedTask, FK_acceptedDeveloper: null })
+
+        await expect(finishTask(20)).rejects.toThrow('You can only finish a task you have accepted.')
+    })
+
+    it('throws if timetable update fails', async () => {
+        mockAuth(DEV_ID)
+        mockTaskFetch(mockUnfinishedTask)
+        mockTimetableUpdate({ message: 'timetable update failed' })
+
+        await expect(finishTask(20)).rejects.toThrow('timetable update failed')
+    })
+
+    it('throws if task update fails', async () => {
+        mockAuth(DEV_ID)
+        mockTaskFetch(mockUnfinishedTask)
+        mockTimetableUpdate()
+        mockTaskUpdate({ data: null, error: { message: 'task update failed' } })
+
+        await expect(finishTask(20)).rejects.toThrow('task update failed')
+    })
+
+    it('marks task as finished successfully', async () => {
+        const finished = { ...mockUnfinishedTask, finished: true }
+        mockAuth(DEV_ID)
+        mockTaskFetch(mockUnfinishedTask)
+        mockTimetableUpdate()
+        mockTaskUpdate({ data: finished, error: null })
+
+        const result = await finishTask(20)
+        expect(result.finished).toBe(true)
+        expect(result.id).toBe(20)
+    })
+
+    it('updates task with finished: true', async () => {
+        const finished = { ...mockUnfinishedTask, finished: true }
+        mockAuth(DEV_ID)
+        mockTaskFetch(mockUnfinishedTask)
+        mockTimetableUpdate()
+        const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: finished, error: null }) })
+        supabase.from.mockReturnValueOnce(updateChain)
+
+        await finishTask(20)
+
+        expect(updateChain.update).toHaveBeenCalledWith({ finished: true })
     })
 })

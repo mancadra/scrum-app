@@ -94,3 +94,43 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
     if (taskError) throw new Error(taskError.message)
     return task
 }
+
+export async function finishTask(taskId) {
+    const { data, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
+    const session = data?.session
+    const user = session?.user
+    if (!user) throw new Error('Not authenticated.')
+
+    const { data: task, error: taskError } = await supabase
+        .from('Tasks')
+        .select('id, FK_acceptedDeveloper, finished')
+        .eq('id', taskId)
+        .maybeSingle()
+
+    if (taskError) throw new Error(taskError.message)
+    if (!task) throw new Error('Task not found.')
+    if (task.finished) throw new Error('Task is already finished.')
+    if (task.FK_acceptedDeveloper !== user.id) throw new Error('You can only finish a task you have accepted.')
+
+    // Close any open timetable entry for this task
+    const now = new Date().toISOString()
+    const { error: ttError } = await supabase
+        .from('TimeTables')
+        .update({ stoptime: now })
+        .eq('FK_taskId', taskId)
+        .eq('FK_userId', user.id)
+        .is('stoptime', null)
+
+    if (ttError) throw new Error(ttError.message)
+
+    const { data: updated, error: updateError } = await supabase
+        .from('Tasks')
+        .update({ finished: true })
+        .eq('id', taskId)
+        .select()
+        .single()
+
+    if (updateError) throw new Error(updateError.message)
+    return updated
+}
