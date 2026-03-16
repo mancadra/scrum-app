@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn } from '../../services/auth'
-import { createTask, finishTask } from '../../services/tasks'
+import { createTask, acceptTask, finishTask } from '../../services/tasks'
 import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
@@ -257,6 +257,177 @@ describe('createTask', () => {
         await expect(
             createTask(TEST_STORY_ID, { description, timecomplexity: 3 })
         ).rejects.toThrow('A task with this description already exists for this user story.')
+    })
+})
+
+// ---
+
+describe('acceptTask', () => {
+    let ACCEPT_PROJECT_ID
+    let ACCEPT_SPRINT_ID
+    let ACCEPT_STORY_ID
+    let devRoleId
+    let smRoleId
+    const acceptTaskIds = []
+
+    beforeAll(async () => {
+        const { data: project } = await supabase
+            .from('Projects')
+            .insert({ name: `AcceptTask Project ${Date.now()}`, description: 'temp' })
+            .select().single()
+        ACCEPT_PROJECT_ID = project.id
+
+        const { data: roles } = await supabase.from('ProjectRoles').select('id, projectRole')
+        const devRole = roles?.find(r => r.projectRole === 'Developer')
+        const smRole = roles?.find(r => r.projectRole === 'Scrum Master')
+        if (!devRole) throw new Error('beforeAll: Developer role not found')
+        if (!smRole) throw new Error('beforeAll: Scrum Master role not found')
+        devRoleId = devRole.id
+        smRoleId = smRole.id
+
+        await supabase.from('ProjectUsers').insert({
+            FK_projectId: ACCEPT_PROJECT_ID,
+            FK_userId: TEST_USER_ID,
+            FK_projectRoleId: devRoleId,
+        })
+
+        const { data: priorities } = await supabase.from('Priorities').select('id').limit(1)
+
+        const { data: story } = await supabase
+            .from('UserStories')
+            .insert({ name: `Accept Story ${Date.now()}`, FK_projectId: ACCEPT_PROJECT_ID, FK_priorityId: priorities[0].id, businessValue: 3 })
+            .select().single()
+        ACCEPT_STORY_ID = story.id
+
+        const { data: sprint } = await supabase
+            .from('Sprints')
+            .insert({
+                FK_projectId: ACCEPT_PROJECT_ID,
+                startingDate: new Date(Date.now() - 86400000).toISOString(),
+                endingDate: new Date(Date.now() + 86400000 * 14).toISOString(),
+                startingSpeed: 20,
+            })
+            .select().single()
+        ACCEPT_SPRINT_ID = sprint.id
+
+        await supabase.from('SprintUserStories').insert({ FK_sprintId: ACCEPT_SPRINT_ID, FK_userStoryId: ACCEPT_STORY_ID })
+    })
+
+    afterAll(async () => {
+        if (acceptTaskIds.length > 0) {
+            await supabase.from('Tasks').delete().in('id', acceptTaskIds)
+        }
+        if (ACCEPT_SPRINT_ID) {
+            await supabase.from('SprintUserStories').delete().eq('FK_sprintId', ACCEPT_SPRINT_ID)
+            await supabase.from('Sprints').delete().eq('id', ACCEPT_SPRINT_ID)
+        }
+        if (ACCEPT_STORY_ID) {
+            await supabase.from('UserStories').delete().eq('id', ACCEPT_STORY_ID)
+        }
+        if (ACCEPT_PROJECT_ID) {
+            await supabase.from('ProjectUsers').delete().eq('FK_projectId', ACCEPT_PROJECT_ID)
+            await supabase.from('Projects').delete().eq('id', ACCEPT_PROJECT_ID)
+        }
+    })
+
+    it('throws if not authenticated', async () => {
+        await supabase.auth.signOut()
+        await expect(acceptTask(999999)).rejects.toThrow('Not authenticated.')
+        await signIn(TEST_USERNAME, TEST_PASSWORD)
+    })
+
+    it('throws if task does not exist', async () => {
+        await expect(acceptTask(999999)).rejects.toThrow('Task not found.')
+    })
+
+    it('throws if task is already finished', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: ACCEPT_STORY_ID, description: 'Finished task for accept', timecomplexity: 1, finished: true })
+            .select().single()
+        acceptTaskIds.push(task.id)
+
+        await expect(acceptTask(task.id)).rejects.toThrow('Cannot accept a finished task.')
+    })
+
+    it('throws if task is already accepted by another developer', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: ACCEPT_STORY_ID, description: 'Already accepted task', timecomplexity: 2, FK_acceptedDeveloper: TEST_USER_ID })
+            .select().single()
+        acceptTaskIds.push(task.id)
+
+        await expect(acceptTask(task.id)).rejects.toThrow('Task has already been accepted by another developer.')
+    })
+
+    it('throws if task was proposed to a different developer', async () => {
+        // Temporarily change the user's role to Scrum Master so we can insert with a different FK_proposedDeveloper
+        // We need a valid user ID that is not TEST_USER_ID — use a known system user or insert directly
+        // Here we insert a task proposed to TEST_USER_ID, sign out, and test with another user.
+        // Since we only have one test user, we verify the check works by inserting with a fake proposedDeveloper
+        // via a direct DB insert (bypassing FK if RLS is off, or using a real second user's ID from Users table).
+        const { data: otherUser } = await supabase
+            .from('Users')
+            .select('id')
+            .neq('id', TEST_USER_ID)
+            .limit(1)
+            .single()
+
+        if (!otherUser) {
+            console.warn('Skipping: no other user found in Users table for proposed-developer test.')
+            return
+        }
+
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: ACCEPT_STORY_ID, description: 'Proposed to other dev', timecomplexity: 2, FK_proposedDeveloper: otherUser.id })
+            .select().single()
+        acceptTaskIds.push(task.id)
+
+        await expect(acceptTask(task.id)).rejects.toThrow('This task was proposed to a different developer.')
+    })
+
+    it('throws if user is not a Developer', async () => {
+        await supabase.from('ProjectUsers')
+            .update({ FK_projectRoleId: smRoleId })
+            .eq('FK_projectId', ACCEPT_PROJECT_ID)
+            .eq('FK_userId', TEST_USER_ID)
+
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: ACCEPT_STORY_ID, description: 'Task for SM accept attempt', timecomplexity: 2 })
+            .select().single()
+        acceptTaskIds.push(task.id)
+
+        await expect(acceptTask(task.id)).rejects.toThrow('Only Developers can accept tasks.')
+
+        await supabase.from('ProjectUsers')
+            .update({ FK_projectRoleId: devRoleId })
+            .eq('FK_projectId', ACCEPT_PROJECT_ID)
+            .eq('FK_userId', TEST_USER_ID)
+    })
+
+    it('accepts an unassigned task with no proposed developer', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: ACCEPT_STORY_ID, description: 'Task to accept freely', timecomplexity: 3 })
+            .select().single()
+        acceptTaskIds.push(task.id)
+
+        const result = await acceptTask(task.id)
+        expect(result.FK_acceptedDeveloper).toBe(TEST_USER_ID)
+        expect(result.id).toBe(task.id)
+    })
+
+    it('accepts a task proposed to the current developer', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: ACCEPT_STORY_ID, description: 'Task proposed to me', timecomplexity: 2, FK_proposedDeveloper: TEST_USER_ID })
+            .select().single()
+        acceptTaskIds.push(task.id)
+
+        const result = await acceptTask(task.id)
+        expect(result.FK_acceptedDeveloper).toBe(TEST_USER_ID)
     })
 })
 
