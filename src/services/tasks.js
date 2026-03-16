@@ -1,5 +1,91 @@
 import { supabase } from "../config/supabase";
 
+export async function getSprintBacklog(projectId) {
+    const { data, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
+    const session = data?.session
+    const user = session?.user
+    if (!user) throw new Error('Not authenticated.')
+
+    const { data: membership, error: memberError } = await supabase
+        .from('ProjectUsers')
+        .select('FK_projectRoleId')
+        .eq('FK_projectId', projectId)
+        .eq('FK_userId', user.id)
+        .maybeSingle()
+
+    if (memberError) throw new Error(memberError.message)
+    if (!membership) throw new Error('You are not a member of this project.')
+
+    const now = new Date().toISOString()
+    const { data: sprint, error: sprintError } = await supabase
+        .from('Sprints')
+        .select('*')
+        .eq('FK_projectId', projectId)
+        .lte('startingDate', now)
+        .gte('endingDate', now)
+        .maybeSingle()
+
+    if (sprintError) throw new Error(sprintError.message)
+    if (!sprint) throw new Error('No active sprint found for this project.')
+
+    const { data: sprintStories, error: storiesError } = await supabase
+        .from('SprintUserStories')
+        .select('UserStories(id, name, description, businessValue, realized, FK_priorityId, Priorities(priority))')
+        .eq('FK_sprintId', sprint.id)
+
+    if (storiesError) throw new Error(storiesError.message)
+
+    const stories = sprintStories?.map(s => s.UserStories).filter(Boolean) ?? []
+    const storyIds = stories.map(s => s.id)
+
+    if (storyIds.length === 0) {
+        return { sprint, stories: [] }
+    }
+
+    const { data: tasks, error: tasksError } = await supabase
+        .from('Tasks')
+        .select('*')
+        .in('FK_userStoryId', storyIds)
+
+    if (tasksError) throw new Error(tasksError.message)
+
+    const taskIds = (tasks ?? []).map(t => t.id)
+    let activeTaskIds = new Set()
+
+    if (taskIds.length > 0) {
+        const { data: openEntries, error: ttError } = await supabase
+            .from('TimeTables')
+            .select('FK_taskId')
+            .in('FK_taskId', taskIds)
+            .not('starttime', 'is', null)
+            .is('stoptime', null)
+
+        if (ttError) throw new Error(ttError.message)
+        activeTaskIds = new Set(openEntries?.map(e => e.FK_taskId) ?? [])
+    }
+
+    const categorize = (task) => {
+        if (task.finished) return 'finished'
+        if (activeTaskIds.has(task.id)) return 'active'
+        if (task.FK_acceptedDeveloper) return 'assigned'
+        return 'unassigned'
+    }
+
+    const storyMap = new Map(stories.map(s => [
+        s.id,
+        { ...s, tasks: { unassigned: [], assigned: [], active: [], finished: [] } }
+    ]))
+
+    for (const task of (tasks ?? [])) {
+        const story = storyMap.get(task.FK_userStoryId)
+        if (!story) continue
+        story.tasks[categorize(task)].push(task)
+    }
+
+    return { sprint, stories: Array.from(storyMap.values()) }
+}
+
 export async function createTask(userStoryId, { description, timecomplexity, FK_proposedDeveloper = null }) {
     const { data, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) throw new Error(sessionError.message)
