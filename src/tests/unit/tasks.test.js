@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createTask } from '../../services/tasks'
+import { createTask, acceptTask } from '../../services/tasks'
 import { supabase } from '../../config/supabase'
 
 vi.mock('../../config/supabase', () => ({
@@ -17,7 +17,9 @@ function mockChain(overrides) {
     const chain = {
         select:      vi.fn().mockReturnThis(),
         insert:      vi.fn().mockReturnThis(),
+        update:      vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
+        is:          vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
         ...overrides,
@@ -332,5 +334,182 @@ describe('createTask', () => {
             FK_userStoryId: 1,
             FK_proposedDeveloper: null,
         })
+    })
+})
+
+// ---
+
+const DEV_ID = 'dev-uuid'
+const mockUnassignedTask = { id: 10, FK_userStoryId: 1, FK_acceptedDeveloper: null, FK_proposedDeveloper: null, finished: false }
+
+// Sets up from() calls for acceptTask up to (and including) the membership check:
+// Tasks → UserStories → SprintUserStories → ProjectUsers
+function mockAcceptSetup(userId = DEV_ID, {
+    task = mockUnassignedTask,
+    story = { id: 1, FK_projectId: 10 },
+    sprintLinks = activeSprintLinks,
+    role = 'Developer',
+} = {}) {
+    mockAuth(userId)
+    supabase.from
+        .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: task, error: null }) }))
+        .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: story, error: null }) }))
+        .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: sprintLinks, error: null }) }))
+        .mockReturnValueOnce(mockChain({
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { ProjectRoles: { projectRole: role } },
+                error: null,
+            }),
+        }))
+}
+
+describe('acceptTask', () => {
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+
+        await expect(acceptTask(10)).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if task does not exist', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        )
+
+        await expect(acceptTask(999)).rejects.toThrow('Task not found.')
+    })
+
+    it('throws if task fetch fails', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'task fetch failed' } }) })
+        )
+
+        await expect(acceptTask(10)).rejects.toThrow('task fetch failed')
+    })
+
+    it('throws if task is already finished', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, finished: true }, error: null }) })
+        )
+
+        await expect(acceptTask(10)).rejects.toThrow('Cannot accept a finished task.')
+    })
+
+    it('throws if task is already accepted', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, FK_acceptedDeveloper: 'other-uuid' }, error: null }) })
+        )
+
+        await expect(acceptTask(10)).rejects.toThrow('Task has already been accepted by another developer.')
+    })
+
+    it('throws if task was proposed to a different developer', async () => {
+        mockAuth(DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, FK_proposedDeveloper: 'other-uuid' }, error: null }) })
+        )
+
+        await expect(acceptTask(10)).rejects.toThrow('This task was proposed to a different developer.')
+    })
+
+    it('throws if story fetch fails', async () => {
+        mockAuth(DEV_ID)
+        supabase.from
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'story fetch failed' } }) }))
+
+        await expect(acceptTask(10)).rejects.toThrow('story fetch failed')
+    })
+
+    it('throws if story does not exist', async () => {
+        mockAuth(DEV_ID)
+        supabase.from
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+
+        await expect(acceptTask(10)).rejects.toThrow('User story not found.')
+    })
+
+    it('throws if sprint links query fails', async () => {
+        mockAuth(DEV_ID)
+        supabase.from
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1, FK_projectId: 10 }, error: null }) }))
+            .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'sprint query failed' } }) }))
+
+        await expect(acceptTask(10)).rejects.toThrow('sprint query failed')
+    })
+
+    it('throws if task does not belong to an active sprint', async () => {
+        mockAuth(DEV_ID)
+        supabase.from
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1, FK_projectId: 10 }, error: null }) }))
+            .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: inactiveSprintLinks, error: null }) }))
+
+        await expect(acceptTask(10)).rejects.toThrow('Task does not belong to an active sprint.')
+    })
+
+    it('throws if user is not a project member', async () => {
+        mockAuth(DEV_ID)
+        supabase.from
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1, FK_projectId: 10 }, error: null }) }))
+            .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: activeSprintLinks, error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+
+        await expect(acceptTask(10)).rejects.toThrow('You are not a member of this project.')
+    })
+
+    it('throws if user is not a Developer', async () => {
+        mockAcceptSetup(DEV_ID, { role: 'Scrum Master' })
+
+        await expect(acceptTask(10)).rejects.toThrow('Only Developers can accept tasks.')
+    })
+
+    it('throws if task update fails', async () => {
+        mockAcceptSetup()
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) })
+        )
+
+        await expect(acceptTask(10)).rejects.toThrow('update failed')
+    })
+
+    it('accepts a task with no proposed developer', async () => {
+        const updated = { ...mockUnassignedTask, FK_acceptedDeveloper: DEV_ID }
+        mockAcceptSetup()
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        )
+
+        const result = await acceptTask(10)
+        expect(result.FK_acceptedDeveloper).toBe(DEV_ID)
+    })
+
+    it('accepts a task proposed to the current developer', async () => {
+        const taskProposedToMe = { ...mockUnassignedTask, FK_proposedDeveloper: DEV_ID }
+        const updated = { ...taskProposedToMe, FK_acceptedDeveloper: DEV_ID }
+        mockAcceptSetup(DEV_ID, { task: taskProposedToMe })
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        )
+
+        const result = await acceptTask(10)
+        expect(result.FK_acceptedDeveloper).toBe(DEV_ID)
+    })
+
+    it('updates task with the current user as accepted developer', async () => {
+        const updated = { ...mockUnassignedTask, FK_acceptedDeveloper: DEV_ID }
+        mockAcceptSetup()
+        const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        supabase.from.mockReturnValueOnce(updateChain)
+
+        await acceptTask(10)
+
+        expect(updateChain.update).toHaveBeenCalledWith({ FK_acceptedDeveloper: DEV_ID })
     })
 })
