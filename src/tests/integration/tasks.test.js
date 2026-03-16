@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn } from '../../services/auth'
-import { createTask, acceptTask } from '../../services/tasks'
+import { createTask, acceptTask, finishTask } from '../../services/tasks'
 import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
@@ -428,5 +428,143 @@ describe('acceptTask', () => {
 
         const result = await acceptTask(task.id)
         expect(result.FK_acceptedDeveloper).toBe(TEST_USER_ID)
+    })
+})
+
+// ---
+
+describe('finishTask', () => {
+    let FINISH_PROJECT_ID
+    let FINISH_STORY_ID
+    const finishTaskIds = []
+    const finishTimetableIds = []
+
+    beforeAll(async () => {
+        const { data: project } = await supabase
+            .from('Projects')
+            .insert({ name: `FinishTask Project ${Date.now()}`, description: 'temp' })
+            .select().single()
+        FINISH_PROJECT_ID = project.id
+
+        const { data: roles } = await supabase.from('ProjectRoles').select('id, projectRole')
+        const devRole = roles?.find(r => r.projectRole === 'Developer')
+        if (!devRole) throw new Error('beforeAll: Developer role not found')
+
+        await supabase.from('ProjectUsers').insert({
+            FK_projectId: FINISH_PROJECT_ID,
+            FK_userId: TEST_USER_ID,
+            FK_projectRoleId: devRole.id,
+        })
+
+        const { data: priorities } = await supabase.from('Priorities').select('id').limit(1)
+
+        const { data: story } = await supabase
+            .from('UserStories')
+            .insert({ name: `Finish Story ${Date.now()}`, FK_projectId: FINISH_PROJECT_ID, FK_priorityId: priorities[0].id, businessValue: 3 })
+            .select().single()
+        FINISH_STORY_ID = story.id
+
+        const { data: sprint } = await supabase
+            .from('Sprints')
+            .insert({
+                FK_projectId: FINISH_PROJECT_ID,
+                startingDate: new Date(Date.now() - 86400000).toISOString(),
+                endingDate: new Date(Date.now() + 86400000 * 14).toISOString(),
+                startingSpeed: 20,
+            })
+            .select().single()
+
+        await supabase.from('SprintUserStories').insert({ FK_sprintId: sprint.id, FK_userStoryId: FINISH_STORY_ID })
+    })
+
+    afterAll(async () => {
+        if (finishTimetableIds.length > 0) {
+            await supabase.from('TimeTables').delete().in('id', finishTimetableIds)
+        }
+        if (finishTaskIds.length > 0) {
+            await supabase.from('Tasks').delete().in('id', finishTaskIds)
+        }
+        if (FINISH_STORY_ID) {
+            const { data: sprint } = await supabase
+                .from('SprintUserStories')
+                .select('FK_sprintId')
+                .eq('FK_userStoryId', FINISH_STORY_ID)
+                .maybeSingle()
+            if (sprint) {
+                await supabase.from('SprintUserStories').delete().eq('FK_sprintId', sprint.FK_sprintId)
+                await supabase.from('Sprints').delete().eq('id', sprint.FK_sprintId)
+            }
+            await supabase.from('UserStories').delete().eq('id', FINISH_STORY_ID)
+        }
+        if (FINISH_PROJECT_ID) {
+            await supabase.from('ProjectUsers').delete().eq('FK_projectId', FINISH_PROJECT_ID)
+            await supabase.from('Projects').delete().eq('id', FINISH_PROJECT_ID)
+        }
+    })
+
+    it('throws if not authenticated', async () => {
+        await supabase.auth.signOut()
+        await expect(finishTask(999999)).rejects.toThrow('Not authenticated.')
+        await signIn(TEST_USERNAME, TEST_PASSWORD)
+    })
+
+    it('throws if task does not exist', async () => {
+        await expect(finishTask(999999)).rejects.toThrow('Task not found.')
+    })
+
+    it('throws if task is already finished', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: FINISH_STORY_ID, description: 'Already finished task', timecomplexity: 1, finished: true, FK_acceptedDeveloper: TEST_USER_ID })
+            .select().single()
+        finishTaskIds.push(task.id)
+
+        await expect(finishTask(task.id)).rejects.toThrow('Task is already finished.')
+    })
+
+    it('throws if the current user did not accept the task (starred)', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: FINISH_STORY_ID, description: 'Not my task', timecomplexity: 2 })
+            .select().single()
+        finishTaskIds.push(task.id)
+
+        await expect(finishTask(task.id)).rejects.toThrow('You can only finish a task you have accepted.')
+    })
+
+    it('marks an accepted task as finished', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: FINISH_STORY_ID, description: 'Task to finish', timecomplexity: 3, FK_acceptedDeveloper: TEST_USER_ID })
+            .select().single()
+        finishTaskIds.push(task.id)
+
+        const result = await finishTask(task.id)
+        expect(result.finished).toBe(true)
+        expect(result.id).toBe(task.id)
+    })
+
+    it('closes an open timetable entry when finishing a task', async () => {
+        const { data: task } = await supabase
+            .from('Tasks')
+            .insert({ FK_userStoryId: FINISH_STORY_ID, description: 'Active task to finish', timecomplexity: 2, FK_acceptedDeveloper: TEST_USER_ID })
+            .select().single()
+        finishTaskIds.push(task.id)
+
+        const { data: tt } = await supabase
+            .from('TimeTables')
+            .insert({ FK_taskId: task.id, FK_userId: TEST_USER_ID, starttime: new Date().toISOString(), stoptime: null })
+            .select().single()
+        finishTimetableIds.push(tt.id)
+
+        await finishTask(task.id)
+
+        const { data: closedTt } = await supabase
+            .from('TimeTables')
+            .select('stoptime')
+            .eq('id', tt.id)
+            .single()
+
+        expect(closedTt.stoptime).not.toBeNull()
     })
 })
