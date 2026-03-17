@@ -1,7 +1,7 @@
 #root {
   max-width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
   text-align: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #2563eb 100%);
@@ -9,199 +9,20 @@
 
 .app-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: calc(100vh - 4rem);
-}
-
-.app-hero {
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  min-height: calc(100vh - 64px);
 }
 
-.logo-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.app-title {
-  margin: 0;
-  color: #ffffff;
-  font-size: 3rem;
-}
-
-.app-subtitle {
-  margin: 0 0 0.5rem;
-  color: #dbeafe;
-  font-size: 1.1rem;
-}
-
-.open-modal-button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  background-color: #ffffff;
-  color: #1d4ed8;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.open-modal-button:hover {
-  background-color: #eff6ff;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px;
-  z-index: 1000;
-}
-
-.modal-content {
-  position: relative;
-  width: min(100%, 1000px);
-  max-height: 90vh;
-  overflow-y: auto;
-  border-radius: 16px;
-  background: transparent;
-}
-
-.modal-close-button {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #111827;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  z-index: 1001;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
 html, body, #root {
   height: 100%;
   width: 100%;
   margin: 0;
 }
+
 body{
   margin:0;
   font-family: Arial, Helvetica, sans-serif;
   background:#f4f6f9;
-}
-
-/* NAVBAR */
-
-.navbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px 30px;
-  background:#1e293b;
-  color:white;
-  box-shadow:0 2px 10px rgba(0,0,0,0.1);
-}
-
-.logo{
-  font-size:20px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-/* USER MENU */
-
-.user-menu{
-  position:relative;
-}
-
-.user-button{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  background:#334155;
-  color:white;
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:14px;
-  transition:0.2s;
-}
-/* CSS FROM MAIN */
-@media (prefers-reduced-motion: no-preference) {
-  .logo-row a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-.user-button:hover{
-  background:#475569;
-}
-
-.avatar{
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  background:#3b82f6;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
-
-.arrow{
-  font-size:10px;
-}
-
-/* DROPDOWN */
-
-.dropdown{
-  position:absolute;
-  right:0;
-  top:45px;
-  width:180px;
-  background:white;
-  border-radius:8px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.15);
-  overflow:hidden;
-  animation:dropdownFade 0.2s ease;
-}
-
-.dropdown button{
-  width:100%;
-  padding:12px;
-  border:none;
-  background:none;
-  text-align:left;
-  cursor:pointer;
-  font-size:14px;
-}
-
-.dropdown button:hover{
-  background:#f1f5f9;
-}
-
-.dropdown hr{
-  margin:5px 0;
-  border:none;
-  border-top:1px solid #eee;
-}
-
-.logout{
-  color:#e11d48;
 }
 
 /* CONTENT */
@@ -224,16 +45,6 @@ body{
   margin-top:0;
 }
 
-.primary-btn{
-  margin-top:20px;
-  padding:10px 18px;
-  background:#2563eb;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:15px;
-}
 
 .primary-btn:hover{
   background:#1d4ed8;
@@ -241,20 +52,11 @@ body{
 
 /* ANIMATION */
 
-@keyframes dropdownFade{
-  from{
-    opacity:0;
-    transform:translateY(-5px);
-  }
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-}
 @keyframes bounce-short {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
 }
+
 .animate-bounce-short {
   animation: bounce-short 0.5s ease-in-out 1;
 }

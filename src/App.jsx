@@ -8,9 +8,29 @@ import AddUserStoryPage from "./pages/ProductBacklogPage";
 import AdminPage from "./pages/AdminPage";
 import ProductBacklog from "./components/ProductBacklog.jsx";
 import LoginPage from "./pages/LoginPage";
+import NavbarComponent from "./components/NavbarComponent.jsx";
 import { getCurrentUser, signOut } from "./services/auth";
+import { projects, users } from "./dummyData";
+
 
 function App() {
+  let selectedUserIndex = 0;  /*FOR TESTING ON DUMMY DATA*/
+
+  const selectedUser = users[selectedUserIndex];
+  const selectedUserProjects = selectedUser.projectIndexes.map((projectIndex) => ({
+    name: projects[projectIndex],
+    index: projectIndex,
+  }));
+
+  const selectedUserDisplayName = selectedUser.username;
+  const selectedUserInitial = selectedUser.username?.[0]?.toUpperCase() || "?";
+
+  
+  
+  
+  
+  
+  
   /*#4 CODE const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)*/
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [page, setPage] = useState("home");
@@ -19,7 +39,7 @@ function App() {
   const dropdownRef = useRef();
   const navigate = useNavigate();
 
-  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+// ... existing code ...
 
   const openAdminPage = () => {
     setPage("AdminPage");
@@ -99,36 +119,16 @@ function App() {
         element={
           currentUser ? (
             <>
+              <NavbarComponent
+                  projects={selectedUserProjects}
+                  username={selectedUserDisplayName}
+                  userInitial={selectedUserInitial}
+                  onLogout={handleLogout}
+              />
               <div className="app-container">
-                {/* NAVBAR */}
-                <nav className="navbar">
-                  <div className="logo" onClick={goHome} style={{ cursor: 'pointer' }}>
-                    Scrum Manager
-                  </div>
 
-                  <div className="user-menu" ref={dropdownRef}>
-                    <button className="user-button" onClick={toggleDropdown}>
-                      <div className="avatar">A</div>
-                      Administrator <span className="arrow">▼</span>
-                    </button>
+// ... existing code ...
 
-                    {dropdownOpen && (
-                      <div className="dropdown">
-                        <button onClick={openAdminPage}>Upravljanje uporabnikov</button>
-                        <button onClick={openUserStory}>Dodaj uporabniško zgodbo</button>
-                        <button onClick={goHome}>Domov</button>
-                        <hr />
-                        <button className="logout" onClick={handleLogout}>
-                          Logout
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </nav>
-
-                <button className="primary-btn" onClick={goToLoginPage}>
-                  GO TO LOGIN PAGE
-                </button>
               </div>
             </>
           ) : (
