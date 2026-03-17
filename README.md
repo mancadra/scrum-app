@@ -1,2 +1,4 @@
-Basic starter page z dummy seznamom sprintov. Ko stisnes na create new sprint se odpre modal za ustvarjanje. Ko stisnes add se doda v seznam.
-Sprint cardi so clickable ampak ne naredijo se nicesar. Ni se dodanega preverjanja fieldov.
+
+
+
+
