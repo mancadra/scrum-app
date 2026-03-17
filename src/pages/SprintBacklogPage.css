@@ -1,0 +1,20 @@
+.border-dashed {
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+}
+
+.kanban-column {
+  min-height: 150px;
+  transition: background-color 0.2s ease;
+}
+
+/* Stil za TaskCard znotraj kolone */
+.card {
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
