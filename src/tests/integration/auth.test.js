@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn, changePassword, getCurrentUser } from '../../services/auth'
-import { supabase } from '../../config/supabase' 
+import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
-const TEST_PASSWORD = 'testpassword123!' 
+const TEST_PASSWORD = 'testpassword123!'
 
 beforeAll(async () => {
     await signIn(TEST_USERNAME, TEST_PASSWORD)
