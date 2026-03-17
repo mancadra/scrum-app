@@ -206,10 +206,10 @@ describe('createTask', () => {
         ).rejects.toThrow('Time complexity is required.')
     })
 
-    it('throws if time complexity is not a positive integer', async () => {
+    it('throws if time complexity is not a positive number', async () => {
         await expect(
             createTask(TEST_STORY_ID, { description: 'Some task', timecomplexity: -1 })
-        ).rejects.toThrow('Time complexity must be a positive integer.')
+        ).rejects.toThrow('Time complexity must be a positive number.')
     })
 
     it('throws if proposed developer is not a project member', async () => {

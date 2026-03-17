@@ -200,19 +200,19 @@ describe('createTask', () => {
     it('throws if time complexity is zero', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: 0 })).rejects.toThrow('Time complexity must be a positive integer.')
+        await expect(createTask(1, { ...validInput, timecomplexity: 0 })).rejects.toThrow('Time complexity must be a positive number.')
     })
 
     it('throws if time complexity is negative', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: -2 })).rejects.toThrow('Time complexity must be a positive integer.')
+        await expect(createTask(1, { ...validInput, timecomplexity: -2 })).rejects.toThrow('Time complexity must be a positive number.')
     })
 
-    it('throws if time complexity is a float', async () => {
+    it('throws if time complexity is NaN', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: 1.5 })).rejects.toThrow('Time complexity must be a positive integer.')
+        await expect(createTask(1, { ...validInput, timecomplexity: NaN })).rejects.toThrow('Time complexity must be a positive number.')
     })
 
     it('throws if proposed developer is not a project member', async () => {

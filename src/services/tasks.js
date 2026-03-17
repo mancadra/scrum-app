@@ -140,8 +140,8 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
     if (timecomplexity === undefined || timecomplexity === null) {
         throw new Error('Time complexity is required.')
     }
-    if (!Number.isInteger(timecomplexity) || timecomplexity <= 0) {
-        throw new Error('Time complexity must be a positive integer.')
+    if (typeof timecomplexity !== 'number' || isNaN(timecomplexity) || timecomplexity <= 0) {
+        throw new Error('Time complexity must be a positive number.')
     }
 
     if (FK_proposedDeveloper !== null) {
