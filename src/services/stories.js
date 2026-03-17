@@ -1,5 +1,64 @@
 import { supabase } from "../config/supabase";
 
+export async function setTimeComplexity(storyId, timeComplexity) {
+    // 1. Check authentication
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) throw new Error('Not authenticated.')
+
+    // 2. Validate time complexity (must be a positive number)
+    if (typeof timeComplexity !== 'number' || isNaN(timeComplexity) || timeComplexity <= 0) {
+        throw new Error('Time complexity must be a positive number.')
+    }
+
+    // 3. Fetch the story
+    const { data: story, error: storyError } = await supabase
+        .from('UserStories')
+        .select('id, FK_projectId')
+        .eq('id', storyId)
+        .maybeSingle()
+
+    if (storyError) throw new Error(storyError.message)
+    if (!story) throw new Error('User story not found.')
+
+    // 4. Check user is a Scrum Master in this project
+    const { data: membership, error: memberError } = await supabase
+        .from('ProjectUsers')
+        .select('FK_projectRoleId, ProjectRoles(projectRole)')
+        .eq('FK_projectId', story.FK_projectId)
+        .eq('FK_userId', user.id)
+        .maybeSingle()
+
+    if (memberError) throw new Error(memberError.message)
+    if (!membership) throw new Error('You are not a member of this project.')
+
+    const role = membership.ProjectRoles?.projectRole
+    if (role !== 'Scrum Master') {
+        throw new Error('Only Scrum Masters can set time complexity.')
+    }
+
+    // 5. Check story is not already assigned to a sprint
+    const { data: sprintLink, error: sprintLinkError } = await supabase
+        .from('SprintUserStories')
+        .select('FK_sprintId')
+        .eq('FK_userStoryId', storyId)
+        .maybeSingle()
+
+    if (sprintLinkError) throw new Error(sprintLinkError.message)
+    if (sprintLink) throw new Error('Cannot set time complexity on a story that is already assigned to a sprint.')
+
+    // 6. Update time complexity
+    const { data: updated, error: updateError } = await supabase
+        .from('UserStories')
+        .update({ timeComplexity })
+        .eq('id', storyId)
+        .select()
+        .single()
+
+    if (updateError) throw new Error(updateError.message)
+    return updated
+}
+
 export async function getPriorities() {
     const { data, error } = await supabase
         .from('Priorities')
