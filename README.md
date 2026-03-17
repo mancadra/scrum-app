@@ -1,19 +1,11 @@
-## Aplikacija
-Updateal project strukturo in uporabil Vite za React template, ker among other things podpira hotswapping modules, on the fly updates in ful lažje razvijat React
+CREATE PROJECT PAGE
+frontend basic look narejen
+rabi styling
+povezavo z backend
 
-Rabiš:
 
-node.js
-
-npm (npm pride z node)
-
-vite
+Stisnes create project, dodas ljudi in role (za zdaj imam dummy array userjev) in ko stisnes create vidis v console da ga je logiralo.
 
 running the project: npm run dev
 
 running test: npm test
-
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

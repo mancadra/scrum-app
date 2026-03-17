@@ -1,0 +1,112 @@
+.create-project-page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    background-color: #f4f6f8;
+}
+
+.create-project-card {
+    width: 100%;
+    max-width: 70%;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    color: #111827;
+    text-align: left;
+}
+
+.create-project-title {
+    margin: 0 0 8px;
+}
+
+.create-project-subtitle {
+    margin: 0 0 24px;
+    color: #666;
+}
+
+.create-project-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.create-project-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.create-project-input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    color: #111827;
+    background-color: #fff;
+}
+
+.create-project-add-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.create-project-select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    color: #111827;
+    background-color: #fff;
+}
+
+.create-project-button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: #2563eb;
+    color: #fff;
+    cursor: pointer;
+}
+
+.create-project-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.create-project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.create-project-empty-text {
+    color: #777;
+}
+
+.create-project-user-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background-color: #fafafa;
+}
+
+.create-project-user-name {
+    font-weight: 500;
+    color: #111827;
+}
+
+.create-project-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
