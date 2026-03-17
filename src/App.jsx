@@ -135,8 +135,8 @@ function App() {
             <>
               <NavbarComponent
                   projects={selectedUserProjects}
-                  username={selectedUserDisplayName}
-                  userInitial={selectedUserInitial}
+                  username={currentUser?.profile?.username ?? ''}                                                                                                                                         
+                  userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'} 
                   onLogout={handleLogout}
                   isAdmin={currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false}
               />
