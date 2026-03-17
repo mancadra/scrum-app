@@ -9,7 +9,7 @@ function App() {
 
   return (
     <>
-      <div className="app-container">
+{/*  COMMENT FROM #4    <div className="app-container">
         <div className="app-hero">
           <div className="logo-row">
             <a href="https://vite.dev" target="_blank" rel="noreferrer">
@@ -31,9 +31,9 @@ function App() {
             Create Project
           </button>
         </div>
-      </div>
+      </div>*/}
 
-      {isCreateProjectOpen && (
+      {/* COMMENT FROM #4 {isCreateProjectOpen && (
         <div
           className="modal-overlay"
           onClick={() => setIsCreateProjectOpen(false)}
@@ -55,7 +55,7 @@ function App() {
             />
           </div>
         </div>
-      )}
+      )}*/}
     </>
   )
 }
