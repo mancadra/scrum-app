@@ -137,8 +137,6 @@ function App() {
       Commented because this branch is doing functionality of something else
 
       */}
-
-<ProductBacklog />
     </div>
       </>
   );
