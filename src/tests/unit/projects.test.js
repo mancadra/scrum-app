@@ -251,17 +251,15 @@ describe('createProject', () => {
 
     it('throws on duplicate project name', async () => {
         const adminChain = mockAdminUser()
+        const dupChain = mockChain({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+        })
         supabase.from
             .mockReturnValueOnce(adminChain)
-            .mockReturnValueOnce(mockChain({
-                single: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: { message: 'duplicate key value violates unique constraint "Projects_name_key"' },
-                }),
-            }))
+            .mockReturnValueOnce(dupChain)
 
         await expect(createProject('Existing Project', '', [])).rejects.toThrow(
-            'duplicate key value violates unique constraint'
+            'A project with the name "Existing Project" already exists.'
         )
     })
 

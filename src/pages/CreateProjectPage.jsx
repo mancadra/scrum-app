@@ -1,69 +1,85 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import './CreateProjectPage.css'
-
-const dummyUsers = [
-    { id: 1, name: 'Alice Johnson' },
-    { id: 2, name: 'Bob Smith' },
-    { id: 3, name: 'Charlie Brown' },
-    { id: 4, name: 'Diana Prince' },
-    { id: 5, name: 'Ethan Clark' },
-]
-
-const roles = ['Viewer', 'Editor', 'Admin']
+import { getUsers, getProjectRoles, createProject } from '../services/projects'
 
 export default function CreateProjectPage({ onProjectCreated }) {
     const [projectName, setProjectName] = useState('')
+    const [description, setDescription] = useState('')
     const [selectedUserId, setSelectedUserId] = useState('')
     const [projectUsers, setProjectUsers] = useState([])
+    const [allUsers, setAllUsers] = useState([])
+    const [projectRoles, setProjectRoles] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        async function loadData() {
+            try {
+                const [users, roles] = await Promise.all([getUsers(), getProjectRoles()])
+                setAllUsers(users)
+                setProjectRoles(roles)
+            } catch (err) {
+                setError('Failed to load users or roles.')
+            }
+        }
+        loadData()
+    }, [])
 
     const availableUsers = useMemo(() => {
-        return dummyUsers.filter(
-            (user) => !projectUsers.some((projectUser) => projectUser.id === user.id)
+        return allUsers.filter(
+            (user) => !projectUsers.some((pu) => pu.id === user.id)
         )
-    }, [projectUsers])
+    }, [allUsers, projectUsers])
 
     const handleAddUser = () => {
-        if (!selectedUserId) return
+        if (!selectedUserId || projectRoles.length === 0) return
 
-        const userToAdd = dummyUsers.find(
-            (user) => user.id === Number(selectedUserId)
-        )
-
+        const userToAdd = allUsers.find((u) => u.id === selectedUserId)
         if (!userToAdd) return
 
         setProjectUsers((prev) => [
             ...prev,
             {
-                ...userToAdd,
-                role: 'Viewer',
+                id: userToAdd.id,
+                username: userToAdd.username,
+                name: userToAdd.name,
+                surname: userToAdd.surname,
+                projectRoleId: projectRoles[0].id,
             },
         ])
 
         setSelectedUserId('')
     }
 
-    const handleRoleChange = (userId, role) => {
+    const handleRoleChange = (userId, projectRoleId) => {
         setProjectUsers((prev) =>
-            prev.map((user) => (user.id === userId ? { ...user, role } : user))
+            prev.map((u) => (u.id === userId ? { ...u, projectRoleId: Number(projectRoleId) } : u))
         )
     }
 
-    const handleCreateProject = () => {
+    const handleRemoveUser = (userId) => {
+        setProjectUsers((prev) => prev.filter((u) => u.id !== userId))
+    }
+
+    const handleCreateProject = async () => {
         if (!projectName.trim()) return
 
-        const newProject = {
-            name: projectName.trim(),
-            users: projectUsers,
-        }
+        setLoading(true)
+        setError('')
 
-        console.log('Project created:', newProject)
+        try {
+            const project = await createProject(projectName.trim(), description.trim(), projectUsers)
 
-        setProjectName('')
-        setSelectedUserId('')
-        setProjectUsers([])
+            setProjectName('')
+            setDescription('')
+            setSelectedUserId('')
+            setProjectUsers([])
 
-        if (onProjectCreated) {
-            onProjectCreated(newProject)
+            if (onProjectCreated) onProjectCreated(project)
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -74,6 +90,8 @@ export default function CreateProjectPage({ onProjectCreated }) {
                 <p className="create-project-subtitle">
                     Add users and assign a role to each one.
                 </p>
+
+                {error && <p className="create-project-error">{error}</p>}
 
                 <div className="create-project-field">
                     <label htmlFor="projectName" className="create-project-label">
@@ -89,6 +107,19 @@ export default function CreateProjectPage({ onProjectCreated }) {
                     />
                 </div>
 
+                <div className="create-project-field">
+                    <label htmlFor="description" className="create-project-label">
+                        Description
+                    </label>
+                    <textarea
+                        id="description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter project description (optional)"
+                        className="create-project-input"
+                    />
+                </div>
+
                 <div className="create-project-add-row">
                     <select
                         value={selectedUserId}
@@ -98,7 +129,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                         <option value="">Select a user</option>
                         {availableUsers.map((user) => (
                             <option key={user.id} value={user.id}>
-                                {user.name}
+                                {user.username} {user.name ? `(${user.name} ${user.surname ?? ''})` : ''}
                             </option>
                         ))}
                     </select>
@@ -119,19 +150,29 @@ export default function CreateProjectPage({ onProjectCreated }) {
                     ) : (
                         projectUsers.map((user) => (
                             <div key={user.id} className="create-project-user-row">
-                                <span className="create-project-user-name">{user.name}</span>
+                                <span className="create-project-user-name">
+                                    {user.username} {user.name ? `(${user.name} ${user.surname ?? ''})` : ''}
+                                </span>
 
                                 <select
-                                    value={user.role}
+                                    value={user.projectRoleId}
                                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
                                     className="create-project-select"
                                 >
-                                    {roles.map((role) => (
-                                        <option key={role} value={role}>
-                                            {role}
+                                    {projectRoles.map((role) => (
+                                        <option key={role.id} value={role.id}>
+                                            {role.projectRole}
                                         </option>
                                     ))}
                                 </select>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveUser(user.id)}
+                                    className="create-project-button"
+                                >
+                                    Remove
+                                </button>
                             </div>
                         ))
                     )}
@@ -141,10 +182,10 @@ export default function CreateProjectPage({ onProjectCreated }) {
                     <button
                         type="button"
                         onClick={handleCreateProject}
-                        disabled={!projectName.trim()}
+                        disabled={!projectName.trim() || loading}
                         className="create-project-button"
                     >
-                        Create Project
+                        {loading ? 'Creating...' : 'Create Project'}
                     </button>
                 </div>
             </div>
