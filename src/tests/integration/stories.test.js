@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn } from '../../services/auth'
-import { getPriorities, createUserStory } from '../../services/stories'
+import { getPriorities, createUserStory, setTimeComplexity } from '../../services/stories'
 import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
@@ -8,6 +8,7 @@ const TEST_PASSWORD = 'testpassword123!'
 
 let TEST_PROJECT_ID
 let TEST_USER_ID
+let TEST_SM_PROJECT_ID
 const createdStoryIds = []
 
 beforeAll(async () => {
@@ -45,6 +46,25 @@ beforeAll(async () => {
         .insert({ FK_projectId: TEST_PROJECT_ID, FK_userId: TEST_USER_ID, FK_projectRoleId: poRole.id })
 
     if (memberError) throw new Error(`beforeAll: could not add member: ${memberError.message}`)
+
+    // Create a separate project where testuser01 is a Scrum Master (for #11 tests)
+    const { data: smProject, error: smProjectError } = await supabase
+        .from('Projects')
+        .insert({ name: `Stories SM Test Project ${Date.now()}`, description: 'temp sm project' })
+        .select()
+        .single()
+
+    if (smProjectError) throw new Error(`beforeAll: could not create SM project: ${smProjectError.message}`)
+    TEST_SM_PROJECT_ID = smProject.id
+
+    const smRole = roles?.find(r => r.projectRole === 'Scrum Master')
+    if (!smRole) throw new Error('beforeAll: Scrum Master role not found in ProjectRoles')
+
+    const { error: smMemberError } = await supabase
+        .from('ProjectUsers')
+        .insert({ FK_projectId: TEST_SM_PROJECT_ID, FK_userId: TEST_USER_ID, FK_projectRoleId: smRole.id })
+
+    if (smMemberError) throw new Error(`beforeAll: could not add SM member: ${smMemberError.message}`)
 })
 
 afterAll(async () => {
@@ -55,6 +75,10 @@ afterAll(async () => {
     if (TEST_PROJECT_ID) {
         await supabase.from('ProjectUsers').delete().eq('FK_projectId', TEST_PROJECT_ID)
         await supabase.from('Projects').delete().eq('id', TEST_PROJECT_ID)
+    }
+    if (TEST_SM_PROJECT_ID) {
+        await supabase.from('ProjectUsers').delete().eq('FK_projectId', TEST_SM_PROJECT_ID)
+        await supabase.from('Projects').delete().eq('id', TEST_SM_PROJECT_ID)
     }
 })
 
@@ -191,5 +215,126 @@ describe('createUserStory', () => {
                 businessValue: 2,
             })
         ).rejects.toThrow('A user story with this name already exists in this project.')
+    })
+})
+
+// ---
+
+describe('setTimeComplexity', () => {
+    let storyId
+
+    beforeAll(async () => {
+        await signIn(TEST_USERNAME, TEST_PASSWORD)
+
+        const priorities = await getPriorities()
+        const { data: story, error } = await supabase
+            .from('UserStories')
+            .insert({
+                name: `TC Story ${Date.now()}`,
+                FK_projectId: TEST_SM_PROJECT_ID,
+                FK_priorityId: priorities[0].id,
+                businessValue: 3,
+            })
+            .select()
+            .single()
+
+        if (error) throw new Error(`setTimeComplexity beforeAll: could not create story: ${error.message}`)
+        storyId = story.id
+    })
+
+    afterAll(async () => {
+        if (storyId) {
+            await supabase.from('UserStories').delete().eq('id', storyId)
+        }
+    })
+
+    it('throws if not authenticated', async () => {
+        await supabase.auth.signOut()
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Not authenticated.')
+        await signIn(TEST_USERNAME, TEST_PASSWORD)
+    })
+
+    it('throws if time complexity is not a positive number', async () => {
+        await expect(setTimeComplexity(storyId, 0)).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(setTimeComplexity(storyId, -1)).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(setTimeComplexity(storyId, NaN)).rejects.toThrow('Time complexity must be a positive number.')
+    })
+
+    it('sets time complexity with a float value', async () => {
+        const result = await setTimeComplexity(storyId, 2.5)
+        expect(result.timeComplexity).toBe(2.5)
+    })
+
+    it('throws if story is not found', async () => {
+        await expect(setTimeComplexity(999999, 5)).rejects.toThrow('User story not found.')
+    })
+
+    it('throws if user is not a Scrum Master (user is Product Owner on TEST_PROJECT_ID)', async () => {
+        const priorities = await getPriorities()
+        const { data: poStory } = await supabase
+            .from('UserStories')
+            .insert({
+                name: `TC PO Story ${Date.now()}`,
+                FK_projectId: TEST_PROJECT_ID,
+                FK_priorityId: priorities[0].id,
+                businessValue: 1,
+            })
+            .select()
+            .single()
+
+        createdStoryIds.push(poStory.id)
+
+        await expect(setTimeComplexity(poStory.id, 5)).rejects.toThrow('Only Scrum Masters can set time complexity.')
+    })
+
+    it('sets time complexity on an unassigned story', async () => {
+        const result = await setTimeComplexity(storyId, 8)
+        expect(result.timeComplexity).toBe(8)
+    })
+
+    it('updates time complexity when called again', async () => {
+        const result = await setTimeComplexity(storyId, 13)
+        expect(result.timeComplexity).toBe(13)
+    })
+
+    it('throws if story is already assigned to a sprint', async () => {
+        const priorities = await getPriorities()
+
+        const { data: assignedStory } = await supabase
+            .from('UserStories')
+            .insert({
+                name: `TC Assigned Story ${Date.now()}`,
+                FK_projectId: TEST_SM_PROJECT_ID,
+                FK_priorityId: priorities[0].id,
+                businessValue: 2,
+                timeComplexity: 5,
+            })
+            .select()
+            .single()
+
+        const { data: sprint } = await supabase
+            .from('Sprints')
+            .insert({
+                FK_projectId: TEST_SM_PROJECT_ID,
+                startingDate: new Date(Date.now() + 86400000).toISOString(),
+                endingDate: new Date(Date.now() + 86400000 * 7).toISOString(),
+                startingSpeed: 20,
+            })
+            .select()
+            .single()
+
+        await supabase
+            .from('SprintUserStories')
+            .insert({ FK_sprintId: sprint.id, FK_userStoryId: assignedStory.id })
+
+        try {
+            await expect(setTimeComplexity(assignedStory.id, 3)).rejects.toThrow(
+                'Cannot set time complexity on a story that is already assigned to a sprint.'
+            )
+        } finally {
+            await supabase.from('SprintUserStories').delete().eq('FK_userStoryId', assignedStory.id)
+            await supabase.from('Sprints').delete().eq('id', sprint.id)
+            await supabase.from('UserStories').delete().eq('id', assignedStory.id)
+        }
     })
 })

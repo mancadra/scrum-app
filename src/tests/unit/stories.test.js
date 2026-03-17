@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getPriorities, createUserStory, addStoriesToSprint } from '../../services/stories'
+import { getPriorities, createUserStory, addStoriesToSprint, setTimeComplexity } from '../../services/stories'
 import { supabase } from '../../config/supabase'
 
 vi.mock('../../config/supabase', () => ({
@@ -278,6 +278,125 @@ describe('createUserStory', () => {
         expect(result).toEqual(mockStory)
     })
 })
+describe('setTimeComplexity', () => {
+    const storyId = 42
+    const mockStory = { id: storyId, FK_projectId: 1 }
+    const mockUpdated = { id: storyId, FK_projectId: 1, timeComplexity: 5 }
+
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if time complexity is zero', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+
+        await expect(setTimeComplexity(storyId, 0)).rejects.toThrow('Time complexity must be a positive number.')
+    })
+
+    it('throws if time complexity is negative', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+
+        await expect(setTimeComplexity(storyId, -3)).rejects.toThrow('Time complexity must be a positive number.')
+    })
+
+    it('throws if time complexity is NaN', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+
+        await expect(setTimeComplexity(storyId, NaN)).rejects.toThrow('Time complexity must be a positive number.')
+    })
+
+    it('throws if story is not found', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        supabase.from.mockReturnValueOnce(storyChain)
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('User story not found.')
+    })
+
+    it('throws if story query fails', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'story query failed' } }) })
+        supabase.from.mockReturnValueOnce(storyChain)
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('story query failed')
+    })
+
+    it('throws if user is not a member of the project', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
+        const memberChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(memberChain)
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('You are not a member of this project.')
+    })
+
+    it('throws if user is not a Scrum Master', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'po-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
+        const memberChain = mockChain({
+            maybeSingle: vi.fn().mockResolvedValue({
+                data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Product Owner' } },
+                error: null,
+            }),
+        })
+        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(memberChain)
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Only Scrum Masters can set time complexity.')
+    })
+
+    it('throws if story is already assigned to a sprint', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
+        const memberChain = mockScrumMaster()
+        const sprintLinkChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_sprintId: 99 }, error: null }) })
+        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(memberChain).mockReturnValueOnce(sprintLinkChain)
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Cannot set time complexity on a story that is already assigned to a sprint.')
+    })
+
+    it('updates and returns the story on success', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
+        const memberChain = mockScrumMaster()
+        const sprintLinkChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        const updateChain = mockChain({
+            update: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: mockUpdated, error: null }),
+        })
+
+        supabase.from
+            .mockReturnValueOnce(storyChain)
+            .mockReturnValueOnce(memberChain)
+            .mockReturnValueOnce(sprintLinkChain)
+            .mockReturnValueOnce(updateChain)
+
+        const result = await setTimeComplexity(storyId, 5)
+        expect(result).toEqual(mockUpdated)
+        expect(result.timeComplexity).toBe(5)
+    })
+
+    it('throws if update query fails', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
+        const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
+        const memberChain = mockScrumMaster()
+        const sprintLinkChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        const updateChain = mockChain({
+            update: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }),
+        })
+
+        supabase.from
+            .mockReturnValueOnce(storyChain)
+            .mockReturnValueOnce(memberChain)
+            .mockReturnValueOnce(sprintLinkChain)
+            .mockReturnValueOnce(updateChain)
+
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('update failed')
+    })
+})
+
 describe('addStoriesToSprint', () => {
 
   it('successfully adds stories to a sprint', async () => {
