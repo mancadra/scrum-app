@@ -52,18 +52,43 @@ describe('changePassword', () => {
 })
 
 describe('updateLastLogin', () => {
-    it('updates lastLogin in public.Users after sign in', async () => {
+    it('sets currentLogin to now after sign in', async () => {
         const before = new Date()
         const user = await signIn(TEST_USERNAME, TEST_PASSWORD)
 
         const { data } = await supabase
-        .from('Users')
-        .select('lastLogin')
-        .eq('id', user.id)
-        .single()
+            .from('Users')
+            .select('currentLogin')
+            .eq('id', user.id)
+            .single()
 
-        const lastLogin = new Date(data.lastLogin)
-        expect(lastLogin.getTime()).toBeGreaterThanOrEqual(before.getTime())
+        const currentLogin = new Date(data.currentLogin)
+        expect(currentLogin.getTime()).toBeGreaterThanOrEqual(before.getTime())
+    })
+
+    it('shifts currentLogin into lastLogin on subsequent sign in', async () => {
+        // First sign in to establish a currentLogin
+        const user = await signIn(TEST_USERNAME, TEST_PASSWORD)
+
+        const { data: before } = await supabase
+            .from('Users')
+            .select('currentLogin')
+            .eq('id', user.id)
+            .single()
+
+        const previousCurrentLogin = before.currentLogin
+
+        // Second sign in — currentLogin should shift to lastLogin
+        await signIn(TEST_USERNAME, TEST_PASSWORD)
+
+        const { data: after } = await supabase
+            .from('Users')
+            .select('lastLogin, currentLogin')
+            .eq('id', user.id)
+            .single()
+
+        expect(after.lastLogin).toBe(previousCurrentLogin)
+        expect(new Date(after.currentLogin).getTime()).toBeGreaterThan(new Date(previousCurrentLogin).getTime())
     })
 })
 

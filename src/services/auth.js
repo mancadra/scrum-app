@@ -74,11 +74,21 @@ export async function getCurrentUser() {
     return { ...user, profile }
 }
 
-// TODO popravi da se shrani "preprejšnja prijava", če se zdaj prijavimo da se pokaže last logged in npr. prejšnji teden
 export async function updateLastLogin(userId) {
+    const { data: current, error: fetchError } = await supabase
+      .from('Users')
+      .select('currentLogin')
+      .eq('id', userId)
+      .single()
+
+    if (fetchError) throw new Error(fetchError.message)
+
     const { error } = await supabase
       .from('Users')
-      .update({ lastLogin: new Date().toISOString() })
+      .update({
+        lastLogin: current?.currentLogin ?? null,
+        currentLogin: new Date().toISOString(),
+      })
       .eq('id', userId)
 
     if (error) throw new Error(error.message)
