@@ -1,18 +1,36 @@
 import React, { useState } from 'react';
 import './LoginPage.css';
+import { signIn } from '../services/auth';
+import { useNavigate } from 'react-router-dom';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
+export default function LoginPage({ onLogin }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setError('');
+    setLoading(true);
 
-    console.log('Login attempt:', {
-      email,
-      password,
-    });
+    try {
+      const result = await signIn(username, password);
+
+      if (result?.mfaRequired) {
+        setError('MFA is required for this account.');
+        return;
+      }
+
+      onLogin?.(result);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.message || 'Login failed.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -20,16 +38,18 @@ export default function LoginPage() {
       <form className="login-form" onSubmit={handleSubmit}>
         <h1 className="login-title">Login</h1>
 
-        <label className="login-label" htmlFor="email">
-          Email
+        {error ? <p className="login-error">{error}</p> : null}
+
+        <label className="login-label" htmlFor="username">
+          Username
         </label>
         <input
           className="login-input"
-          id="email"
-          type="email"
-          placeholder="Enter your email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          id="username"
+          type="text"
+          placeholder="Enter your username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
           required
         />
 
@@ -56,8 +76,8 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <button className="login-button" type="submit">
-          Login
+        <button className="login-button" type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
     </div>
