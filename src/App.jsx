@@ -85,20 +85,7 @@ function App() {
           !currentUser ? (
             <Navigate to="/login" replace />
           ) : isAdmin ? (
-            <CreateProjectPage onProjectCreated={() => navigate('/')} />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
-
-      <Route
-        path="/create-project"
-        element={
-          !currentUser ? (
-            <Navigate to="/login" replace />
-          ) : currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ? (
-            <CreateProjectPage onProjectCreated={() => navigate('/')} />
+            <CreateProjectPage onProjectCreated={async () => { await loadProjects(currentUser); navigate('/'); }} />
           ) : (
             <Navigate to="/" replace />
           )

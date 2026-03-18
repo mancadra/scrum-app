@@ -6,15 +6,13 @@ import UserStoryForm from '../components/UserStoryForm';
 const ProductBacklogPage = () => {
   const { projectId } = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { stories, refreshBacklog } = useStories(projectId); 
-
-  const currentProjectId = projectId || "nek-id-projekta";
+  const { stories, addStory, loading, error } = useStories(projectId);
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Product Backlog</h1>
-        <button 
+        <button
           className="bg-green-600 text-white px-4 py-2 rounded"
           onClick={() => setIsSidebarOpen(true)}
         >
@@ -27,15 +25,15 @@ const ProductBacklogPage = () => {
           <div key={story.id} className="border p-2 mb-2">{story.name}</div>
         ))}
       </div>
-    
+
       {isSidebarOpen && (
-        <UserStoryForm 
-          projectId={currentProjectId}
-          existingStories={stories || []} 
-          onStoryCreated={(newStory) => {
-             if(refreshBacklog) refreshBacklog(); 
-          }}
+        <UserStoryForm
+          projectId={projectId}
+          onStoryCreated={() => setIsSidebarOpen(false)}
           onClose={() => setIsSidebarOpen(false)}
+          addStory={addStory}
+          loading={loading}
+          error={error}
         />
       )}
     </div>
