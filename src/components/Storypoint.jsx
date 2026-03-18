@@ -1,15 +1,13 @@
-function Storypoint({ storypoint, onAddTimeRequired, isAssigned }) {
-  const showAddTimeButton = !storypoint.realized && !isAssigned;
+function Storypoint({ storypoint, onAddTimeRequired }) {
+  const showAddTimeButton = !storypoint.realised && !storypoint.assigned;
 
   return (
     <article className="storypoint-card">
       <div className="storypoint-card__header">
         <h3>{storypoint.name}</h3>
-        {storypoint.FK_priorityId && (
-          <span className="priority">
-            Priority: {storypoint.FK_priorityId}
-          </span>
-        )}
+        <span className={`priority priority--${storypoint.priority.toLowerCase()}`}>
+          {storypoint.priority}
+        </span>
       </div>
 
       <p className="storypoint-card__description">{storypoint.description}</p>
@@ -19,12 +17,26 @@ function Storypoint({ storypoint, onAddTimeRequired, isAssigned }) {
           <strong>Business Value:</strong> {storypoint.businessValue}
         </div>
         <div>
-          <strong>Accepted:</strong> {storypoint.accepted ? "Yes" : "No"}
+          <strong>Assigned:</strong> {storypoint.assigned ? "Yes" : "No"}
         </div>
         <div>
-          <strong>Time Complexity:</strong>{" "}
-          {storypoint.timeComplexity !== null ? storypoint.timeComplexity : "Not set"}
+          <strong>Time Required:</strong>{" "}
+          {storypoint.timeRequired !== null ? storypoint.timeRequired : "Not set"}
         </div>
+      </div>
+
+      <div className="storypoint-card__tests">
+        <strong>Tests:</strong>
+        <ul>
+          {storypoint.tests.map((test, index) => (
+            <li key={index}>{test}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="storypoint-card__comment">
+        <strong>Comment:</strong>
+        <p>{storypoint.comment || "No comment yet."}</p>
       </div>
 
       {showAddTimeButton && (

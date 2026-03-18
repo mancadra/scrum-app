@@ -32,7 +32,7 @@ export async function getRealizedStories(projectId) {
 
   const { data, error } = await supabase
     .from('UserStories')
-    .select('id, name, description, businessValue, timeComplexity, FK_priorityId, accepted')
+    .select('id, name, description, businessValue, timeComplexity, FK_priorityId')
     .eq('FK_projectId', projectId)
     .eq('realized', true)
 
@@ -76,7 +76,7 @@ export async function getAssignedStories(projectId) {
   // Fetch the actual stories that are not realized
   const { data, error } = await supabase
     .from('UserStories')
-    .select('id, name, description, businessValue, timeComplexity, FK_priorityId, accepted')
+    .select('id, name, description, businessValue, timeComplexity, FK_priorityId')
     .eq('FK_projectId', projectId)
     .eq('realized', false)
     .in('id', assignedStoryIds)
@@ -92,20 +92,36 @@ export async function getUnassignedStories(projectId) {
   const user = await getAuthenticatedUser()
   await checkProjectMembership(projectId, user.id)
 
-  // Get ALL story IDs that are linked to any sprint (past, active, or future)
-  const { data: allLinks, error: linkError } = await supabase
-    .from('SprintUserStories')
-    .select('FK_userStoryId, Sprints!inner(FK_projectId)')
-    .eq('Sprints.FK_projectId', projectId)
+  const now = new Date().toISOString()
 
-  if (linkError) throw new Error(linkError.message)
+  // Find active sprint(s) for this project
+  const { data: activeSprints, error: sprintError } = await supabase
+    .from('Sprints')
+    .select('id')
+    .eq('FK_projectId', projectId)
+    .lte('startingDate', now)
+    .gte('endingDate', now)
 
-  const assignedStoryIds = allLinks?.map(l => l.FK_userStoryId) ?? []
+  if (sprintError) throw new Error(sprintError.message)
 
-  // Fetch all unrealized stories not linked to any sprint
+  let assignedStoryIds = []
+
+  if (activeSprints && activeSprints.length > 0) {
+    const activeSprintIds = activeSprints.map(s => s.id)
+
+    const { data: sprintLinks, error: linkError } = await supabase
+      .from('SprintUserStories')
+      .select('FK_userStoryId')
+      .in('FK_sprintId', activeSprintIds)
+
+    if (linkError) throw new Error(linkError.message)
+    assignedStoryIds = sprintLinks?.map(l => l.FK_userStoryId) ?? []
+  }
+
+  // Fetch all unrealized stories not in the assigned list
   let query = supabase
     .from('UserStories')
-    .select('id, name, description, businessValue, timeComplexity, FK_priorityId, accepted')
+    .select('id, name, description, businessValue, timeComplexity, FK_priorityId')
     .eq('FK_projectId', projectId)
     .eq('realized', false)
 
