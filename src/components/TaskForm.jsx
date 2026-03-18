@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useTasks } from '../hooks/useTasks';
+import './TaskForm.css';
 
-/**
- * @param {Object} story - Zgodba, ki ji dodajamo nalogo
- * @param {Object} activeSprint - Trenutni aktivni sprint
- * @param {Array} projectMembers - Člani razvojne skupine na projektu
- */
-const TaskForm = ({ story, activeSprint, projectMembers, onSuccess }) => {
-  const { addTask } = useTasks();
+
+const TaskForm = ({ stories = [], activeSprint, projectMembers = [], onSuccess }) => {
+  const { handleCreateTask } = useTasks();
+  const [selectedStoryId, setSelectedStoryId] = useState('');
   const [formData, setFormData] = useState({
     description: '',
     estimatedTime: '',
@@ -15,100 +13,130 @@ const TaskForm = ({ story, activeSprint, projectMembers, onSuccess }) => {
   });
   const [error, setError] = useState('');
 
-  const validate = () => {
-    // 1. Preveri za zgodbo izven aktivnega sprinta
-    // Predpostavljamo, da story.sprint_id pove, v katerem sprintu je zgodba
-    if (!activeSprint || story.sprint_id !== activeSprint.id) {
-      return "Naloge lahko dodajate le zgodbam znotraj AKTIVNEGA sprinta.";
-    }
-
-    // 2. Preveri za že realizirano zgodbo
-    if (story.status === 'DONE' || story.is_realized) {
-      return "Ni mogoče dodajati nalog k že realizirani zgodbi.";
-    }
-
-    // 3. Preveri za neregularno oceno časa
-    const hours = parseFloat(formData.estimatedTime);
-    if (isNaN(hours) || hours <= 0 || hours > 100) {
-      return "Vnesite realno oceno časa (npr. med 0.5 in 100 urami).";
-    }
-
-    return null;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationError = validate();
+    setError('');
+
+    await handleCreateTask(selectedStory.id, {
+  description: formData.description.trim(),
+  timecomplexity: hours,
+  FK_proposedDeveloper: formData.proposedMemberId || null
+});
+
+    // 1. Iskanje izbrane zgodbe
+    const storyIdNum = parseInt(selectedStoryId);
+    const selectedStory = stories.find(s => s.id === storyIdNum);
     
-    if (validationError) {
-      setError(validationError);
+    if (!selectedStory) {
+      setError("Prosimo, izberite User Story.");
       return;
     }
 
+    // 2. Validacija časa
+    const hours = parseFloat(formData.estimatedTime);
+    if (isNaN(hours) || hours <= 0) {
+      setError("Vnesite veljavno oceno časa (več kot 0).");
+      return;
+    }
+
+    // 3. Validacija aktivnega sprinta (glede na tvoj backend)
+    // Preverimo, če se projekt ujema
+    if (!activeSprint || selectedStory.FK_projectId !== activeSprint.FK_projectId) {
+       setError("Zgodba mora pripadati projektu aktivnega sprinta.");
+       return;
+    }
+
     try {
-      await addTask({
-        story_id: story.id,
-        description: formData.description,
-        estimated_time: parseFloat(formData.estimatedTime),
-        assigned_user_id: formData.proposedMemberId || null,
-        status: 'PENDING' // Član mora nalogo še sprejeti
+      // POMEMBNO: Klic mora biti usklajen s tvojim services/tasks.js
+      // Prvi argument je userStoryId, drugi je objekt s podatki
+      await addTask(selectedStory.id, {
+        description: formData.description.trim(),
+        timecomplexity: hours,
+        FK_proposedDeveloper: formData.proposedMemberId || null
       });
       
-      onSuccess(); // Zapre modal ali počisti formo
+      onSuccess(); 
     } catch (err) {
-      setError("Napaka pri komunikaciji s strežnikom.");
+      setError(err.message || "Napaka pri shranjevanju.");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-3 border rounded">
-      <h5>Nova naloga za: {story.title}</h5>
-      
-      {error && <div className="alert alert-danger py-2">{error}</div>}
+  <form onSubmit={handleSubmit} className="task-form-container">
+    <div className="form-section">
+      <label className="form-label-custom">
+        <span className="icon">📖</span> Pripada User Story
+      </label>
+      <select 
+        className="form-select-custom"
+        value={selectedStoryId}
+        onChange={(e) => setSelectedStoryId(e.target.value)}
+        required
+      >
+        <option value="">-- Izberi zgodbo ({stories.length} na voljo) --</option>
+        {stories.map(s => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+      </select>
+    </div>
 
-      <div className="mb-2">
-        <label className="form-label small">Opis naloge</label>
-        <textarea 
-          className="form-control form-control-sm"
-          value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
+    {error && <div className="error-badge">{error}</div>}
+
+    <div className="form-section">
+      <label className="form-label-custom">
+        <span className="icon">📝</span> Opis naloge
+      </label>
+      <textarea 
+        className="form-control-custom"
+        rows="4"
+        value={formData.description}
+        onChange={(e) => setFormData({...formData, description: e.target.value})}
+        placeholder="Napišite, kaj je potrebno narediti (npr. Implementacija API klica)..."
+        required
+      />
+    </div>
+
+    <div className="form-row-custom">
+      <div className="form-section flex-1">
+        <label className="form-label-custom">
+          <span className="icon">⏱️</span> Ocena (ure)
+        </label>
+        <input 
+          type="number" 
+          step="0.5"
+          min="0.5"
+          className="form-control-custom"
+          value={formData.estimatedTime}
+          onChange={(e) => setFormData({...formData, estimatedTime: e.target.value})}
+          placeholder="npr. 4.5"
           required
         />
       </div>
 
-      <div className="row">
-        <div className="col-md-6 mb-2">
-          <label className="form-label small">Ocena (ure)</label>
-          <input 
-            type="number" 
-            step="0.5"
-            className="form-control form-control-sm"
-            value={formData.estimatedTime}
-            onChange={(e) => setFormData({...formData, estimatedTime: e.target.value})}
-            required
-          />
-        </div>
-
-        <div className="col-md-6 mb-2">
-          <label className="form-label small">Član ekipe (opcijsko)</label>
-          <select 
-            className="form-select form-select-sm"
-            value={formData.proposedMemberId}
-            onChange={(e) => setFormData({...formData, proposedMemberId: e.target.value})}
-          >
-            <option value="">Izberi člana...</option>
-            {projectMembers.map(m => (
-              <option key={m.id} value={m.id}>{m.full_name}</option>
-            ))}
-          </select>
-        </div>
+      <div className="form-section flex-1 ms-3">
+        <label className="form-label-custom">
+          <span className="icon">👤</span> Razvijalec
+        </label>
+        <select 
+          className="form-select-custom"
+          value={formData.proposedMemberId}
+          onChange={(e) => setFormData({...formData, proposedMemberId: e.target.value})}
+        >
+          <option value="">Vsi</option>
+          {projectMembers.map(m => (
+            <option key={m.id} value={m.id}>{m.full_name || m.username}</option>
+          ))}
+        </select>
       </div>
+    </div>
 
-      <button type="submit" className="btn btn-primary btn-sm mt-2 w-100">
-        Shrani nalogo
+    <div className="form-actions">
+      <button type="submit" className="btn-save-task">
+        Ustvari nalogo
       </button>
-    </form>
-  );
+    </div>
+  </form>
+);
 };
 
 export default TaskForm;
