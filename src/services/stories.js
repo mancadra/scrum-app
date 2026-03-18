@@ -70,12 +70,10 @@ export async function getPriorities() {
 
 export async function addStoriesToSprint(sprintId, storyIds) {
 
-  // 1. Check authentication
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
   if (!user) throw new Error('Not authenticated.')
 
-  // 2. Fetch the sprint to get projectId
   const { data: sprint, error: sprintError } = await supabase
     .from('Sprints')
     .select('id, FK_projectId')
@@ -85,7 +83,6 @@ export async function addStoriesToSprint(sprintId, storyIds) {
   if (sprintError) throw new Error(sprintError.message)
   if (!sprint) throw new Error('Sprint not found.')
 
-  // 3. Check user is a Scrum Master in this project
   const { data: membership, error: memberError } = await supabase
     .from('ProjectUsers')
     .select('FK_projectRoleId, ProjectRoles(projectRole)')
@@ -101,7 +98,6 @@ export async function addStoriesToSprint(sprintId, storyIds) {
     throw new Error('Only Scrum Masters can add stories to a sprint.')
   }
 
-  // 4. Fetch all the requested stories
   const { data: stories, error: storiesError } = await supabase
     .from('UserStories')
     .select('id, realized, timeComplexity')
@@ -109,19 +105,16 @@ export async function addStoriesToSprint(sprintId, storyIds) {
 
   if (storiesError) throw new Error(storiesError.message)
 
-  // 5. Check for realized stories
   const realizedStories = stories.filter(s => s.realized)
   if (realizedStories.length > 0) {
     throw new Error(`Cannot add realized stories to a sprint: ${realizedStories.map(s => s.id).join(', ')}`)
   }
 
-  // 6. Check for stories without time complexity
   const unestimatedStories = stories.filter(s => !s.timeComplexity || s.timeComplexity <= 0)
   if (unestimatedStories.length > 0) {
     throw new Error(`Cannot add stories without time complexity estimate: ${unestimatedStories.map(s => s.id).join(', ')}`)
   }
 
-  // 7. Check if any stories are already assigned to an active sprint
   const now = new Date().toISOString()
 
   const { data: activeLinks, error: activeLinkError } = await supabase
@@ -142,7 +135,6 @@ export async function addStoriesToSprint(sprintId, storyIds) {
     throw new Error(`Some stories are already assigned to an active sprint: ${alreadyActive.map(l => l.FK_userStoryId).join(', ')}`)
   }
 
-  // 8. Insert into SprintUserStories
   const inserts = storyIds.map(storyId => ({
     FK_sprintId: sprintId,
     FK_userStoryId: storyId,
