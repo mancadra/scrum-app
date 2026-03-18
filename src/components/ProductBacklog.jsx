@@ -1,151 +1,86 @@
 import Storypoint from "./Storypoint";
 import "./ProductBacklog.css";
-import { useState } from "react";
-import "./ProductBacklog.css";
-import "./Storypoint.css";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { getRealizedStories, getAssignedStories, getUnassignedStories } from "../services/productBacklog";
 
 function ProductBacklog() {
-  const [storypoints, setStorypoints] = useState([
-    {
-      id: 1,
-      name: "User Login",
-      description: "As a user, I want to log in securely so that I can access my account.",
-      tests: [
-        "Login succeeds with valid credentials",
-        "Login fails with invalid password",
-        "User sees an error message on failure",
-      ],
-      priority: "High",
-      businessValue: 100,
-      timeRequired: null,
-      comment: "",
-      realised: true,
-      assigned: true,
-    },
-    {
-      id: 2,
-      name: "User Registration",
-      description: "As a new user, I want to create an account so that I can use the platform.",
-      tests: [
-        "Registration succeeds with valid data",
-        "Duplicate email is rejected",
-        "Password rules are validated",
-      ],
-      priority: "High",
-      businessValue: 90,
-      timeRequired: null,
-      comment: "",
-      realised: false,
-      assigned: true,
-    },
-    {
-      id: 3,
-      name: "Profile Editing",
-      description: "As a user, I want to edit my profile so that my information stays up to date.",
-      tests: [
-        "Profile changes are saved",
-        "Invalid input is rejected",
-        "Updated data is visible after refresh",
-      ],
-      priority: "Medium",
-      businessValue: 70,
-      timeRequired: null,
-      comment: "",
-      realised: false,
-      assigned: false,
-    },
-    {
-      id: 4,
-      name: "Password Reset",
-      description: "As a user, I want to reset my password so that I can recover my account.",
-      tests: [
-        "Reset email is sent",
-        "Token expires correctly",
-        "New password can be set successfully",
-      ],
-      priority: "Medium",
-      businessValue: 80,
-      timeRequired: null,
-      comment: "",
-      realised: true,
-      assigned: true,
-    },
-    {
-      id: 5,
-      name: "Dark Mode",
-      description: "As a user, I want a dark mode option so that I can use the app comfortably at night.",
-      tests: [
-        "Theme switches correctly",
-        "Preference persists after reload",
-        "All pages respect theme colors",
-      ],
-      priority: "Low",
-      businessValue: 50,
-      timeRequired: null,
-      comment: "",
-      realised: false,
-      assigned: false,
-    },
-  ]);
+  const { projectId } = useParams()
+  const [realized, setRealized] = useState([])
+  const [assigned, setAssigned] = useState([])
+  const [unassigned, setUnassigned] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const [selectedStorypoint, setSelectedStorypoint] = useState(null);
-  const [timeRequiredInput, setTimeRequiredInput] = useState("");
+  const [selectedStorypoint, setSelectedStorypoint] = useState(null)
+  const [timeRequiredInput, setTimeRequiredInput] = useState("")
 
-  const realisedStorypoints = storypoints.filter((storypoint) => storypoint.realised);
-  const notRealisedAssigned = storypoints.filter(
-    (storypoint) => !storypoint.realised && storypoint.assigned
-  );
-  const notRealisedUnassigned = storypoints.filter(
-    (storypoint) => !storypoint.realised && !storypoint.assigned
-  );
+  useEffect(() => {
+    async function loadBacklog() {
+      setLoading(true)
+      setError(null)
+      try {
+        const [realizedData, assignedData, unassignedData] = await Promise.all([
+          getRealizedStories(projectId),
+          getAssignedStories(projectId),
+          getUnassignedStories(projectId),
+        ])
+        setRealized(realizedData)
+        setAssigned(assignedData)
+        setUnassigned(unassignedData)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadBacklog()
+  }, [projectId])
 
   const openTimeRequiredModal = (storypoint) => {
-    setSelectedStorypoint(storypoint);
-    setTimeRequiredInput(
-      storypoint.timeRequired !== null ? String(storypoint.timeRequired) : ""
-    );
-  };
+    setSelectedStorypoint(storypoint)
+    setTimeRequiredInput(storypoint.timeComplexity !== null ? String(storypoint.timeComplexity) : "")
+  }
 
   const closeTimeRequiredModal = () => {
-    setSelectedStorypoint(null);
-    setTimeRequiredInput("");
-  };
+    setSelectedStorypoint(null)
+    setTimeRequiredInput("")
+  }
 
   const handleSaveTimeRequired = () => {
-    const parsedValue = Number(timeRequiredInput);
+    const parsedValue = Number(timeRequiredInput)
+    if (!timeRequiredInput || Number.isNaN(parsedValue) || parsedValue < 0) return
 
-    if (!timeRequiredInput || Number.isNaN(parsedValue) || parsedValue < 0) {
-      return;
-    }
+    // Update locally for now — wire up to DB when that endpoint is ready
+    const updateList = (list) =>
+      list.map(s => s.id === selectedStorypoint.id ? { ...s, timeComplexity: parsedValue } : s)
 
-    setStorypoints((currentStorypoints) =>
-      currentStorypoints.map((storypoint) =>
-        storypoint.id === selectedStorypoint.id
-          ? { ...storypoint, timeRequired: parsedValue }
-          : storypoint
-      )
-    );
+    setRealized(updateList)
+    setAssigned(updateList)
+    setUnassigned(updateList)
+    closeTimeRequiredModal()
+  }
 
-    closeTimeRequiredModal();
-  };
-
-  const renderStorypoints = (items) => {
+  const renderStorypoints = (items, isAssigned = false) => {
     if (items.length === 0) {
-      return <p className="empty-state">No storypoints in this category.</p>;
+      return <p className="empty-state">No storypoints in this category.</p>
     }
-
     return (
       <div className="storypoint-grid">
         {items.map((storypoint) => (
           <Storypoint
             key={storypoint.id}
             storypoint={storypoint}
+            isAssigned={isAssigned}
             onAddTimeRequired={openTimeRequiredModal}
           />
         ))}
       </div>
-    );
-  };
+    )
+  }
+
+  if (loading) return <p>Loading backlog...</p>
+  if (error) return <p className="error">{error}</p>
 
   return (
     <main className="product-backlog">
@@ -153,35 +88,27 @@ function ProductBacklog() {
 
       <section className="backlog-section">
         <h2>Realised</h2>
-        {renderStorypoints(realisedStorypoints)}
+        {renderStorypoints(realized)}
       </section>
 
       <section className="backlog-section">
         <h2>Not Realised</h2>
-
         <div className="nested-section">
           <h3>Assigned</h3>
-          {renderStorypoints(notRealisedAssigned)}
+          {renderStorypoints(assigned, true)}
         </div>
-
         <div className="nested-section">
           <h3>Unassigned</h3>
-          {renderStorypoints(notRealisedUnassigned)}
+          {renderStorypoints(unassigned, false)}
         </div>
       </section>
 
       {selectedStorypoint && (
         <div className="modal-overlay" onClick={closeTimeRequiredModal}>
-          <div
-            className="modal"
-            onClick={(event) => event.stopPropagation()}
-          >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>Add Time Required</h2>
             <p className="modal__subtitle">{selectedStorypoint.name}</p>
-
-            <label className="modal__label" htmlFor="timeRequired">
-              Time required
-            </label>
+            <label className="modal__label" htmlFor="timeRequired">Time required</label>
             <input
               id="timeRequired"
               className="modal__input"
@@ -189,22 +116,13 @@ function ProductBacklog() {
               min="0"
               step="1"
               value={timeRequiredInput}
-              onChange={(event) => setTimeRequiredInput(event.target.value)}
+              onChange={(e) => setTimeRequiredInput(e.target.value)}
             />
-
             <div className="modal__actions">
-              <button
-                type="button"
-                className="modal__button modal__button--secondary"
-                onClick={closeTimeRequiredModal}
-              >
+              <button type="button" className="modal__button modal__button--secondary" onClick={closeTimeRequiredModal}>
                 Cancel
               </button>
-              <button
-                type="button"
-                className="modal__button modal__button--primary"
-                onClick={handleSaveTimeRequired}
-              >
+              <button type="button" className="modal__button modal__button--primary" onClick={handleSaveTimeRequired}>
                 OK
               </button>
             </div>
@@ -212,7 +130,7 @@ function ProductBacklog() {
         </div>
       )}
     </main>
-  );
+  )
 }
 
-export default ProductBacklog;
+export default ProductBacklog
