@@ -12,7 +12,6 @@ const SprintPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Tvoj servis vrne: { sprint: {...}, stories: [...] }
       const data = await getSprintBacklog(projectId);
       setBacklog(data);
     } catch (err) {
@@ -42,7 +41,6 @@ const SprintPage = () => {
           
           <div className="card-body bg-light">
             <div className="row g-2">
-              {/* KOLONA 1: NEDODELJENE */}
               <div className="col-md-3">
                 <h6 className="text-muted text-uppercase small fw-bold">Nedodeljene</h6>
                 {story.tasks.unassigned.map(task => (
@@ -50,7 +48,7 @@ const SprintPage = () => {
                 ))}
               </div>
 
-              {/* KOLONA 2: DODELJENE */}
+          
               <div className="col-md-3">
                 <h6 className="text-muted text-uppercase small fw-bold">Dodeljene</h6>
                 {story.tasks.assigned.map(task => (
@@ -58,7 +56,7 @@ const SprintPage = () => {
                 ))}
               </div>
 
-              {/* KOLONA 3: AKTIVNE (TimeTable start brez stop) */}
+           
               <div className="col-md-3">
                 <h6 className="text-muted text-uppercase small fw-bold">Aktivne</h6>
                 {story.tasks.active.map(task => (
@@ -66,7 +64,6 @@ const SprintPage = () => {
                 ))}
               </div>
 
-              {/* KOLONA 4: ZAKLJUČENE */}
               <div className="col-md-3">
                 <h6 className="text-muted text-uppercase small fw-bold">Zaključene</h6>
                 {story.tasks.finished.map(task => (
