@@ -1,87 +1,83 @@
 import React, { useState } from "react";
 import "./AddSprintComponent.css";
 
-export default function AddSprintComponent({ onClose, onAddSprint }) {
+export default function AddSprintComponent({ onClose, onAddSprint, loading }) {
   const [title, setTitle] = useState("");
   const [speed, setSpeed] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const handleSaveSprint = () => {
-    onAddSprint({
+  const handleSaveSprint = async (event) => {
+    event.preventDefault();
+
+    const result = await onAddSprint({
       title,
       speed: Number(speed),
       startDate,
       endDate,
     });
+
+    if (result) {
+      onClose();
+    }
   };
 
   return (
-    <div className="add-sprint-modal__overlay" onClick={onClose}>
+    <div className="sidebar-overlay" onClick={onClose}>
       <div
-        className="add-sprint-modal"
+        className="sidebar-container add-sprint-sidebar"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="add-sprint-modal__title">Add Sprint</h2>
-
-        <div className="add-sprint-modal__field">
-          <label className="add-sprint-modal__label">Title</label>
-          <input
-            type="text"
-            placeholder="Enter sprint title"
-            className="add-sprint-modal__input"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </div>
-
-        <div className="add-sprint-modal__field">
-          <label className="add-sprint-modal__label">Speed</label>
-          <input
-            type="number"
-            placeholder="Enter sprint speed"
-            className="add-sprint-modal__input"
-            value={speed}
-            onChange={(event) => setSpeed(event.target.value)}
-          />
-        </div>
-
-        <div className="add-sprint-modal__field">
-          <label className="add-sprint-modal__label">Start Date</label>
-          <input
-            type="date"
-            className="add-sprint-modal__input"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-          />
-        </div>
-
-        <div className="add-sprint-modal__field">
-          <label className="add-sprint-modal__label">End Date</label>
-          <input
-            type="date"
-            className="add-sprint-modal__input"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-          />
-        </div>
-
-        <div className="add-sprint-modal__actions">
-          <button
-            type="button"
-            className="add-sprint-modal__button add-sprint-modal__button--secondary"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="add-sprint-modal__button add-sprint-modal__button--primary"
-            onClick={handleSaveSprint}
-          >
-            Save Sprint
+        <div className="sidebar-header">
+          <h2>Add Sprint</h2>
+          <button type="button" onClick={onClose} className="close-btn">
+            ✕
           </button>
         </div>
+
+        <form className="sprint-form" onSubmit={handleSaveSprint}>
+          <div className="form-group">
+            <label>Title</label>
+            <input
+              type="text"
+              placeholder="Enter sprint title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Speed</label>
+            <input
+              type="number"
+              placeholder="Enter sprint speed"
+              value={speed}
+              onChange={(event) => setSpeed(event.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Start Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>End Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+            />
+          </div>
+
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? "Saving..." : "Save Sprint"}
+          </button>
+        </form>
       </div>
     </div>
   );
