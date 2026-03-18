@@ -4,8 +4,10 @@ import "./NavbarComponent.css";
 
 function NavbarComponent({
   projects = [],
-  username = "user",
-  userInitial = "U",
+  selectedProjectId = null,
+  onProjectSelect,
+  username = 'user',
+  userInitial = 'U',
   onLogout,
   isAdmin = false,
 }) {
@@ -23,18 +25,25 @@ function NavbarComponent({
     }
   };
 
+  const handleProjectClick = (project) => {
+    if (onProjectSelect) {
+      onProjectSelect(project);
+    }
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-projects">
         {projects.map((project) => (
           <button
             key={project.id}
-            className="navbar-project-button"
-            onClick={() => navigate(`/project/${project.id}/backlog`)}
+            className={`navbar-project-button ${selectedProjectId === project.id ? 'active' : ''}`}
+            onClick={() => handleProjectClick(project)}
           >
             {project.name}
           </button>
         ))}
+
         {isAdmin && (
           <>
             <button

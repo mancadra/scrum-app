@@ -1,5 +1,16 @@
 import { supabase } from "../config/supabase";
 
+export async function getSprintsForProject(projectId) {
+  const { data, error } = await supabase
+    .from('Sprints')
+    .select('id, startingDate, endingDate, startingSpeed')
+    .eq('FK_projectId', projectId)
+    .order('startingDate', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function createSprint(projectId, { startingDate, endingDate, startingSpeed }) {
 
   const { data, error: sessionError } = await supabase.auth.getSession()

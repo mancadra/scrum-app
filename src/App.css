@@ -60,3 +60,12 @@ body{
 .animate-bounce-short {
   animation: bounce-short 0.5s ease-in-out 1;
 }
+
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
