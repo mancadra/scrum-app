@@ -1,68 +1,48 @@
 import React, { useState } from 'react';
-import { useTasks } from '../hooks/useTasks';
+import { createTask } from '../services/tasks';
 
 /**
  * @param {Object} story - Zgodba, ki ji dodajamo nalogo
- * @param {Object} activeSprint - Trenutni aktivni sprint
- * @param {Array} projectMembers - Člani razvojne skupine na projektu
+ * @param {Array} projectMembers - Člani razvojne skupine (Developer) na projektu
+ * @param {Function} onSuccess - Pokliče se po uspešnem dodajanju naloge
  */
-const TaskForm = ({ story, activeSprint, projectMembers, onSuccess }) => {
-  const { addTask } = useTasks();
+const TaskForm = ({ story, projectMembers, onSuccess }) => {
   const [formData, setFormData] = useState({
     description: '',
     estimatedTime: '',
     proposedMemberId: ''
   });
   const [error, setError] = useState('');
-
-  const validate = () => {
-    // 1. Preveri za zgodbo izven aktivnega sprinta
-    // Predpostavljamo, da story.sprint_id pove, v katerem sprintu je zgodba
-    if (!activeSprint || story.sprint_id !== activeSprint.id) {
-      return "Naloge lahko dodajate le zgodbam znotraj AKTIVNEGA sprinta.";
-    }
-
-    // 2. Preveri za že realizirano zgodbo
-    if (story.status === 'DONE' || story.is_realized) {
-      return "Ni mogoče dodajati nalog k že realizirani zgodbi.";
-    }
-
-    // 3. Preveri za neregularno oceno časa
-    const hours = parseFloat(formData.estimatedTime);
-    if (isNaN(hours) || hours <= 0 || hours > 100) {
-      return "Vnesite realno oceno časa (npr. med 0.5 in 100 urami).";
-    }
-
-    return null;
-  };
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationError = validate();
-    
-    if (validationError) {
-      setError(validationError);
+    setError('');
+
+    const hours = parseFloat(formData.estimatedTime);
+    if (isNaN(hours) || hours <= 0) {
+      setError("Vnesite realno oceno časa (npr. 0.5 ali več).");
       return;
     }
 
+    setLoading(true);
     try {
-      await addTask({
-        story_id: story.id,
+      await createTask(story.id, {
         description: formData.description,
-        estimated_time: parseFloat(formData.estimatedTime),
-        assigned_user_id: formData.proposedMemberId || null,
-        status: 'PENDING' // Član mora nalogo še sprejeti
+        timecomplexity: hours,
+        FK_proposedDeveloper: formData.proposedMemberId || null,
       });
-      
-      onSuccess(); // Zapre modal ali počisti formo
+      onSuccess();
     } catch (err) {
-      setError("Napaka pri komunikaciji s strežnikom.");
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-3 border rounded">
-      <h5>Nova naloga za: {story.title}</h5>
+      <h5>Nova naloga za: {story.name}</h5>
       
       {error && <div className="alert alert-danger py-2">{error}</div>}
 
@@ -104,8 +84,8 @@ const TaskForm = ({ story, activeSprint, projectMembers, onSuccess }) => {
         </div>
       </div>
 
-      <button type="submit" className="btn btn-primary btn-sm mt-2 w-100">
-        Shrani nalogo
+      <button type="submit" disabled={loading} className="btn btn-primary btn-sm mt-2 w-100">
+        {loading ? 'Shranjevanje...' : 'Shrani nalogo'}
       </button>
     </form>
   );

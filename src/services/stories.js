@@ -217,9 +217,12 @@ export async function getStoriesForProject(projectId) {
     const { data, error } = await supabase                                                                   
         .from('UserStories')
         .select(`
-            id, name, description, businessValue, timeComplexity, accepted, realized,                        
-            Priorities(priority), SprintUserStories(FK_sprintId)                                                                   
-        `).eq('FK_projectId', projectId)
+            id, name, description, businessValue, timeComplexity, accepted, realized,
+            Priorities(priority),
+            SprintUserStories(FK_sprintId),
+            Tasks(id, description, timecomplexity, finished, FK_acceptedDeveloper, FK_proposedDeveloper)
+        `)
+        .eq('FK_projectId', projectId)
         .order('id')                                                                                         
     if (error) throw new Error(error.message)
 
