@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import "./AddSprintComponent.css";
 
 export default function AddSprintComponent({ onClose, onAddSprint, loading }) {
-  const [title, setTitle] = useState("");
   const [speed, setSpeed] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -11,7 +10,6 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading }) {
     event.preventDefault();
 
     const result = await onAddSprint({
-      title,
       speed: Number(speed),
       startDate,
       endDate,
@@ -36,16 +34,6 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading }) {
         </div>
 
         <form className="sprint-form" onSubmit={handleSaveSprint}>
-          <div className="form-group">
-            <label>Title</label>
-            <input
-              type="text"
-              placeholder="Enter sprint title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </div>
-
           <div className="form-group">
             <label>Speed</label>
             <input
