@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import UserStoryForm from './UserStoryForm';
 import BacklogStoryComponent from './BacklogStoryComponent';
-import { createUserStory } from '../services/stories';
+import { createUserStory, setTimeComplexity } from '../services/stories';
 import {
   getRealizedStories,
   getAssignedStories,
@@ -12,6 +12,9 @@ import './ProjectPageBacklogComponent.css';
 const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
+  const [timeComplexityStory, setTimeComplexityStory] = useState(null);
+  const [timeComplexityValue, setTimeComplexityValue] = useState('');
+  const [savingTimeComplexity, setSavingTimeComplexity] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,6 +59,18 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
     return <div className="project-panel">No project selected.</div>;
   }
 
+  const refreshStories = async () => {
+    const [realizedData, assignedData, unassignedData] = await Promise.all([
+      getRealizedStories(project.id),
+      getAssignedStories(project.id),
+      getUnassignedStories(project.id),
+    ]);
+
+    setRealizedStories(realizedData ?? []);
+    setAssignedStories(assignedData ?? []);
+    setUnassignedStories(unassignedData ?? []);
+  };
+
   const handleCreateStory = async (storyData) => {
     setLoading(true);
     setError('');
@@ -66,15 +81,7 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
         await onStoryCreated(createdStory);
       }
 
-      const [realizedData, assignedData, unassignedData] = await Promise.all([
-        getRealizedStories(project.id),
-        getAssignedStories(project.id),
-        getUnassignedStories(project.id),
-      ]);
-
-      setRealizedStories(realizedData ?? []);
-      setAssignedStories(assignedData ?? []);
-      setUnassignedStories(unassignedData ?? []);
+      await refreshStories();
       setIsFormOpen(false);
       return createdStory;
     } catch (err) {
@@ -82,6 +89,36 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
       return null;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenTimeComplexityModal = (story) => {
+    setTimeComplexityStory(story);
+    setTimeComplexityValue(story?.timeComplexity?.toString?.() ?? '');
+    setError('');
+  };
+
+  const handleSaveTimeComplexity = async () => {
+    if (!timeComplexityStory?.id) return;
+
+    setSavingTimeComplexity(true);
+    setError('');
+
+    try {
+      const parsedValue = Number(timeComplexityValue);
+
+      if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+        throw new Error('Time complexity must be a positive number.');
+      }
+
+      await setTimeComplexity(timeComplexityStory.id, parsedValue);
+      await refreshStories();
+      setTimeComplexityStory(null);
+      setTimeComplexityValue('');
+    } catch (err) {
+      setError(err.message || 'Failed to update time complexity.');
+    } finally {
+      setSavingTimeComplexity(false);
     }
   };
 
@@ -123,6 +160,7 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
             story={story}
             priority={getStoryPriority(story)}
             onClick={setSelectedStory}
+            onTimeComplexityClick={handleOpenTimeComplexityModal}
           />
         ))}
       </div>
@@ -214,6 +252,58 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
               {selectedStory.sprintId && (
                 <p><strong>Sprint:</strong> {selectedStory.sprintId}</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {timeComplexityStory && (
+        <div className="story-modal-overlay" onClick={() => setTimeComplexityStory(null)}>
+          <div className="story-modal story-modal--compact" onClick={(e) => e.stopPropagation()}>
+            <div className="story-modal__header">
+              <h2>Set time complexity</h2>
+              <button
+                type="button"
+                className="story-modal__close"
+                onClick={() => setTimeComplexityStory(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="story-modal__content">
+              <p><strong>Story:</strong> {timeComplexityStory.name}</p>
+
+              <label className="story-modal__field">
+                <span>Time complexity</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={timeComplexityValue}
+                  onChange={(e) => setTimeComplexityValue(e.target.value)}
+                  placeholder="e.g. 3"
+                />
+              </label>
+
+              <div className="story-modal__actions">
+                <button
+                  type="button"
+                  className="project-panel__button"
+                  onClick={handleSaveTimeComplexity}
+                  disabled={savingTimeComplexity}
+                >
+                  {savingTimeComplexity ? 'Saving…' : 'Save'}
+                </button>
+
+                <button
+                  type="button"
+                  className="story-modal__secondary-button"
+                  onClick={() => setTimeComplexityStory(null)}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
