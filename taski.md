@@ -4,6 +4,8 @@
 <br>
 
 ## TODO:
+- sprejemni testi
+- uporabniška dokumentacija
 - display lastlogin
 - display role za admina
 - userpage s podatki

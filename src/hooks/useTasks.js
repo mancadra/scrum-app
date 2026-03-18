@@ -1,23 +1,25 @@
 import { useState, useCallback } from 'react';
 // Uvozimo posamezne funkcije iz tvojega servisa
-import { 
-  getSprintBacklog, 
-  createTask, 
-  acceptTask, 
-  finishTask 
+import {
+  getSprintBacklogById,
+  createTask,
+  acceptTask,
+  finishTask
 } from '../services/tasks';
 
 export const useTasks = (projectId) => {
-  const [sprintData, setSprintData] = useState(null); // Vsebuje sprint in zgodbe z nalogami
+  const [sprintData, setSprintData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentSprintId, setCurrentSprintId] = useState(null);
 
-  // Pridobivanje celotnega backloga za sprint
-  const fetchSprintBacklog = useCallback(async (id) => {
+  const fetchSprintBacklog = useCallback(async (sprintId) => {
+    if (!sprintId) return;
+    setCurrentSprintId(sprintId);
     setLoading(true);
     setError(null);
     try {
-      const data = await getSprintBacklog(id || projectId);
+      const data = await getSprintBacklogById(projectId, sprintId);
       setSprintData(data);
     } catch (err) {
       setError(err.message);
@@ -26,33 +28,34 @@ export const useTasks = (projectId) => {
     }
   }, [projectId]);
 
-  // Dodajanje naloge
+  const refresh = useCallback(() => {
+    if (currentSprintId) fetchSprintBacklog(currentSprintId);
+  }, [currentSprintId, fetchSprintBacklog]);
+
   const handleCreateTask = async (userStoryId, taskFields) => {
     try {
       await createTask(userStoryId, taskFields);
-      await fetchSprintBacklog(); // Osvežimo vse, da dobimo nove podatke
+      refresh();
     } catch (err) {
       setError(err.message);
       throw err;
     }
   };
 
-  // Sprejemanje naloge
   const handleAcceptTask = async (taskId) => {
     try {
       await acceptTask(taskId);
-      await fetchSprintBacklog(); // Osvežimo za premik kartice v drug stolpec
+      refresh();
     } catch (err) {
       setError(err.message);
       throw err;
     }
   };
 
-  // Zaključek naloge
   const handleFinishTask = async (taskId) => {
     try {
       await finishTask(taskId);
-      await fetchSprintBacklog();
+      refresh();
     } catch (err) {
       setError(err.message);
       throw err;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./AddSprintComponent.css";
 
-export default function AddSprintComponent({ onClose, onAddSprint, loading }) {
+export default function AddSprintComponent({ onClose, onAddSprint, loading, error }) {
   const [speed, setSpeed] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -65,6 +65,7 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading }) {
           <button type="submit" className="submit-btn" disabled={loading}>
             {loading ? "Saving..." : "Save Sprint"}
           </button>
+          {error && <p style={{ color: 'red', marginTop: '0.5rem' }}>{error}</p>}
         </form>
       </div>
     </div>

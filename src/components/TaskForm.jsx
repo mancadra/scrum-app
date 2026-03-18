@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useTasks } from '../hooks/useTasks';
 import './TaskForm.css';
 
-
-const TaskForm = ({ stories = [], activeSprint, projectMembers = [], onSuccess }) => {
-  const { handleCreateTask } = useTasks();
+const TaskForm = ({ stories = [], activeSprint, handleCreateTask, projectMembers = [], onSuccess }) => {
   const [selectedStoryId, setSelectedStoryId] = useState('');
   const [formData, setFormData] = useState({
     description: '',
@@ -17,45 +14,27 @@ const TaskForm = ({ stories = [], activeSprint, projectMembers = [], onSuccess }
     e.preventDefault();
     setError('');
 
-    await handleCreateTask(selectedStory.id, {
-  description: formData.description.trim(),
-  timecomplexity: hours,
-  FK_proposedDeveloper: formData.proposedMemberId || null
-});
-
-    // 1. Iskanje izbrane zgodbe
     const storyIdNum = parseInt(selectedStoryId);
     const selectedStory = stories.find(s => s.id === storyIdNum);
-    
+
     if (!selectedStory) {
       setError("Prosimo, izberite User Story.");
       return;
     }
 
-    // 2. Validacija časa
     const hours = parseFloat(formData.estimatedTime);
     if (isNaN(hours) || hours <= 0) {
       setError("Vnesite veljavno oceno časa (več kot 0).");
       return;
     }
 
-    // 3. Validacija aktivnega sprinta (glede na tvoj backend)
-    // Preverimo, če se projekt ujema
-    if (!activeSprint || selectedStory.FK_projectId !== activeSprint.FK_projectId) {
-       setError("Zgodba mora pripadati projektu aktivnega sprinta.");
-       return;
-    }
-
     try {
-      // POMEMBNO: Klic mora biti usklajen s tvojim services/tasks.js
-      // Prvi argument je userStoryId, drugi je objekt s podatki
-      await addTask(selectedStory.id, {
+      await handleCreateTask(selectedStory.id, {
         description: formData.description.trim(),
         timecomplexity: hours,
         FK_proposedDeveloper: formData.proposedMemberId || null
       });
-      
-      onSuccess(); 
+      onSuccess();
     } catch (err) {
       setError(err.message || "Napaka pri shranjevanju.");
     }

@@ -6,23 +6,23 @@ import TaskForm from '../components/TaskForm';
 import './SprintPage.css';
 
 const SprintPage = () => {
-  const { projectId } = useParams();
-  
-  // Vse dobimo iz hooka - NI POTREBE po setLoading, setError, setData tukaj!
-  const { 
-    sprintData, 
-    loading, 
-    error, 
-    fetchSprintBacklog 
+  const { projectId, sprintId } = useParams();
+
+  const {
+    sprintData,
+    loading,
+    error,
+    fetchSprintBacklog,
+    handleCreateTask
   } = useTasks(projectId);
 
   const [showAddTask, setShowAddTask] = useState(false);
 
   useEffect(() => {
-    if (projectId) {
-      fetchSprintBacklog();
+    if (projectId && sprintId) {
+      fetchSprintBacklog(sprintId);
     }
-  }, [projectId, fetchSprintBacklog]);
+  }, [projectId, sprintId, fetchSprintBacklog]);
 
   if (loading) return <div className="p-5 text-center">Nalagam Sprint Dashboard...</div>;
   
@@ -92,13 +92,14 @@ const SprintPage = () => {
                   <button className="btn-close" onClick={() => setShowAddTask(false)}></button>
                 </div>
                 <div className="modal-body p-4">
-                  <TaskForm 
-                    stories={sprintData?.stories} 
+                  <TaskForm
+                    stories={sprintData?.stories}
                     activeSprint={sprintData?.sprint}
+                    handleCreateTask={handleCreateTask}
                     onSuccess={() => {
                       setShowAddTask(false);
-                      fetchSprintBacklog(); // Osveži podatke po dodajanju
-                    }} 
+                      fetchSprintBacklog(sprintId);
+                    }}
                   />
                 </div>
               </div>

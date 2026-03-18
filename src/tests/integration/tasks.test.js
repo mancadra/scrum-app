@@ -132,10 +132,10 @@ describe('createTask', () => {
         ).rejects.toThrow('User story not found.')
     })
 
-    it('throws if user story is not part of an active sprint', async () => {
+    it('throws if user story is not part of an active or upcoming sprint', async () => {
         await expect(
             createTask(TEST_STORY_OUTSIDE_SPRINT_ID, { description: 'Outside sprint', timecomplexity: 2 })
-        ).rejects.toThrow('User story is not part of an active sprint.')
+        ).rejects.toThrow('User story is not part of an active or upcoming sprint.')
     })
 
     it('throws if user story is already realized', async () => {

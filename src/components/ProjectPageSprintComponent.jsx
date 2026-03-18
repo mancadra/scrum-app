@@ -66,7 +66,7 @@ const ProjectPageSprintComponent = ({ project, sprints = [], onSprintCreated }) 
                   <BacklogSprintEntryComponent
                       key={sprint.id}
                       sprint={sprint}
-                      onClick={handleSprintClick}
+                      onClick={() => handleSprintClick(sprint.id)}
                   />
               ))
           ) : (
@@ -76,9 +76,10 @@ const ProjectPageSprintComponent = ({ project, sprints = [], onSprintCreated }) 
 
         {isFormOpen && (
             <AddSprintComponent
-                onClose={() => setIsFormOpen(false)}
+                onClose={() => { setIsFormOpen(false); setError(''); }}
                 onAddSprint={handleCreateSprint}
                 loading={loading}
+                error={error}
             />
         )}
       </div>

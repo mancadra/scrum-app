@@ -132,16 +132,16 @@ describe('createTask', () => {
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }))
 
-        await expect(createTask(1, validInput)).rejects.toThrow('User story is not part of an active sprint.')
+        await expect(createTask(1, validInput)).rejects.toThrow('User story is not part of an active or upcoming sprint.')
     })
 
-    it('throws if user story is not in an active sprint', async () => {
+    it('throws if user story is only in a past sprint', async () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: inactiveSprintLinks, error: null }) }))
 
-        await expect(createTask(1, validInput)).rejects.toThrow('User story is not part of an active sprint.')
+        await expect(createTask(1, validInput)).rejects.toThrow('User story is not part of an active or upcoming sprint.')
     })
 
     it('throws if user is not a project member', async () => {
