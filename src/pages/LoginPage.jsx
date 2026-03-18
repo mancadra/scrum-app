@@ -38,8 +38,6 @@ export default function LoginPage({ onLogin }) {
       <form className="login-form" onSubmit={handleSubmit}>
         <h1 className="login-title">Login</h1>
 
-        {error ? <p className="login-error">{error}</p> : null}
-
         <label className="login-label" htmlFor="username">
           Username
         </label>
@@ -79,6 +77,7 @@ export default function LoginPage({ onLogin }) {
         <button className="login-button" type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
+        {error && <p className="message error">{error}</p>}
       </form>
     </div>
   );

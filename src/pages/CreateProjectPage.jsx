@@ -91,8 +91,6 @@ export default function CreateProjectPage({ onProjectCreated }) {
                     Add users and assign a role to each one.
                 </p>
 
-                {error && <p className="create-project-error">{error}</p>}
-
                 <div className="create-project-field">
                     <label htmlFor="projectName" className="create-project-label">
                         Project Name
@@ -188,6 +186,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                         {loading ? 'Creating...' : 'Create Project'}
                     </button>
                 </div>
+                {error && <p className="message error">{error}</p>}
             </div>
         </div>
     )
