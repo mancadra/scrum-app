@@ -17,15 +17,20 @@ beforeEach(() => {
 
 function mockChain(overrides) {
     const chain = {
-        select: vi.fn().mockReturnThis(),
-        insert: vi.fn().mockReturnThis(),
-        update: vi.fn().mockReturnThis(),
-        order:  vi.fn().mockReturnThis(),
-        eq:     vi.fn().mockReturnThis(),
-        single: vi.fn().mockReturnThis(),
+        select:      vi.fn().mockReturnThis(),
+        insert:      vi.fn().mockReturnThis(),
+        update:      vi.fn().mockReturnThis(),
+        order:       vi.fn().mockReturnThis(),
+        eq:          vi.fn().mockReturnThis(),
+        single:      vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockReturnThis(),
         ...overrides,
     }
     return chain
+}
+
+function mockNoDuplicate() {
+    return mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
 }
 
 // ---
@@ -208,6 +213,7 @@ describe('createProject', () => {
 
         supabase.from
             .mockReturnValueOnce(adminChain)
+            .mockReturnValueOnce(mockNoDuplicate())
             .mockReturnValueOnce(projectChain)
 
         const result = await createProject('Solo Project', 'just me', [])
@@ -216,7 +222,7 @@ describe('createProject', () => {
         expect(supabase.from).toHaveBeenCalledWith('Projects')
         expect(result).toEqual(mockProject)
         // ProjectUsers insert should NOT be called when users array is empty
-        expect(supabase.from).toHaveBeenCalledTimes(2)
+        expect(supabase.from).toHaveBeenCalledTimes(3)
     })
 
     it('creates a project and inserts all users with their roles', async () => {
@@ -232,6 +238,7 @@ describe('createProject', () => {
 
         supabase.from
             .mockReturnValueOnce(adminChain)
+            .mockReturnValueOnce(mockNoDuplicate())
             .mockReturnValueOnce(projectChain)
             .mockReturnValueOnce(usersChain)
 
@@ -251,17 +258,15 @@ describe('createProject', () => {
 
     it('throws on duplicate project name', async () => {
         const adminChain = mockAdminUser()
+        const dupChain = mockChain({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+        })
         supabase.from
             .mockReturnValueOnce(adminChain)
-            .mockReturnValueOnce(mockChain({
-                single: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: { message: 'duplicate key value violates unique constraint "Projects_name_key"' },
-                }),
-            }))
+            .mockReturnValueOnce(dupChain)
 
         await expect(createProject('Existing Project', '', [])).rejects.toThrow(
-            'duplicate key value violates unique constraint'
+            'A project with the name "Existing Project" already exists.'
         )
     })
 
@@ -278,6 +283,7 @@ describe('createProject', () => {
 
         supabase.from
             .mockReturnValueOnce(adminChain)
+            .mockReturnValueOnce(mockNoDuplicate())
             .mockReturnValueOnce(projectChain)
             .mockReturnValueOnce(usersChain)
 
@@ -299,6 +305,7 @@ describe('createProject', () => {
 
         supabase.from
             .mockReturnValueOnce(adminChain)
+            .mockReturnValueOnce(mockNoDuplicate())
             .mockReturnValueOnce(projectChain)
             .mockReturnValueOnce(usersChain)
 

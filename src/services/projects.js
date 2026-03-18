@@ -55,6 +55,15 @@ export async function createProject(name, description, users) {
     const isAdmin = roleData?.some(r => r.Roles?.name === 'Admin')
     if (!isAdmin) throw new Error('Only admins can create projects.')
 
+    const { data: existing, error: dupError } = await supabase
+        .from('Projects')
+        .select('id')
+        .eq('name', name)
+        .maybeSingle()
+
+    if (dupError) throw new Error(dupError.message)
+    if (existing) throw new Error(`A project with the name "${name}" already exists.`)
+
     const { data: project, error: projectError } = await supabase
         .from('Projects')
         .insert({ name, description })

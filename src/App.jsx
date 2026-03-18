@@ -1,7 +1,5 @@
-/*import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import CreateProjectPage from './pages/CreateProjectPage'*/
 import './App.css'
+import CreateProjectPage from './pages/CreateProjectPage'
 import { useState, useRef, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AddUserStoryPage from "./pages/ProductBacklogPage"; 
@@ -109,9 +107,25 @@ function App() {
             currentUser ? (
                 <Navigate to="/" replace />
             ) : (
-                <LoginPage onLogin={setCurrentUser} />
+                <LoginPage onLogin={async () => {
+                  const user = await getCurrentUser()
+                  setCurrentUser(user)
+                }} />
             )
           }
+      />
+
+      <Route
+        path="/create-project"
+        element={
+          !currentUser ? (
+            <Navigate to="/login" replace />
+          ) : currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ? (
+            <CreateProjectPage onProjectCreated={() => navigate('/')} />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
       />
 
       <Route
@@ -121,9 +135,10 @@ function App() {
             <>
               <NavbarComponent
                   projects={selectedUserProjects}
-                  username={selectedUserDisplayName}
-                  userInitial={selectedUserInitial}
+                  username={currentUser?.profile?.username ?? ''}                                                                                                                                         
+                  userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'} 
                   onLogout={handleLogout}
+                  isAdmin={currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false}
               />
               <div className="app-container">
 

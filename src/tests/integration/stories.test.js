@@ -224,8 +224,6 @@ describe('setTimeComplexity', () => {
     let storyId
 
     beforeAll(async () => {
-        await signIn(TEST_USERNAME, TEST_PASSWORD)
-
         const priorities = await getPriorities()
         const { data: story, error } = await supabase
             .from('UserStories')

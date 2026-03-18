@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// ─── Helper: get a role ID by name (e.g. 'admin' or 'user') ──────────────────
+// ─── Helper: get a role ID by name (e.g. 'Admin' or 'User') ──────────────────
 
 async function getRoleId(roleName) {
   const { data, error } = await supabaseAdmin
@@ -39,7 +39,7 @@ export async function userHasRole(userId, roleName) {
 // ─── Helper: check if the requesting user is an admin ────────────────────────
 
 export async function isAdmin(requestingUserId) {
-  return await userHasRole(requestingUserId, 'admin')
+  return await userHasRole(requestingUserId, 'Admin')
 }
 
 // ─── Create a new user (admin only) ──────────────────────────────────────────
