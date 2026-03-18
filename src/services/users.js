@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// ─── Helper: get a role ID by name (e.g. 'admin' or 'user') ──────────────────
+// ─── Helper: get a role ID by name (e.g. 'Admin' or 'User') ──────────────────
 
 async function getRoleId(roleName) {
   const { data, error } = await supabaseAdmin
