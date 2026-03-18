@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn } from '../../services/auth'
-import { getPriorities, createUserStory, setTimeComplexity } from '../../services/stories'
+import { getPriorities, createUserStory, setTimeComplexity, getStoriesForProject } from '../../services/stories'
 import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
@@ -219,6 +219,43 @@ describe('createUserStory', () => {
 })
 
 // ---
+
+describe('getStoriesForProject', () => {
+    it('returns stories for the project with category annotations', async () => {
+        const priorities = await getPriorities()
+        const storyName = `Backlog Story ${Date.now()}`
+
+        const story = await createUserStory(TEST_PROJECT_ID, {
+            name: storyName,
+            description: '',
+            acceptanceTests: [],
+            priorityId: priorities[0].id,
+            businessValue: 5,
+        })
+        createdStoryIds.push(story.id)
+
+        const stories = await getStoriesForProject(TEST_PROJECT_ID)
+
+        expect(Array.isArray(stories)).toBe(true)
+        const found = stories.find(s => s.id === story.id)
+        expect(found).toBeDefined()
+        expect(found.category).toBe('unassigned')
+        expect(found.priority).toBe(priorities[0].priority)
+    })
+
+    it('returns empty array for a project with no stories', async () => {
+        const { data: project } = await supabase
+            .from('Projects')
+            .insert({ name: `Empty Stories Project ${Date.now()}` })
+            .select()
+            .single()
+
+        const stories = await getStoriesForProject(project.id)
+        expect(stories).toHaveLength(0)
+
+        await supabase.from('Projects').delete().eq('id', project.id)
+    })
+})
 
 describe('setTimeComplexity', () => {
     let storyId

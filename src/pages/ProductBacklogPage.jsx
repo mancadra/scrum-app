@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useStories } from '../hooks/useStories'; 
-import UserStoryForm from '../components/UserStoryForm'; 
+import { useParams } from 'react-router-dom';
+import { useStories } from '../hooks/useStories';
+import UserStoryForm from '../components/UserStoryForm';
 
-const ProductBacklogPage = ({ projectId }) => { 
+const ProductBacklogPage = () => {
+  const { projectId } = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { stories, refreshBacklog } = useStories(projectId); 
 

@@ -8,7 +8,7 @@ import ProductBacklog from "./components/ProductBacklog.jsx";
 import LoginPage from "./pages/LoginPage";
 import NavbarComponent from "./components/NavbarComponent.jsx";
 import { getCurrentUser, signOut } from "./services/auth";
-import { getProjects } from "./services/projects";
+import { getUsersProjects } from "./services/projects";
 
 
 function App() {
@@ -19,11 +19,8 @@ function App() {
 
   async function loadProjects(user) {
     try {
-      const all = await getProjects();
-      const mine = all.filter(p =>
-        p.ProjectUsers?.some(pu => pu.FK_userId === user.id)
-      );
-      setUserProjects(mine);
+      const myProjects = await getUsersProjects(user.id);
+      setUserProjects(myProjects);
     } catch {
       setUserProjects([]);
     }
@@ -104,6 +101,17 @@ function App() {
             <CreateProjectPage onProjectCreated={() => navigate('/')} />
           ) : (
             <Navigate to="/" replace />
+          )
+        }
+      />
+
+      <Route
+        path="/project/:projectId/backlog"
+        element={
+          !currentUser ? (
+            <Navigate to="/login" replace />
+          ) : (
+            <AddUserStoryPage />
           )
         }
       />

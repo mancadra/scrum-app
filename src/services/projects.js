@@ -10,6 +10,16 @@ export async function getUsers() {
     return data
 }
 
+export async function getUsersProjects(userId) {
+    const { data, error } = await supabase
+        .from('ProjectUsers')
+        .select('Projects(id, name, description)')
+        .eq('FK_userId', userId)
+
+    if (error) throw new Error(error.message)
+    return data.map(row => row.Projects)
+}
+
 export async function getProjectRoles() {
     const { data, error } = await supabase
         .from('ProjectRoles')
