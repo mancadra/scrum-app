@@ -13,7 +13,7 @@ import { getRealizedStories, getAssignedStories, getUnassignedStories } from '..
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
 })
 
 function mockChain(overrides) {
@@ -66,6 +66,13 @@ function mockSprintQuery(sprints) {
 function mockSprintLinks(links) {
   return mockChain({
     in: vi.fn().mockResolvedValue({ data: links, error: null }),
+  })
+}
+
+// SprintUserStories inner-join query ends with .eq()
+function mockSprintLinksEq(links) {
+  return mockChain({
+    eq: vi.fn().mockResolvedValue({ data: links, error: null }),
   })
 }
 
@@ -178,12 +185,12 @@ describe('getAssignedStories()', () => {
 
 describe('getUnassignedStories()', () => {
 
-  it('returns unassigned unrealized stories when active sprint exists', async () => {
+  it('returns unassigned unrealized stories when sprint links exist', async () => {
     mockAuth()
     supabase.from
       .mockReturnValueOnce(mockMember())
-      .mockReturnValueOnce(mockSprintQuery(activeSprint))
-      .mockReturnValueOnce(mockSprintLinks([{ FK_userStoryId: 2 }]))
+      // SprintUserStories inner-join query ends with .eq()
+      .mockReturnValueOnce(mockSprintLinksEq([{ FK_userStoryId: 2 }]))
       // final stories query ends with .not()
       .mockReturnValueOnce(mockChain({
         not: vi.fn().mockResolvedValue({ data: [unassignedStory], error: null }),
@@ -193,16 +200,18 @@ describe('getUnassignedStories()', () => {
     expect(result).toEqual([unassignedStory])
   })
 
-    it('returns all unrealized stories when there is no active sprint', async () => {
+  it('returns all unrealized stories when no sprint links exist', async () => {
     mockAuth()
     supabase.from
-        .mockReturnValueOnce(mockMember())
-        .mockReturnValueOnce(mockSprintQuery([]))
-        .mockReturnValueOnce(mockStoriesQuery([unassignedStory]))
+      .mockReturnValueOnce(mockMember())
+      // SprintUserStories inner-join query ends with .eq()
+      .mockReturnValueOnce(mockSprintLinksEq([]))
+      // stories query ends at second .eq() (no .not() call)
+      .mockReturnValueOnce(mockStoriesQuery([unassignedStory]))
 
     const result = await getUnassignedStories(projectId)
     expect(result).toEqual([unassignedStory])
-    })
+  })
 
   it('throws if not authenticated', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
