@@ -1,11 +1,7 @@
 import './App.css'
 import CreateProjectPage from './pages/CreateProjectPage'
-<<<<<<< manca-connect-fe-be-for-user-creation
 import AdminPage from './pages/AdminPage'
-import { useState, useEffect } from "react";
-=======
 import { useState, useRef, useEffect } from "react";
->>>>>>> main
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AddUserStoryPage from "./pages/ProductBacklogPage";
 import ProductBacklog from "./components/ProductBacklog.jsx";
@@ -59,7 +55,6 @@ function App() {
   return (
     <Routes>
       <Route
-<<<<<<< manca-connect-fe-be-for-user-creation
         path="/login"
         element={
           currentUser ? (
@@ -98,19 +93,6 @@ function App() {
             <Navigate to="/" replace />
           )
         }
-=======
-          path="/login"
-          element={
-            currentUser ? (
-                <Navigate to="/" replace />
-            ) : (
-                <LoginPage onLogin={async () => {
-                  const user = await getCurrentUser()
-                  setCurrentUser(user)
-                }} />
-            )
-          }
->>>>>>> main
       />
 
       <Route
@@ -132,19 +114,13 @@ function App() {
           currentUser ? (
             <>
               <NavbarComponent
-<<<<<<< manca-connect-fe-be-for-user-creation
+
                 projects={userProjects}
                 username={currentUser?.profile?.username ?? ''}
                 userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'}
                 onLogout={handleLogout}
                 isAdmin={isAdmin}
-=======
-                  projects={selectedUserProjects}
-                  username={currentUser?.profile?.username ?? ''}                                                                                                                                         
-                  userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'} 
-                  onLogout={handleLogout}
-                  isAdmin={currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false}
->>>>>>> main
+
               />
               <div className="app-container">
                 {/* main content goes here */}
