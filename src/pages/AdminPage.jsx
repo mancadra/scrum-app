@@ -69,29 +69,31 @@ export default function AdminPage() {
         </div>
 
         {/* Seznam uporabnikov */}
-        <div className="admin-card">
-          <h2 className="card-title">Seznam uporabnikov</h2>
-          <div className="user-list">
-            {users.length === 0 ? (
-              <p className="empty-msg">Ni uporabnikov.</p>
-            ) : (
-              users.map((user) => (
-                <div key={user.id} className="user-item">
-                  <div className="user-info">
-                    <strong>{user.name} {user.surname}</strong>
-                    <span>{user.email}</span>
-                  </div>
-                  <div className="user-badge">
-                    <span className="username">@{user.username}</span>
-                    <span className={`role-tag ${user.UserRoles?.[0]?.Roles?.name === 'Admin' ? 'admin' : 'user'}`}>
-                      {user.UserRoles?.[0]?.Roles?.name || 'User'}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
+<div className="admin-card">
+  <h2 className="card-title">Seznam uporabnikov</h2>
+  <div className="user-list-container"> 
+    <div className="user-list">
+      {users.length === 0 ? (
+        <p className="empty-msg">Ni uporabnikov.</p>
+      ) : (
+        users.map((user) => (
+          <div key={user.id} className="user-item">
+            <div className="user-info">
+              <strong>{user.name} {user.surname}</strong>
+              <span>{user.email}</span>
+            </div>
+            <div className="user-badge">
+              <span className="username">@{user.username}</span>
+              <span className={`role-tag ${user.UserRoles?.[0]?.Roles?.name === 'Admin' ? 'admin' : 'user'}`}>
+                {user.UserRoles?.[0]?.Roles?.name || 'User'}
+              </span>
+            </div>
           </div>
-        </div>
+        ))
+      )}
+    </div>
+  </div>
+</div>
       </div>
     </div>
   );

@@ -127,5 +127,31 @@
   margin-top: 5px;
 }
 
+.user-list-container {
+  max-height: 400px; /* Tukaj določiš, kako visok naj bo seznam (npr. za 5-6 uporabnikov) */
+  overflow-y: auto;  /* Omogoči navpični drsnik, ko je uporabnikov preveč */
+  padding-right: 10px; /* Malo prostora za sam drsnik, da ne prekriva besedila */
+  margin-top: 10px;
+}
+
+/* Lepši izgled drsnika (scrollbar) za Chrome/Safari */
+.user-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.user-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.user-list-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 10px;
+}
+
+.user-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
 .role-tag.admin { background: #fed7d7; color: #c53030; }
 .role-tag.user { background: #c6f6d5; color: #2f855a; }
