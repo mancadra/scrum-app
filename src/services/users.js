@@ -89,8 +89,8 @@ export async function createUser(requestingUserId, { username, password, email, 
       id: authData.user.id,
       username,
       email,
-      first_name: firstName,
-      last_name: lastName,
+      name: firstName,
+      surname: lastName,
     })
     .select()
     .single()

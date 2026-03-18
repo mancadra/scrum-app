@@ -28,7 +28,7 @@ function NavbarComponent({
       <div className="navbar-projects">
         {projects.map((project) => (
           <button
-            key={project.index}
+            key={project.id}
             className="navbar-project-button"
             onClick={() => console.log("Clicked project:", project.name)}
           >
@@ -36,12 +36,20 @@ function NavbarComponent({
           </button>
         ))}
         {isAdmin && (
-          <button
-            className="navbar-project-button"
-            onClick={() => navigate('/create-project')}
-          >
-            + New Project
-          </button>
+          <>
+            <button
+              className="navbar-project-button"
+              onClick={() => navigate('/create-project')}
+            >
+              + New Project
+            </button>
+            <button
+              className="navbar-project-button"
+              onClick={() => navigate('/admin')}
+            >
+              Admin Panel
+            </button>
+          </>
         )}
       </div>
 

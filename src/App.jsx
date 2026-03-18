@@ -1,99 +1,56 @@
 import './App.css'
 import CreateProjectPage from './pages/CreateProjectPage'
+<<<<<<< manca-connect-fe-be-for-user-creation
+import AdminPage from './pages/AdminPage'
+import { useState, useEffect } from "react";
+=======
 import { useState, useRef, useEffect } from "react";
+>>>>>>> main
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import AddUserStoryPage from "./pages/ProductBacklogPage"; 
-import AdminPage from "./pages/AdminPage";
+import AddUserStoryPage from "./pages/ProductBacklogPage";
 import ProductBacklog from "./components/ProductBacklog.jsx";
 import LoginPage from "./pages/LoginPage";
 import NavbarComponent from "./components/NavbarComponent.jsx";
 import { getCurrentUser, signOut } from "./services/auth";
-import { projects, users } from "./dummyData";
+import { getProjects } from "./services/projects";
 
 
 function App() {
-  let selectedUserIndex = 0;  /*FOR TESTING ON DUMMY DATA*/
-
-  const selectedUser = users[selectedUserIndex];
-  const selectedUserProjects = selectedUser.projectIndexes.map((projectIndex) => ({
-    name: projects[projectIndex],
-    index: projectIndex,
-  }));
-
-  const selectedUserDisplayName = selectedUser.username;
-  const selectedUserInitial = selectedUser.username?.[0]?.toUpperCase() || "?";
-
-  
-  
-  
-  
-  
-  
-  /*#4 CODE const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false)*/
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [page, setPage] = useState("home");
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
-  const dropdownRef = useRef();
+  const [userProjects, setUserProjects] = useState([]);
   const navigate = useNavigate();
 
-// ... existing code ...
-
-  const openAdminPage = () => {
-    setPage("AdminPage");
-    setDropdownOpen(false);
-  };
-
-  const openUserStory = () => {
-    setPage("story");
-    setDropdownOpen(false);
-  };
-
-  const goHome = () => {
-    setPage("home");
-    setDropdownOpen(false);
-  };
-
-  const goToLoginPage = () => {
-    navigate("/login");
-  };
+  async function loadProjects(user) {
+    try {
+      const all = await getProjects();
+      const mine = all.filter(p =>
+        p.ProjectUsers?.some(pu => pu.FK_userId === user.id)
+      );
+      setUserProjects(mine);
+    } catch {
+      setUserProjects([]);
+    }
+  }
 
   useEffect(() => {
     async function loadUser() {
       const user = await getCurrentUser();
       setCurrentUser(user);
+      if (user) await loadProjects(user);
       setLoadingUser(false);
     }
-
-    loadUser();
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    async function loadUser() {
-      const user = await getCurrentUser();
-      console.log(user ? "User is logged in:" : "User is not logged in:", user);
-      setCurrentUser(user);
-      setLoadingUser(false);
-    }
-
     loadUser();
   }, []);
 
   const handleLogout = async () => {
     await signOut();
     setCurrentUser(null);
+    setUserProjects([]);
     navigate("/login");
   };
+
+  const isAdmin = currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false;
 
   if (loadingUser) {
     return null;
@@ -102,6 +59,46 @@ function App() {
   return (
     <Routes>
       <Route
+<<<<<<< manca-connect-fe-be-for-user-creation
+        path="/login"
+        element={
+          currentUser ? (
+            <Navigate to="/" replace />
+          ) : (
+            <LoginPage onLogin={async () => {
+              const user = await getCurrentUser();
+              setCurrentUser(user);
+              if (user) await loadProjects(user);
+            }} />
+          )
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          !currentUser ? (
+            <Navigate to="/login" replace />
+          ) : isAdmin ? (
+            <AdminPage />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+
+      <Route
+        path="/create-project"
+        element={
+          !currentUser ? (
+            <Navigate to="/login" replace />
+          ) : isAdmin ? (
+            <CreateProjectPage onProjectCreated={() => navigate('/')} />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+=======
           path="/login"
           element={
             currentUser ? (
@@ -113,6 +110,7 @@ function App() {
                 }} />
             )
           }
+>>>>>>> main
       />
 
       <Route
@@ -134,16 +132,22 @@ function App() {
           currentUser ? (
             <>
               <NavbarComponent
+<<<<<<< manca-connect-fe-be-for-user-creation
+                projects={userProjects}
+                username={currentUser?.profile?.username ?? ''}
+                userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'}
+                onLogout={handleLogout}
+                isAdmin={isAdmin}
+=======
                   projects={selectedUserProjects}
                   username={currentUser?.profile?.username ?? ''}                                                                                                                                         
                   userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'} 
                   onLogout={handleLogout}
                   isAdmin={currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false}
+>>>>>>> main
               />
               <div className="app-container">
-
-// ... existing code ...
-
+                {/* main content goes here */}
               </div>
             </>
           ) : (
