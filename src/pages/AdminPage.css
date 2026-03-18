@@ -48,11 +48,17 @@
 
 .form-row input, .admin-form input, .admin-form select {
   flex: 1;
+  width: 100%;
   padding: 12px;
   border: 1px solid #cbd5e0;
   border-radius: 8px;
   font-size: 1rem;
   outline: none;
+  box-sizing: border-box;
+}
+
+.admin-form .password-input-wrapper {
+  display: flex;
 }
 
 .admin-form input:focus {

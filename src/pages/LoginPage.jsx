@@ -1,15 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import './LoginPage.css';
 import { signIn } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
+
+function getDisplayValue(password, revealLastChar, showPassword) {
+  if (showPassword) return password;
+  if (revealLastChar && password.length > 0) return '•'.repeat(password.length - 1) + password.slice(-1);
+  return '•'.repeat(password.length);
+}
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [revealLastChar, setRevealLastChar] = useState(false);
+  const revealTimer = useRef(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handlePasswordChange = (e) => {
+    const newVal = e.target.value;
+    const oldDisplay = getDisplayValue(password, revealLastChar, showPassword);
+    const diff = newVal.length - oldDisplay.length;
+
+    if (showPassword) {
+      setPassword(newVal);
+    } else if (diff !== 0) {
+      let pos = 0;
+      while (pos < Math.min(newVal.length, oldDisplay.length) && newVal[pos] === oldDisplay[pos]) pos++;
+      if (diff > 0) {
+        const inserted = newVal.slice(pos, pos + diff);
+        setPassword(p => p.slice(0, pos) + inserted + p.slice(pos));
+      } else {
+        setPassword(p => p.slice(0, pos) + p.slice(pos - diff));
+      }
+    }
+
+    if (!showPassword) {
+      setRevealLastChar(true);
+      clearTimeout(revealTimer.current);
+      revealTimer.current = setTimeout(() => setRevealLastChar(false), 1000);
+    }
+  };
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -58,10 +91,11 @@ export default function LoginPage({ onLogin }) {
           <input
             className="login-input password-input"
             id="password"
-            type={showPassword ? 'text' : 'password'}
+            type="text"
+            autoComplete="current-password"
             placeholder="Enter your password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            value={getDisplayValue(password, revealLastChar, showPassword)}
+            onChange={handlePasswordChange}
             required
           />
           <button
