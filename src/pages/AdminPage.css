@@ -1,0 +1,157 @@
+/* AdminPage.css */
+.admin-container {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+  padding: 40px 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+.admin-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.admin-title {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  color: #1a202c;
+}
+
+.admin-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.card-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.25rem;
+  border-bottom: 2px solid #edf2f7;
+  padding-bottom: 10px;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+.form-row input, .admin-form input, .admin-form select {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.admin-form input:focus {
+  border-color: #4c51bf;
+  box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.1);
+}
+
+.btn-submit {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-submit:hover {
+  background-color: #40a9ff;
+}
+
+.btn-submit:disabled {
+  background-color: #a0aec0;
+}
+
+.message {
+  text-align: center;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.message.success { color: #38a169; }
+.message.error { color: #e53e3e; }
+
+/* User List Styling */
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info span {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.user-badge {
+  text-align: right;
+}
+
+.role-tag {
+  display: block;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.user-list-container {
+  max-height: 400px; /* Tukaj določiš, kako visok naj bo seznam (npr. za 5-6 uporabnikov) */
+  overflow-y: auto;  /* Omogoči navpični drsnik, ko je uporabnikov preveč */
+  padding-right: 10px; /* Malo prostora za sam drsnik, da ne prekriva besedila */
+  margin-top: 10px;
+}
+
+/* Lepši izgled drsnika (scrollbar) za Chrome/Safari */
+.user-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.user-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.user-list-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 10px;
+}
+
+.user-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+.role-tag.admin { background: #fed7d7; color: #c53030; }
+.role-tag.user { background: #c6f6d5; color: #2f855a; }
