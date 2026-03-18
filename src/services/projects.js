@@ -3,7 +3,7 @@ import { supabase } from "../config/supabase";
 export async function getUsers() {
     const { data, error } = await supabase
         .from('Users')
-        .select('id, username, name, surname')
+        .select('id, username, name, surname, email, UserRoles(Roles(name))')
         .order('username')
 
     if (error) throw new Error(error.message)

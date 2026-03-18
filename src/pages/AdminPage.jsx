@@ -155,17 +155,29 @@ export default function AdminPage() {
           )}
 
           <div className="space-y-3">
-            {users.map((user) => (
-              <div key={user.id} className="flex justify-between items-center border p-3 rounded">
-                <div>
-                  <p className="font-semibold">{user.name} {user.surname}</p>
-                  <p className="text-sm text-gray-500">{user.email ?? ""}</p>
+            {users.map((user) => {
+              const role = user.UserRoles?.[0]?.Roles?.name ?? "";
+              return (
+                <div key={user.id} className="flex justify-between items-center border p-3 rounded">
+                  <div>
+                    <p className="font-semibold">{user.name} {user.surname}</p>
+                    <p className="text-sm text-gray-500">{user.email ?? ""}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">@{user.username}</p>
+                    {role && (
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        role === "Admin"
+                          ? "bg-red-100 text-red-600"
+                          : "bg-green-100 text-green-600"
+                      }`}>
+                        {role}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">@{user.username}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
