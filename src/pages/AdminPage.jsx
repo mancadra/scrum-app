@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../config/supabase";
 import { getUsers } from "../services/projects";
-import "./AdminPage.css"; // Uvozi novo CSS datoteko
+import { validatePassword } from "../services/auth";
+import "./AdminPage.css";
 
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
@@ -27,10 +28,24 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
+
+    try {
+      validatePassword(formData.password);
+    } catch (err) {
+      setMessage(err.message);
+      setMessageType("error");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-user", { body: formData });
-      if (error || data?.error) throw new Error(error?.message || data?.error);
+      if (error) {
+        const body = await error.context?.json?.().catch(() => null);
+        throw new Error(body?.error ?? error.message);
+      }
+      if (data?.error) throw new Error(data.error);
       setMessage("Uporabnik uspešno dodan.");
       setMessageType("success");
       setFormData({ username: "", password: "", firstName: "", lastName: "", email: "", role: "User" });
