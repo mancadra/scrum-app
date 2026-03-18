@@ -1,13 +1,15 @@
 import React from 'react';
 
-const BacklogStoryComponent = ({ story, onClick }) => {
+const BacklogStoryComponent = ({ story, priority, onClick }) => {
   if (!story) return null;
 
   return (
     <button type="button" className="backlog-story-card" onClick={() => onClick?.(story)}>
       <div className="backlog-story-card__header">
         <h3 className="backlog-story-card__title">{story.name}</h3>
-        {story.priority && <span className="backlog-story-card__badge">{story.priority}</span>}
+        {priority && (
+          <span className="backlog-story-card__badge">{priority}</span>
+        )}
       </div>
 
       <div className="backlog-story-card__meta">

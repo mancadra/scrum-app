@@ -1,6 +1,36 @@
-.project-backlog .project-panel__list {
+.project-backlog {
+    display: grid;
+    gap: 24px;
+}
+
+.project-backlog__section {
     display: grid;
     gap: 16px;
+    padding: 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.project-backlog__section h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.project-backlog__section .project-panel__list,
+.project-backlog__section .project-panel__empty {
+    margin-left: 0;
+}
+
+.project-panel__empty {
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    color: #64748b;
 }
 
 .backlog-story-card {
