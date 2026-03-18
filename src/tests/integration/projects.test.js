@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { signIn } from '../../services/auth'
-import { getUsers, getProjectRoles, getProjectUsers, getProjects, createProject } from '../../services/projects'
+import { getUsers, getProjectRoles, getProjectUsers, getProjects, createProject, getUsersProjects } from '../../services/projects'
 import { supabase } from '../../config/supabase'
 
 const TEST_USERNAME = 'testuser01'
@@ -86,6 +86,36 @@ describe('getProjectUsers', () => {
         expect(members[0].FK_projectRoleId).toBe(roles[0].id)
         expect(members[0].Users).toMatchObject({ username: expect.any(String) })
         expect(members[0].ProjectRoles).toMatchObject({ projectRole: expect.any(String) })
+    })
+})
+
+describe('getUsersProjects', () => {
+    it('returns only projects the current user is a member of', async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const userId = session?.user?.id
+
+        const roles = await getProjectRoles()
+        const project = await createProject(uniqueName('getUsersProjects Test'), '', [{ id: userId, projectRoleId: roles[0].id }])
+        createdProjectIds.push(project.id)
+
+        const projects = await getUsersProjects(userId)
+
+        expect(Array.isArray(projects)).toBe(true)
+        const found = projects.find(p => p.id === project.id)
+        expect(found).toBeDefined()
+        expect(found).toHaveProperty('name')
+    })
+
+    it('does not return projects the user is not a member of', async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        const userId = session?.user?.id
+
+        const project = await createProject(uniqueName('getUsersProjects Excluded Test'), '', [])
+        createdProjectIds.push(project.id)
+
+        const projects = await getUsersProjects(userId)
+        const found = projects.find(p => p.id === project.id)
+        expect(found).toBeUndefined()
     })
 })
 

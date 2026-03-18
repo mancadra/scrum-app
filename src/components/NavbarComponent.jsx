@@ -30,7 +30,7 @@ function NavbarComponent({
           <button
             key={project.id}
             className="navbar-project-button"
-            onClick={() => console.log("Clicked project:", project.name)}
+            onClick={() => navigate(`/project/${project.id}/backlog`)}
           >
             {project.name}
           </button>

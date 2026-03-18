@@ -219,4 +219,24 @@ export async function createUserStory(projectId, { name, description, acceptance
     }
 
     return story
+}       
+    
+export async function getStoriesForProject(projectId) {
+    const { data, error } = await supabase                                                                   
+        .from('UserStories')
+        .select(`
+            id, name, description, businessValue, timeComplexity, accepted, realized,                        
+            Priorities(priority), SprintUserStories(FK_sprintId)                                                                   
+        `).eq('FK_projectId', projectId)
+        .order('id')                                                                                         
+    if (error) throw new Error(error.message)
+
+    return data.map(story => ({
+        ...story,                                                                                            
+        priority: story.Priorities?.priority ?? null,
+        sprintId: story.SprintUserStories?.[0]?.FK_sprintId ?? null,
+        category: story.realized ? 'realized'
+            : story.SprintUserStories?.length > 0 ? 'assigned'
+                : 'unassigned',                                                                               
+    }))
 }
