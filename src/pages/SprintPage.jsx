@@ -1,79 +1,111 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getSprintBacklog, acceptTask } from '../services/tasks';
+import { useTasks } from '../hooks/useTasks'; // Prepričaj se, da je pot pravilna
 import TaskCard from '../components/TaskCard';
+import TaskForm from '../components/TaskForm';
+import './SprintPage.css';
 
 const SprintPage = () => {
   const { projectId } = useParams();
-  const [backlog, setBacklog] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  
+  // Vse dobimo iz hooka - NI POTREBE po setLoading, setError, setData tukaj!
+  const { 
+    sprintData, 
+    loading, 
+    error, 
+    fetchSprintBacklog 
+  } = useTasks(projectId);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const data = await getSprintBacklog(projectId);
-      setBacklog(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [showAddTask, setShowAddTask] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, [projectId]);
+    if (projectId) {
+      fetchSprintBacklog();
+    }
+  }, [projectId, fetchSprintBacklog]);
 
-  if (loading) return <div className="p-5 text-center">Nalagam Sprint Backlog...</div>;
-  if (error) return <div className="alert alert-danger m-5">{error}</div>;
+  if (loading) return <div className="p-5 text-center">Nalagam Sprint Dashboard...</div>;
+  
+  if (error) return (
+    <div className="alert alert-warning m-5">
+      <h5>Napaka</h5>
+      <p>{error}</p>
+      <button className="btn btn-outline-primary" onClick={() => window.history.back()}>Nazaj</button>
+    </div>
+  );
+  
+  const getTasksByStatus = (status) => {
+    return sprintData?.stories?.flatMap(story => story.tasks[status] || []) || [];
+  };
 
   return (
-    <div className="container-fluid py-4">
-      <h2 className="mb-4 text-center">Sprint: {backlog?.sprint?.name || 'Aktiven Sprint'}</h2>
-      
-      {backlog?.stories.map(story => (
-        <div key={story.id} className="card mb-4 shadow-sm">
-          <div className="card-header bg-primary text-white d-flex justify-content-between">
-            <h5 className="mb-0">{story.name}</h5>
-            <span className="badge bg-light text-dark">Business Value: {story.businessValue}</span>
+    <div className="dashboard-container">
+      <div className="main-content">
+        <div className="header-section d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2 className="mb-0">Sprint Board</h2>
+            <span className="badge bg-info text-dark">{sprintData?.sprint?.name || 'Aktivni sprint'}</span>
           </div>
-          
-          <div className="card-body bg-light">
-            <div className="row g-2">
-              <div className="col-md-3">
-                <h6 className="text-muted text-uppercase small fw-bold">Nedodeljene</h6>
-                {story.tasks.unassigned.map(task => (
-                  <TaskCard key={task.id} task={task} onUpdate={loadData} status="unassigned" />
-                ))}
-              </div>
+          <button className="btn btn-primary" onClick={() => setShowAddTask(true)}>
+            + Nova naloga
+          </button>
+        </div>
 
-          
-              <div className="col-md-3">
-                <h6 className="text-muted text-uppercase small fw-bold">Dodeljene</h6>
-                {story.tasks.assigned.map(task => (
-                  <TaskCard key={task.id} task={task} onUpdate={loadData} status="assigned" />
-                ))}
-              </div>
+        <div className="kanban-board">
+          {/* Stolpci uporabljajo getTasksByStatus, ki črpa iz sprintData */}
+          <div className="kanban-column">
+            <h5 className="column-header">Sprint Backlog</h5>
+            <div className="task-list">
+              {getTasksByStatus('unassigned').map(task => (
+                <TaskCard key={task.id} task={task} onUpdate={fetchSprintBacklog} />
+              ))}
+            </div>
+          </div>
 
-           
-              <div className="col-md-3">
-                <h6 className="text-muted text-uppercase small fw-bold">Aktivne</h6>
-                {story.tasks.active.map(task => (
-                  <TaskCard key={task.id} task={task} onUpdate={loadData} status="active" />
-                ))}
-              </div>
+          <div className="kanban-column">
+            <h5 className="column-header">Working On</h5>
+            <div className="task-list">
+              {[...getTasksByStatus('assigned'), ...getTasksByStatus('active')].map(task => (
+                <TaskCard key={task.id} task={task} onUpdate={fetchSprintBacklog} />
+              ))}
+            </div>
+          </div>
 
-              <div className="col-md-3">
-                <h6 className="text-muted text-uppercase small fw-bold">Zaključene</h6>
-                {story.tasks.finished.map(task => (
-                  <TaskCard key={task.id} task={task} onUpdate={loadData} status="finished" />
-                ))}
+          <div className="kanban-column">
+            <h5 className="column-header">Finished</h5>
+            <div className="task-list">
+              {getTasksByStatus('finished').map(task => (
+                <TaskCard key={task.id} task={task} onUpdate={fetchSprintBacklog} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showAddTask && (
+        <div className="modal-backdrop show">
+          <div className="modal show d-block">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Nova naloga</h5>
+                  <button className="btn-close" onClick={() => setShowAddTask(false)}></button>
+                </div>
+                <div className="modal-body p-4">
+                  <TaskForm 
+                    stories={sprintData?.stories} 
+                    activeSprint={sprintData?.sprint}
+                    onSuccess={() => {
+                      setShowAddTask(false);
+                      fetchSprintBacklog(); // Osveži podatke po dodajanju
+                    }} 
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 };

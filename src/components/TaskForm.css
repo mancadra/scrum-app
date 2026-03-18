@@ -1,0 +1,86 @@
+.task-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label-custom {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.form-label-custom .icon {
+  margin-right: 0.5rem;
+  font-style: normal;
+}
+
+.form-control-custom, .form-select-custom {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background-color: #f8fafc;
+}
+
+.form-control-custom:focus, .form-select-custom:focus {
+  outline: none;
+  border-color: #4299e1;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.form-row-custom {
+  display: flex;
+  justify-content: space-between;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.error-badge {
+  background-color: #fff5f5;
+  color: #c53030;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 4px solid #f56565;
+  font-size: 0.875rem;
+}
+
+.btn-save-task {
+  background-color: #3182ce;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  width: 100%;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.btn-save-task:hover {
+  background-color: #2b6cb0;
+  cursor: pointer;
+}
+
+/* Modal specifični popravki */
+.modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: 1px solid #edf2f7;
+  padding: 1.25rem 1.5rem;
+}

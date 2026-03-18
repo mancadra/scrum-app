@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AddSprintComponent from './AddSprintComponent';
 import BacklogSprintEntryComponent from './BacklogSprintEntryComponent';
 import { createSprint } from '../services/sprints';
@@ -8,6 +9,8 @@ const ProjectPageSprintComponent = ({ project, sprints = [], onSprintCreated }) 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const navigate = useNavigate();
 
   if (!project) {
     return <div className="project-panel">No project selected.</div>;
@@ -38,8 +41,8 @@ const ProjectPageSprintComponent = ({ project, sprints = [], onSprintCreated }) 
     }
   };
 
-  const handleSprintClick = () => {
-    console.log('JUDEZ TU SI ROUTER REDIRECT UREDI');
+  const handleSprintClick = (sprintId) => {
+    navigate(`/project/${project.id}/sprint/${sprintId}`)
   };
 
   return (

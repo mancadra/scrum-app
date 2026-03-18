@@ -1,7 +1,6 @@
 import './App.css'
 import CreateProjectPage from './pages/CreateProjectPage'
 import AdminPage from './pages/AdminPage'
-import SprintBacklogPage from './pages/SprintBacklogPage'
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AddUserStoryPage from "./pages/ProductBacklogPage";
@@ -192,13 +191,9 @@ function App() {
 
         <Route
           path="/project/:projectId/sprint/:sprintId"
-          element={!currentUser ? <Navigate to="/login" replace /> : <SprintBacklogPage />}
+          element={!currentUser ? <Navigate to="/login" replace /> : <SprintPage />}
         />
 
-        <Route
-          path="/project/:projectId/sprint"
-          element={<SprintPage />}
-        />
 
         <Route
           path="/project/:projectId/backlog"
