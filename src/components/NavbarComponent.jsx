@@ -10,6 +10,7 @@ function NavbarComponent({
   userInitial = 'U',
   onLogout,
   isAdmin = false,
+  lastLogin = null,
 }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -63,14 +64,21 @@ function NavbarComponent({
       </div>
 
       <div className="navbar-user">
-        <button
-          type="button"
-          className="navbar-user-button"
-          onClick={handleUserClick}
-        >
-          <span className="navbar-username">{username}</span>
-          <div className="navbar-avatar">{userInitial}</div>
-        </button>
+        <div className="navbar-user-wrapper">
+          <button
+            type="button"
+            className="navbar-user-button"
+            onClick={handleUserClick}
+          >
+            <span className="navbar-username">{username}</span>
+            <div className="navbar-avatar">{userInitial}</div>
+          </button>
+          {lastLogin && (
+            <span className="navbar-last-login">
+              Last login: {new Date(lastLogin).toLocaleString()}
+            </span>
+          )}
+        </div>
 
         {isUserMenuOpen && (
           <div className="navbar-dropdown">

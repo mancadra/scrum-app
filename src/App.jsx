@@ -136,6 +136,7 @@ function App() {
           userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'}
           onLogout={handleLogout}
           isAdmin={isAdmin}
+          lastLogin={currentUser?.profile?.lastLogin ?? null}
         />
       )}
 
