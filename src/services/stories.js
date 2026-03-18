@@ -187,7 +187,7 @@ export async function createUserStory(projectId, { name, description, acceptance
 
     const { data: story, error: storyError } = await supabase
         .from('UserStories')
-        .insert({ name, description, FK_projectId: projectId, FK_priorityId: priorityId, businessValue })
+        .insert({ name, description, FK_projectId: projectId, FK_priorityId: priorityId, businessValue, accepted: false, realized: false, })
         .select()
         .single()
 

@@ -50,7 +50,17 @@ function App() {
   }
 
   return (
-    <Routes>
+    <Routes> 
+      <Route
+        path="/project/:projectId/backlog"
+        element={
+          !currentUser ? (
+            <Navigate to="/login" replace />
+          ) : (
+            <ProductBacklog />
+          )
+        }
+      />
       <Route
         path="/login"
         element={
