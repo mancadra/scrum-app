@@ -286,6 +286,8 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
                 />
               </label>
 
+              {error && <p className="error-badge">{error}</p>}
+
               <div className="story-modal__actions">
                 <button
                   type="button"
@@ -299,7 +301,7 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
                 <button
                   type="button"
                   className="story-modal__secondary-button"
-                  onClick={() => setTimeComplexityStory(null)}
+                  onClick={() => { setTimeComplexityStory(null); setError(''); }}
                 >
                   Cancel
                 </button>

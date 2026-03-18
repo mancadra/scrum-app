@@ -186,7 +186,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                         {loading ? 'Creating...' : 'Create Project'}
                     </button>
                 </div>
-                {error && <p className="message error">{error}</p>}
+                {error && <p className="error-badge">{error}</p>}
             </div>
         </div>
     )

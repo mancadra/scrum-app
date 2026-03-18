@@ -77,7 +77,7 @@ export default function LoginPage({ onLogin }) {
         <button className="login-button" type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
-        {error && <p className="message error">{error}</p>}
+        {error && <p className="error-badge">{error}</p>}
       </form>
     </div>
   );

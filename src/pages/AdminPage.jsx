@@ -80,7 +80,7 @@ export default function AdminPage() {
               {loading ? "Dodajam..." : "Dodaj uporabnika"}
             </button>
           </form>
-          {message && <p className={`message ${messageType}`}>{message}</p>}
+          {message && <p className={messageType === 'error' ? 'error-badge' : 'message success'}>{message}</p>}
         </div>
 
         {/* Seznam uporabnikov */}

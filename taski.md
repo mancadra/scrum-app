@@ -15,13 +15,14 @@
 - razkritje zadnjega znaka
 - razritje zadnjega znaka pri loginu
 - display uporabnikov projekta in roli?
+- poenoti ostale error displaye (za dodajanje uporabniških zgodb duplicate story name zgleda lepo)
 
 
 <br>
 <br>
 
 ## 1 - Dodajanje uporabnikov (Must have)
-Administrator sistema lahko vnaša nove uporabnike v sistem.
+~~Administrator~~ sistema lahko vnaša nove uporabnike v sistem.
 
 Določi jim uporabniško ime in geslo, osebne podatke (ime, priimek, e-pošta) in sistemske pravice (administrator sistema, uporabnik sistema).
 
@@ -32,7 +33,7 @@ Določi jim uporabniško ime in geslo, osebne podatke (ime, priimek, e-pošta) i
 
 
 ## 4 - Dodajanje projekta (Must have)
-Administrator lahko ustvari nov projekt, izbere uporabnike za delo na tem projektu in določi njihove projektne vloge (produktni vodja, skrbnik metodologije, član razvojne skupine).
+~~Administrator~~ lahko ustvari nov projekt, izbere uporabnike za delo na tem projektu in določi njihove projektne vloge (produktni vodja, skrbnik metodologije, član razvojne skupine).
 
 - ~~Preveri dodajanje novega projekta in morebitno podvajanje imen~~
 - ~~Preveri izbiro uporabnikov za projekt~~
@@ -40,31 +41,31 @@ Administrator lahko ustvari nov projekt, izbere uporabnike za delo na tem projek
 
 
 ## 6 - Ustvarjanje novega Sprinta (Must have)
-Skrbnik metodologije lahko ustvari nov Sprint. Določi mu začetni in končni datum ter pričakovano hitrost.
+~~Skrbnik metodologije~~ lahko ustvari nov Sprint. Določi mu začetni in končni datum ter pričakovano hitrost.
 
-- Preveri običajen potek (pravilen datum in hitrost)
-- Preveri primer, ko je končni datum pred začetnim
-- Preveri primer, ko je začetni datum v preteklosti
-- Preveri neregularno vrednost hitrosti
-- Preveri prekrivanje Sprintov
+- ~~Preveri običajen potek (pravilen datum in hitrost)~~
+- ~~Preveri primer, ko je končni datum pred začetnim~~
+- ~~Preveri primer, ko je začetni datum v preteklosti~~
+- ~~Preveri neregularno vrednost hitrosti~~
+- ~~Preveri prekrivanje Sprintov~~ 
 
 
 ## 8 - Dodajanje uporabniških zgodb (Must have)
-Produktni vodja in skrbnik metodologije lahko vnašata nove uporabniške zgodbe v že obstoječ projekt.
+~~Produktni vodja~~ in ~~skrbnik metodologije~~ lahko vnašata nove uporabniške zgodbe v že obstoječ projekt.
 
 Za vsako zgodbo lahko določita njeno ime, besedilo, sprejemne teste, prioriteto (must have, could have, should have, won't have this time) in poslovno vrednost.
 
-- Preveri regularen potek
-- Preveri podvajanje imena uporabniške zgodbe
-- Preveri ustrezno določitev prioritete
-- Preveri neregularen vnos poslovne vrednosti
+- ~~Preveri regularen potek~~
+- ~~Preveri podvajanje imena uporabniške zgodbe~~
+- ~~Preveri ustrezno določitev prioritete~~
+- ~~Preveri neregularen vnos poslovne vrednosti~~
 
 
 ## 11 - Ocena časovne zahtevnosti (Must have)
-Skrbnik metodologije lahko nedodeljeni zgodbi v seznamu zahtev določi (oziroma spremeni) oceno časovne zahtevnosti.
+~~Skrbnik metodologije~~ lahko nedodeljeni zgodbi v seznamu zahtev določi (oziroma spremeni) oceno časovne zahtevnosti.
 
-- Preveri regularen potek
-- Preveri veljavnost ocene
+- ~~Preveri regularen potek~~
+- ~~Preveri veljavnost ocene~~
 - Preveri zgodbo, ki je že dodeljena Sprintu
 
 

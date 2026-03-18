@@ -65,7 +65,7 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
           <button type="submit" className="submit-btn" disabled={loading}>
             {loading ? "Saving..." : "Save Sprint"}
           </button>
-          {error && <p style={{ color: 'red', marginTop: '0.5rem' }}>{error}</p>}
+          {error && <p className="error-badge">{error}</p>}
         </form>
       </div>
     </div>
