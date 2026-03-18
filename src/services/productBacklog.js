@@ -49,24 +49,23 @@ export async function getAssignedStories(projectId) {
 
   const now = new Date().toISOString()
 
-  // Find active sprint(s) for this project
-  const { data: activeSprints, error: sprintError } = await supabase
+  // Find active or future sprints for this project (endingDate >= now)
+  const { data: currentOrFutureSprints, error: sprintError } = await supabase
     .from('Sprints')
     .select('id')
     .eq('FK_projectId', projectId)
-    .lte('startingDate', now)
     .gte('endingDate', now)
 
   if (sprintError) throw new Error(sprintError.message)
-  if (!activeSprints || activeSprints.length === 0) return []
+  if (!currentOrFutureSprints || currentOrFutureSprints.length === 0) return []
 
-  const activeSprintIds = activeSprints.map(s => s.id)
+  const sprintIds = currentOrFutureSprints.map(s => s.id)
 
-  // Get story IDs linked to active sprints
+  // Get story IDs linked to those sprints
   const { data: sprintLinks, error: linkError } = await supabase
     .from('SprintUserStories')
     .select('FK_userStoryId')
-    .in('FK_sprintId', activeSprintIds)
+    .in('FK_sprintId', sprintIds)
 
   if (linkError) throw new Error(linkError.message)
   if (!sprintLinks || sprintLinks.length === 0) return []
