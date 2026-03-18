@@ -62,7 +62,7 @@ export default function AdminPage() {
               <option value="User">Uporabnik sistema</option>
             </select>
             <button type="submit" disabled={loading} className="btn-submit">
-              {loading ? "Dodajam..." : "Ustvari račun"}
+              {loading ? "Dodajam..." : "Dodaj uporabnika"}
             </button>
           </form>
           {message && <p className={`message ${messageType}`}>{message}</p>}
