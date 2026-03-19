@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-// Uvozimo posamezne funkcije iz tvojega servisa
 import {
   getSprintBacklogById,
   createTask,
   acceptTask,
-  finishTask
+  finishTask,
+  updateTaskStatus
 } from '../services/tasks';
 
 export const useTasks = (projectId) => {
@@ -62,6 +62,20 @@ export const useTasks = (projectId) => {
     }
   };
 
+  // Ključna funkcija za Drag & Drop
+  const handleUpdateTaskStatus = async (taskId, newStatus) => {
+    try {
+      setLoading(true);
+      await updateTaskStatus(taskId, newStatus); 
+      refresh(); 
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return { 
     sprintData, 
     loading, 
@@ -69,6 +83,7 @@ export const useTasks = (projectId) => {
     fetchSprintBacklog, 
     handleCreateTask, 
     handleAcceptTask,
-    handleFinishTask
+    handleFinishTask,
+    handleUpdateTaskStatus
   };
 };
