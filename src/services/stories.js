@@ -169,8 +169,8 @@ export async function createUserStory(projectId, { name, description, acceptance
         throw new Error('Only Product Owners and Scrum Masters can create user stories.')
     }
 
-    if (!Number.isInteger(businessValue) || businessValue < 0) {
-        throw new Error('Business value must be a non-negative integer.')
+    if (!Number.isInteger(businessValue) || businessValue < 1 || businessValue > 10) {
+        throw new Error('Business value must be an integer between 1 and 10.')
     }
 
     if (!priorityId) throw new Error('Priority is required.')

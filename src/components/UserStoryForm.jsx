@@ -95,7 +95,8 @@ const UserStoryForm = ({ projectId, onStoryCreated, onClose, addStory, loading, 
             <label>Poslovna vrednost (BV)</label>
             <input
               type="number"
-              min="0"
+              min="1"
+              max="10"
               value={form.businessValue}
               onChange={(e) => setForm({ ...form, businessValue: e.target.value })}
             />

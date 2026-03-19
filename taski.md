@@ -18,6 +18,11 @@
 - dopolni LLM_use.md
 - ~~ali rabi bit user_doc točno za vsako uporabniško zgodbo?~~
 - ~~dodaj developer doc~~
+- userji imajo lahko več vlog (npr. hkrati scrum master in developer)
+- ~~podvajanje prjektov naj bo case insensitive~~
+- nov zavihek wont have this time
+- business value od 1-10
+- če naredimo sprint danes je avtomatsko aktiven
 
 
 <br>
