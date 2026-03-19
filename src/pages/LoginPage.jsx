@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import './LoginPage.css';
-import { signIn } from '../services/auth';
+import { signIn, changePasswordAnon } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 
 function getDisplayValue(password, revealLastChar, showPassword) {
@@ -9,31 +9,26 @@ function getDisplayValue(password, revealLastChar, showPassword) {
   return '•'.repeat(password.length);
 }
 
-export default function LoginPage({ onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+function PasswordField({ id, className, placeholder, value, onChange, autoComplete }) {
   const [showPassword, setShowPassword] = useState(false);
   const [revealLastChar, setRevealLastChar] = useState(false);
   const revealTimer = useRef(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handlePasswordChange = (e) => {
+  const handleChange = (e) => {
     const newVal = e.target.value;
-    const oldDisplay = getDisplayValue(password, revealLastChar, showPassword);
+    const oldDisplay = getDisplayValue(value, revealLastChar, showPassword);
     const diff = newVal.length - oldDisplay.length;
 
     if (showPassword) {
-      setPassword(newVal);
+      onChange(newVal);
     } else if (diff !== 0) {
       let pos = 0;
       while (pos < Math.min(newVal.length, oldDisplay.length) && newVal[pos] === oldDisplay[pos]) pos++;
       if (diff > 0) {
         const inserted = newVal.slice(pos, pos + diff);
-        setPassword(p => p.slice(0, pos) + inserted + p.slice(pos));
+        onChange(value.slice(0, pos) + inserted + value.slice(pos));
       } else {
-        setPassword(p => p.slice(0, pos) + p.slice(pos - diff));
+        onChange(value.slice(0, pos) + value.slice(pos - diff));
       }
     }
 
@@ -44,7 +39,57 @@ export default function LoginPage({ onLogin }) {
     }
   };
 
-  async function handleSubmit(event) {
+  return (
+    <div className="password-input-wrapper">
+      <input
+        className={`${className} password-input`}
+        id={id}
+        type="text"
+        autoComplete={autoComplete ?? 'off'}
+        placeholder={placeholder}
+        value={getDisplayValue(value, revealLastChar, showPassword)}
+        onChange={handleChange}
+        onCopy={(e) => e.preventDefault()}
+        onCut={(e) => e.preventDefault()}
+        required
+      />
+      <button
+        className="password-toggle"
+        type="button"
+        onClick={() => setShowPassword((prev) => !prev)}
+        aria-label={showPassword ? 'Hide password' : 'Show password'}
+      >
+        {showPassword ? '🙈' : '👁'}
+      </button>
+    </div>
+  );
+}
+
+export default function LoginPage({ onLogin }) {
+  const [mode, setMode] = useState('login');
+
+  // login state
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  // change password state
+  const [cpUsername, setCpUsername] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const switchMode = (next) => {
+    setError('');
+    setSuccess('');
+    setMode(next);
+  };
+
+  async function handleLoginSubmit(event) {
     event.preventDefault();
     setError('');
     setLoading(true);
@@ -66,14 +111,98 @@ export default function LoginPage({ onLogin }) {
     }
   }
 
+  async function handleChangePasswordSubmit(event) {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await changePasswordAnon(cpUsername, oldPassword, newPassword);
+      setSuccess('Password changed successfully. You can now log in.');
+      setCpUsername('');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (mode === 'changePassword') {
+    return (
+      <div className="login-page">
+        <form className="login-form" onSubmit={handleChangePasswordSubmit}>
+          <h1 className="login-title">Change Password</h1>
+
+          <label className="login-label" htmlFor="cp-username">Username</label>
+          <input
+            className="login-input"
+            id="cp-username"
+            type="text"
+            placeholder="Enter your username"
+            value={cpUsername}
+            onChange={(e) => setCpUsername(e.target.value)}
+            required
+          />
+
+          <label className="login-label" htmlFor="cp-old">Old password</label>
+          <PasswordField
+            id="cp-old"
+            className="login-input"
+            placeholder="Enter old password"
+            value={oldPassword}
+            onChange={setOldPassword}
+            autoComplete="current-password"
+          />
+
+          <label className="login-label" htmlFor="cp-new">New password</label>
+          <PasswordField
+            id="cp-new"
+            className="login-input"
+            placeholder="Enter new password"
+            value={newPassword}
+            onChange={setNewPassword}
+            autoComplete="new-password"
+          />
+
+          <label className="login-label" htmlFor="cp-confirm">Confirm new password</label>
+          <PasswordField
+            id="cp-confirm"
+            className="login-input"
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            autoComplete="new-password"
+          />
+
+          <button className="login-button" type="submit" disabled={loading}>
+            {loading ? 'Changing...' : 'Change Password'}
+          </button>
+          <button className="login-link" type="button" onClick={() => switchMode('login')}>
+            Back to Login
+          </button>
+
+          {error && <p className="error-badge">{error}</p>}
+          {success && <p className="success-badge">{success}</p>}
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="login-page">
-      <form className="login-form" onSubmit={handleSubmit}>
+      <form className="login-form" onSubmit={handleLoginSubmit}>
         <h1 className="login-title">Login</h1>
 
-        <label className="login-label" htmlFor="username">
-          Username
-        </label>
+        <label className="login-label" htmlFor="username">Username</label>
         <input
           className="login-input"
           id="username"
@@ -84,33 +213,23 @@ export default function LoginPage({ onLogin }) {
           required
         />
 
-        <label className="login-label" htmlFor="password">
-          Password
-        </label>
-        <div className="password-input-wrapper">
-          <input
-            className="login-input password-input"
-            id="password"
-            type="text"
-            autoComplete="current-password"
-            placeholder="Enter your password"
-            value={getDisplayValue(password, revealLastChar, showPassword)}
-            onChange={handlePasswordChange}
-            required
-          />
-          <button
-            className="password-toggle"
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? '🙈' : '👁'}
-          </button>
-        </div>
+        <label className="login-label" htmlFor="password">Password</label>
+        <PasswordField
+          id="password"
+          className="login-input"
+          placeholder="Enter your password"
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+        />
 
         <button className="login-button" type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
+        <button className="login-link" type="button" onClick={() => switchMode('changePassword')}>
+          Change Password
+        </button>
+
         {error && <p className="error-badge">{error}</p>}
       </form>
     </div>

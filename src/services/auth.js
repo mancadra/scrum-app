@@ -109,6 +109,30 @@ export async function changePassword(oldPassword, newPassword) {
     if (error) throw new Error(error.message)
 }
 
+export async function changePasswordAnon(username, oldPassword, newPassword) {
+    validatePassword(newPassword)
+
+    const { data: userData, error: userError } = await supabase
+      .from('Users')
+      .select('email')
+      .eq('username', username)
+      .single()
+
+    if (userError || !userData) throw new Error('Invalid username or password.')
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userData.email,
+      password: oldPassword,
+    })
+
+    if (signInError) throw new Error('Invalid username or password.')
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw new Error(error.message)
+
+    await supabase.auth.signOut()
+}
+
 export function validatePassword(password) {
     if (password.length < 12) throw new Error('Password must be at least 12 characters.')
     if (password.length > 128) throw new Error('Password must not exceed 128 characters.')

@@ -106,7 +106,7 @@ export default function AdminPage() {
             <input name="username" placeholder="Uporabniško ime" value={formData.username} onChange={handleChange} />
             <input type="email" name="email" placeholder="E-pošta" value={formData.email} onChange={handleChange} />
             <div className="password-input-wrapper">
-              <input type="text" autoComplete="new-password" name="password" placeholder="Geslo" value={getDisplayValue(formData.password, revealLastChar, showPassword)} onChange={handlePasswordChange} className="password-input" />
+              <input type="text" autoComplete="new-password" name="password" placeholder="Geslo" value={getDisplayValue(formData.password, revealLastChar, showPassword)} onChange={handlePasswordChange} onCopy={(e) => e.preventDefault()} onCut={(e) => e.preventDefault()} className="password-input" />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? "Skrij geslo" : "Prikaži geslo"}>
                 {showPassword ? '🙈' : '👁'}
               </button>
