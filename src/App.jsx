@@ -123,110 +123,110 @@ function App() {
 
   if (loadingUser || isPostLoginLoading) {
     return (
-      <div className="app-loading">
-        <p>Loading...</p>
-      </div>
+        <div className="app-loading">
+          <p>Loading...</p>
+        </div>
     );
   }
 
   return (
-    <>
-      {currentUser && (
-        <NavbarComponent
-          projects={userProjects}
-          selectedProjectId={selectedProject?.id ?? null}
-          onProjectSelect={handleProjectSelect}
-          username={currentUser?.profile?.username ?? ''}
-          userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'}
-          onLogout={handleLogout}
-          isAdmin={isAdmin}
-          lastLogin={currentUser?.profile?.lastLogin ?? null}
-        />
-      )}
+      <>
+        {currentUser && (
+            <NavbarComponent
+                projects={userProjects}
+                selectedProjectId={selectedProject?.id ?? null}
+                onProjectSelect={handleProjectSelect}
+                username={currentUser?.profile?.username ?? ''}
+                userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'}
+                onLogout={handleLogout}
+                isAdmin={isAdmin}
+                lastLogin={currentUser?.profile?.lastLogin ?? null}
+            />
+        )}
 
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            currentUser ? (
-              <Navigate to="/" replace />
-            ) : (
-              <LoginPage
-                onLogin={async () => {
-                  setIsPostLoginLoading(true);
-                  try {
-                    const user = await getCurrentUser();
-                    setCurrentUser(user);
-                    if (user) await loadProjects(user);
-                    navigate("/", { replace: true });
-                  } finally {
-                    setIsPostLoginLoading(false);
-                  }
-                }}
-              />
-            )
-          }
-        />
+        <Routes>
+          <Route
+              path="/login"
+              element={
+                currentUser ? (
+                    <Navigate to="/" replace />
+                ) : (
+                    <LoginPage
+                        onLogin={async () => {
+                          setIsPostLoginLoading(true);
+                          try {
+                            const user = await getCurrentUser();
+                            setCurrentUser(user);
+                            if (user) await loadProjects(user);
+                            navigate("/", { replace: true });
+                          } finally {
+                            setIsPostLoginLoading(false);
+                          }
+                        }}
+                    />
+                )
+              }
+          />
 
-        <Route
-          path="/admin"
-          element={
-            !currentUser ? <Navigate to="/login" replace /> : 
-            isAdmin ? <AdminPage /> : <Navigate to="/" replace />
-          }
-        />
+          <Route
+              path="/admin"
+              element={
+                !currentUser ? <Navigate to="/login" replace /> :
+                    isAdmin ? <AdminPage /> : <Navigate to="/" replace />
+              }
+          />
 
-        <Route
-          path="/create-project"
-          element={
-            !currentUser ? (
-              <Navigate to="/login" replace />
-            ) : isAdmin ? (
-              <CreateProjectPage
-                onProjectCreated={async () => {
-                  await loadProjects(currentUser);
-                  navigate('/');
-                }}
-              />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+          <Route
+              path="/create-project"
+              element={
+                !currentUser ? (
+                    <Navigate to="/login" replace />
+                ) : isAdmin ? (
+                    <CreateProjectPage
+                        onProjectCreated={async () => {
+                          await loadProjects(currentUser);
+                          navigate('/');
+                        }}
+                    />
+                ) : (
+                    <Navigate to="/" replace />
+                )
+              }
+          />
 
-        <Route
-          path="/project/:projectId/sprint/:sprintId"
-          element={!currentUser ? <Navigate to="/login" replace /> : <SprintPage />}
-        />
+          <Route
+              path="/project/:projectId/sprint/:sprintId"
+              element={!currentUser ? <Navigate to="/login" replace /> : <SprintPage />}
+          />
 
+          <Route
+              path="/project/:projectId/backlog"
+              element={!currentUser ? <Navigate to="/login" replace /> : <AddUserStoryPage />}
+          />
 
-        <Route
-          path="/project/:projectId/backlog"
-          element={!currentUser ? <Navigate to="/login" replace /> : <AddUserStoryPage />}
-        />
-
-        <Route
-            path="/"
-            element={
-              currentUser ? (
-                  selectedProject ? (
-                      <ProjectPageComponent
-                          project={selectedProject}
-                          stories={selectedProjectStories}
-                          sprints={selectedProjectSprints}
-                          onStoryCreated={refreshSelectedProjectData}
-                          onSprintCreated={refreshSelectedProjectData}
-                      />
-                  ) : (
-                      <Navigate to="/create-project" replace />
-                  )
-              ) : (
-                  <Navigate to="/login" replace />
-              )
-            }
-        />
-      </Routes>
-    </>
+          <Route
+              path="/"
+              element={
+                currentUser ? (
+                    selectedProject ? (
+                        <ProjectPageComponent
+                            project={selectedProject}
+                            projectUsers={selectedProjectUsers}
+                            stories={selectedProjectStories}
+                            sprints={selectedProjectSprints}
+                            onStoryCreated={refreshSelectedProjectData}
+                            onSprintCreated={refreshSelectedProjectData}
+                        />
+                    ) : (
+                        <Navigate to="/create-project" replace />
+                    )
+                ) : (
+                    <Navigate to="/login" replace />
+                )
+              }
+          />
+        </Routes>
+      </>
   );
 }
 

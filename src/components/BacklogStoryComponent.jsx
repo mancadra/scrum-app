@@ -1,68 +1,76 @@
 import React from 'react';
 import './BacklogStoryComponent.css';
 
-const BacklogStoryComponent = ({ story, priority, onClick, onTimeComplexityClick }) => {
-  if (!story) return null;
+const BacklogStoryComponent = ({
+                                   story,
+                                   priority,
+                                   onClick,
+                                   onTimeComplexityClick,
+                                   canEditTimeComplexity,
+                               }) => {
+    if (!story) return null;
 
-  const priorityClassName = {
-    'Must have': 'backlog-story-card__badge backlog-story-card__badge--must-have',
-    'Should have': 'backlog-story-card__badge backlog-story-card__badge--should-have',
-    'Could have': 'backlog-story-card__badge backlog-story-card__badge--could-have',
-    'Won’t have this time': 'backlog-story-card__badge backlog-story-card__badge--wont-have',
-  }[priority] ?? 'backlog-story-card__badge';
+    const priorityClassName = {
+        'Must have': 'backlog-story-card__badge backlog-story-card__badge--must-have',
+        'Should have': 'backlog-story-card__badge backlog-story-card__badge--should-have',
+        'Could have': 'backlog-story-card__badge backlog-story-card__badge--could-have',
+        'Won’t have this time': 'backlog-story-card__badge backlog-story-card__badge--wont-have',
+    }[priority] ?? 'backlog-story-card__badge';
 
-  return (
-    <div className="backlog-story-card">
-      <div
-        className="backlog-story-card__body"
-        role="button"
-        tabIndex={0}
-        onClick={() => onClick?.(story)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onClick?.(story);
-          }
-        }}
-      >
-        <div className="backlog-story-card__header">
-          <h3 className="backlog-story-card__title">{story.name}</h3>
-          {priority && <span className={priorityClassName}>{priority}</span>}
-        </div>
+    return (
+        <div className="backlog-story-card">
+            <div
+                className="backlog-story-card__body"
+                role="button"
+                tabIndex={0}
+                onClick={() => onClick?.(story)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onClick?.(story);
+                    }
+                }}
+            >
+                <div className="backlog-story-card__header">
+                    <h3 className="backlog-story-card__title">{story.name}</h3>
+                    {priority && <span className={priorityClassName}>{priority}</span>}
+                </div>
 
-        <div className="backlog-story-card__meta">
-          {story.timeComplexity != null && story.timeComplexity !== '' && (
-            <div className="backlog-story-card__meta-item">
-              <strong>Time complexity:</strong> {story.timeComplexity}
+                <div className="backlog-story-card__meta">
+                    {story.timeComplexity != null && story.timeComplexity !== '' && (
+                        <div className="backlog-story-card__meta-item">
+                            <strong>Time complexity:</strong> {story.timeComplexity}
+                        </div>
+                    )}
+
+                    <div className="backlog-story-card__meta-item">
+                        <strong>Business value:</strong> {story.businessValue ?? '—'}
+                    </div>
+
+                    {story.sprintId && (
+                        <div className="backlog-story-card__meta-item">
+                            <strong>Sprint ID:</strong> {story.sprintId}
+                        </div>
+                    )}
+                </div>
+
+                {canEditTimeComplexity && (
+                    <button
+                        type="button"
+                        className="backlog-story-card__time-button"
+                        aria-label={`Set time complexity for ${story.name}`}
+                        title="Set time complexity"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onTimeComplexityClick?.(story);
+                        }}
+                    >
+                        ⏰
+                    </button>
+                )}
             </div>
-          )}
-
-          <div className="backlog-story-card__meta-item">
-            <strong>Business value:</strong> {story.businessValue ?? '—'}
-          </div>
-
-          {story.sprintId && (
-            <div className="backlog-story-card__meta-item">
-              <strong>Sprint ID:</strong> {story.sprintId}
-            </div>
-          )}
         </div>
-
-        <button
-          type="button"
-          className="backlog-story-card__time-button"
-          aria-label={`Set time complexity for ${story.name}`}
-          title="Set time complexity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTimeComplexityClick?.(story);
-          }}
-        >
-          ⏰
-        </button>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default BacklogStoryComponent;

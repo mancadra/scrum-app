@@ -2,6 +2,7 @@
     display: grid;
     gap: 12px;
     margin-top: 23px;
+    margin-bottom: 16px;
 
     --sprint-card-height: 110px;
     max-height: calc((6 * var(--sprint-card-height)) + (5 * 12px));

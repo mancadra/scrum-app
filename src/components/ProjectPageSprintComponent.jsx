@@ -1,16 +1,54 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddSprintComponent from './AddSprintComponent';
 import BacklogSprintEntryComponent from './BacklogSprintEntryComponent';
 import { createSprint } from '../services/sprints';
+import { getCurrentUser } from '../services/auth';
 import './ProjectPageSprintComponent.css';
 
-const ProjectPageSprintComponent = ({ project, sprints = [], onSprintCreated }) => {
+const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], onSprintCreated }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [canAddSprint, setCanAddSprint] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPermissions = async () => {
+      if (!project?.id) {
+        setCanAddSprint(false);
+        return;
+      }
+
+      try {
+        const currentUser = await getCurrentUser();
+        const currentUserId = currentUser?.id;
+
+        const currentMembership = projectUsers.find(
+          (membership) => membership.FK_userId === currentUserId
+        );
+
+        const role = currentMembership?.ProjectRoles?.projectRole ?? null;
+
+        if (!cancelled) {
+          setCanAddSprint(role === 'Scrum Master');
+        }
+      } catch {
+        if (!cancelled) {
+          setCanAddSprint(false);
+        }
+      }
+    };
+
+    loadPermissions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, projectUsers]);
 
   if (!project) {
     return <div className="project-panel">No project selected.</div>;
@@ -49,13 +87,15 @@ const ProjectPageSprintComponent = ({ project, sprints = [], onSprintCreated }) 
       <div className="project-panel project-sprint">
         <div className="project-panel__header">
           <h2>Sprints</h2>
-          <button
-              type="button"
-              className="project-panel__button"
-              onClick={() => setIsFormOpen(true)}
-          >
-            Add Sprint
-          </button>
+          {canAddSprint && (
+            <button
+                type="button"
+                className="project-panel__button"
+                onClick={() => setIsFormOpen(true)}
+            >
+              Add Sprint
+            </button>
+          )}
         </div>
 
         {error && <div className="project-panel__error">{error}</div>}

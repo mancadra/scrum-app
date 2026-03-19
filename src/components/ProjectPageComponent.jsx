@@ -4,33 +4,36 @@ import ProjectPageSprintComponent from './ProjectPageSprintComponent';
 import './ProjectPageComponent.css';
 
 const ProjectPageComponent = ({
-  project,
-  stories = [],
-  sprints = [],
-  onStoryCreated,
-  onSprintCreated,
-}) => {
+                                project,
+                                stories = [],
+                                sprints = [],
+                                projectUsers = [],
+                                onStoryCreated,
+                                onSprintCreated,
+                              }) => {
   if (!project) {
     return <div className="project-page">No project selected.</div>;
   }
 
   return (
-    <div className="project-page">
-      <div className="project-page__header" />
+      <div className="project-page">
+        {/*<div className="project-page__header" />*/}
 
-      <div className="project-page__columns">
-        <ProjectPageBacklogComponent
-          project={project}
-          stories={stories}
-          onStoryCreated={onStoryCreated}
-        />
-        <ProjectPageSprintComponent
-          project={project}
-          sprints={sprints}
-          onSprintCreated={onSprintCreated}
-        />
+        <div className="project-page__columns">
+          <ProjectPageBacklogComponent
+              project={project}
+              projectUsers={projectUsers}
+              stories={stories}
+              onStoryCreated={onStoryCreated}
+          />
+          <ProjectPageSprintComponent
+              project={project}
+              projectUsers={projectUsers}
+              sprints={sprints}
+              onSprintCreated={onSprintCreated}
+          />
+        </div>
       </div>
-    </div>
   );
 };
 

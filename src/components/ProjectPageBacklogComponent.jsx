@@ -3,6 +3,7 @@ import UserStoryForm from './UserStoryForm';
 import BacklogStoryComponent from './BacklogStoryComponent';
 import BacklogStoryDetailsComponent from './BacklogStoryDetailsComponent';
 import { createUserStory, setTimeComplexity } from '../services/stories';
+import { getCurrentUser } from '../services/auth';
 import {
   getRealizedStories,
   getAssignedStories,
@@ -10,7 +11,7 @@ import {
 } from '../services/productBacklog';
 import './ProjectPageBacklogComponent.css';
 
-const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
+const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreated }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [timeComplexityStory, setTimeComplexityStory] = useState(null);
@@ -22,6 +23,50 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
   const [realizedStories, setRealizedStories] = useState([]);
   const [assignedStories, setAssignedStories] = useState([]);
   const [unassignedStories, setUnassignedStories] = useState([]);
+  const [canAddStory, setCanAddStory] = useState(false);
+  const [canEditTimeComplexity, setCanEditTimeComplexity] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPermissions = async () => {
+      if (!project?.id) {
+        setCanAddStory(false);
+        setCanEditTimeComplexity(false);
+        return;
+      }
+
+      try {
+        const currentUser = await getCurrentUser();
+        const currentUserId = currentUser?.id;
+
+        const currentMembership = projectUsers.find(
+          (membership) => membership.FK_userId === currentUserId
+        );
+
+        const role = currentMembership?.ProjectRoles?.projectRole ?? null;
+
+        const nextCanAddStory = role === 'Scrum Master' || role === 'Product Owner';
+        const nextCanEditTimeComplexity = role === 'Scrum Master';
+
+        if (!cancelled) {
+          setCanAddStory(nextCanAddStory);
+          setCanEditTimeComplexity(nextCanEditTimeComplexity);
+        }
+      } catch {
+        if (!cancelled) {
+          setCanAddStory(false);
+          setCanEditTimeComplexity(false);
+        }
+      }
+    };
+
+    loadPermissions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, projectUsers]);
 
   useEffect(() => {
     if (!project?.id) {
@@ -162,6 +207,7 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
             priority={getStoryPriority(story)}
             onClick={setSelectedStory}
             onTimeComplexityClick={handleOpenTimeComplexityModal}
+            canEditTimeComplexity={canEditTimeComplexity}
           />
         ))}
       </div>
@@ -172,13 +218,15 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
     <div className="project-panel project-backlog">
       <div className="project-panel__header">
         <h2>Backlog</h2>
-        <button
-          type="button"
-          className="project-panel__button"
-          onClick={() => setIsFormOpen(true)}
-        >
-          Create Story
-        </button>
+        {canAddStory && (
+          <button
+            type="button"
+            className="project-panel__button"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Create Story
+          </button>
+        )}
       </div>
 
       {error && <div className="project-panel__error">{error}</div>}
