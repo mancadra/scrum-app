@@ -86,34 +86,34 @@ export default function CreateProjectPage({ onProjectCreated }) {
     return (
         <div className="create-project-page">
             <div className="create-project-card">
-                <h1 className="create-project-title">Create Project</h1>
+                <h1 className="create-project-title">Ustvari Projekt</h1>
                 <p className="create-project-subtitle">
-                    Add users and assign a role to each one.
+                    Dodaj uporabnike in jim dodeli vloge
                 </p>
 
                 <div className="create-project-field">
                     <label htmlFor="projectName" className="create-project-label">
-                        Project Name
+                        Ime Projekta
                     </label>
                     <input
                         id="projectName"
                         type="text"
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
-                        placeholder="Enter project name"
+                        placeholder="Vstavi ime projekta"
                         className="create-project-input"
                     />
                 </div>
 
                 <div className="create-project-field">
                     <label htmlFor="description" className="create-project-label">
-                        Description
+                        Opis
                     </label>
                     <textarea
                         id="description"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Enter project description (optional)"
+                        placeholder="Vstavi opis projekta (neobvezno)"
                         className="create-project-input"
                     />
                 </div>
@@ -124,7 +124,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                         onChange={(e) => setSelectedUserId(e.target.value)}
                         className="create-project-select"
                     >
-                        <option value="">Select a user</option>
+                        <option value="">Izberi uporabnika</option>
                         {availableUsers.map((user) => (
                             <option key={user.id} value={user.id}>
                                 {user.username} {user.name ? `(${user.name} ${user.surname ?? ''})` : ''}
@@ -138,13 +138,13 @@ export default function CreateProjectPage({ onProjectCreated }) {
                         disabled={!selectedUserId}
                         className="create-project-button"
                     >
-                        Add User
+                        Dodaj Uporabnika
                     </button>
                 </div>
 
                 <div className="create-project-list">
                     {projectUsers.length === 0 ? (
-                        <p className="create-project-empty-text">No users added yet.</p>
+                        <p className="create-project-empty-text">Ni še dodanega uporabnika</p>
                     ) : (
                         projectUsers.map((user) => (
                             <div key={user.id} className="create-project-user-row">
@@ -169,7 +169,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                                     onClick={() => handleRemoveUser(user.id)}
                                     className="create-project-button"
                                 >
-                                    Remove
+                                    Odstrani
                                 </button>
                             </div>
                         ))
@@ -183,7 +183,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                         disabled={!projectName.trim() || loading}
                         className="create-project-button"
                     >
-                        {loading ? 'Creating...' : 'Create Project'}
+                        {loading ? 'Ustvarjanje...' : 'Ustvari Projekt'}
                     </button>
                 </div>
                 {error && <p className="error-badge">{error}</p>}

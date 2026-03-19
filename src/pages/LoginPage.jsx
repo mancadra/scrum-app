@@ -139,56 +139,56 @@ export default function LoginPage({ onLogin }) {
   if (mode === 'changePassword') {
     return (
       <div className="login-page">
-        <h1 className="login-page__title">Scrum App</h1>
+        <h1 className="login-page__title">SCRUM Aplikacija</h1>
         <form className="login-form" onSubmit={handleChangePasswordSubmit}>
           <h1 className="login-title">Change Password</h1>
 
-          <label className="login-label" htmlFor="cp-username">Username</label>
+          <label className="login-label" htmlFor="cp-username">Uporabniško ime</label>
           <input
             className="login-input"
             id="cp-username"
             type="text"
-            placeholder="Enter your username"
+            placeholder="Vstavite vaše uporabniško ime"
             value={cpUsername}
             onChange={(e) => setCpUsername(e.target.value)}
             required
           />
 
-          <label className="login-label" htmlFor="cp-old">Old password</label>
+          <label className="login-label" htmlFor="cp-old">Trenutno geslo</label>
           <PasswordField
             id="cp-old"
             className="login-input"
-            placeholder="Enter old password"
+            placeholder="Vstavite vaše trenutno geslo"
             value={oldPassword}
             onChange={setOldPassword}
             autoComplete="current-password"
           />
 
-          <label className="login-label" htmlFor="cp-new">New password</label>
+          <label className="login-label" htmlFor="cp-new">Novo geslo</label>
           <PasswordField
             id="cp-new"
             className="login-input"
-            placeholder="Enter new password"
+            placeholder="Vstavite vaše novo geslo"
             value={newPassword}
             onChange={setNewPassword}
             autoComplete="new-password"
           />
 
-          <label className="login-label" htmlFor="cp-confirm">Confirm new password</label>
+          <label className="login-label" htmlFor="cp-confirm">Potrdite novo geslo</label>
           <PasswordField
             id="cp-confirm"
             className="login-input"
-            placeholder="Confirm new password"
+            placeholder="Potrdite vaše novo geslo"
             value={confirmPassword}
             onChange={setConfirmPassword}
             autoComplete="new-password"
           />
 
           <button className="login-button" type="submit" disabled={loading}>
-            {loading ? 'Changing...' : 'Change Password'}
+            {loading ? 'Spreminjanje...' : 'Spremenite Geslo'}
           </button>
           <button className="login-link" type="button" onClick={() => switchMode('login')}>
-            Back to Login
+            Nazaj k Prijavi
           </button>
 
           {error && <p className="error-badge">{error}</p>}
@@ -200,36 +200,36 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
-      <h1 className="login-page__title">Scrum App</h1>
+      <h1 className="login-page__title">SCRUM Aplikacija</h1>
       <form className="login-form" onSubmit={handleLoginSubmit}>
-        <h1 className="login-title">Login</h1>
+        <h1 className="login-title">Prijava</h1>
 
-        <label className="login-label" htmlFor="username">Username</label>
+        <label className="login-label" htmlFor="username">Uporabniško ime</label>
         <input
           className="login-input"
           id="username"
           type="text"
-          placeholder="Enter your username"
+          placeholder="Vstavite vaše uporabniško ime"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           required
         />
 
-        <label className="login-label" htmlFor="password">Password</label>
+        <label className="login-label" htmlFor="password">Geslo</label>
         <PasswordField
           id="password"
           className="login-input"
-          placeholder="Enter your password"
+          placeholder="Vstavite vaše geslo"
           value={password}
           onChange={setPassword}
           autoComplete="current-password"
         />
 
         <button className="login-button" type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? 'Prijavljanje...' : 'Prijava'}
         </button>
         <button className="login-link" type="button" onClick={() => switchMode('changePassword')}>
-          Change Password
+          Spremeni Geslo
         </button>
 
         {error && <p className="error-badge">{error}</p>}

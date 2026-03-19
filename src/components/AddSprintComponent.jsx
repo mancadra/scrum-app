@@ -27,7 +27,7 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
         onClick={(event) => event.stopPropagation()}
       >
         <div className="sidebar-header">
-          <h2>Add Sprint</h2>
+          <h2>Dodaj Sprint</h2>
           <button type="button" onClick={onClose} className="close-btn">
             ✕
           </button>
@@ -35,17 +35,17 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
 
         <form className="sprint-form" onSubmit={handleSaveSprint}>
           <div className="form-group">
-            <label>Speed</label>
+            <label>Hitrost</label>
             <input
               type="number"
-              placeholder="Enter sprint speed"
+              placeholder="Vstavite hitrost sprinta (ure)"
               value={speed}
               onChange={(event) => setSpeed(event.target.value)}
             />
           </div>
 
           <div className="form-group">
-            <label>Start Date</label>
+            <label>Datum začetka</label>
             <input
               type="date"
               value={startDate}
@@ -54,7 +54,7 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
           </div>
 
           <div className="form-group">
-            <label>End Date</label>
+            <label>Datum zaključka</label>
             <input
               type="date"
               value={endDate}
@@ -63,7 +63,7 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? "Saving..." : "Save Sprint"}
+            {loading ? "Shranjevanje..." : "Shrani Sprint"}
           </button>
           {error && <p className="error-badge">{error}</p>}
         </form>

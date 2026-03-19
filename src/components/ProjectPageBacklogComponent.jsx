@@ -217,14 +217,14 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
   return (
     <div className="project-panel project-backlog">
       <div className="project-panel__header">
-        <h2>Backlog</h2>
+        <h2>Seznam Zahtev</h2>
         {canAddStory && (
           <button
             type="button"
             className="project-panel__button"
             onClick={() => setIsFormOpen(true)}
           >
-            Create Story
+            Dodaj Zgodbo
           </button>
         )}
       </div>
@@ -232,22 +232,22 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
       {error && <div className="project-panel__error">{error}</div>}
 
       {pageLoading ? (
-        <div className="project-panel__empty">Loading backlog...</div>
+        <div className="project-panel__empty">Nalaganje zahtev...</div>
       ) : (
         <>
           <section className="project-backlog__section">
-            <h3>Realized stories</h3>
-            {renderStories(realizedStories, 'No realized stories found.')}
+            <h3>Realizirane Zgodbe</h3>
+            {renderStories(realizedStories, 'Ni najdenih zgodb.')}
           </section>
 
           <section className="project-backlog__section">
-            <h3>Assigned (but not realized) stories</h3>
-            {renderStories(assignedStories, 'No assigned stories found.')}
+            <h3>Dodeljene (nerealizirane) Zgodbe</h3>
+            {renderStories(assignedStories, 'Ni najdenih zgodb.')}
           </section>
 
           <section className="project-backlog__section">
-            <h3>Unassigned (and not realized) stories</h3>
-            {renderStories(unassignedStories, 'No unassigned stories found.')}
+            <h3>Nedodeljene (nerealizirane) Zgodbe</h3>
+            {renderStories(unassignedStories, 'Ni najdenih zgodb.')}
           </section>
         </>
       )}
@@ -265,21 +265,21 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         <div className="story-modal-overlay" onClick={() => setTimeComplexityStory(null)}>
           <div className="story-modal story-modal--compact" onClick={(e) => e.stopPropagation()}>
             <div className="story-modal__header">
-              <h2>Set time complexity</h2>
+              <h2>Nastavi časovno zahtevnost</h2>
             </div>
 
             <div className="story-modal__content">
-              <p className="story-modal__story"><strong>Story:</strong> {timeComplexityStory.name}</p>
+              <p className="story-modal__story"><strong>Zgodba:</strong> {timeComplexityStory.name}</p>
 
               <label className="story-modal__field">
-                <span>Time:</span>
+                <span>Čas:</span>
                 <input
                   type="number"
                   min="1"
                   step="1"
                   value={timeComplexityValue}
                   onChange={(e) => setTimeComplexityValue(e.target.value)}
-                  placeholder="e.g. 3"
+                  placeholder="npr. 3"
                 />
               </label>
 
@@ -290,7 +290,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
                   onClick={handleSaveTimeComplexity}
                   disabled={savingTimeComplexity}
                 >
-                  {savingTimeComplexity ? 'Saving…' : 'Save'}
+                  {savingTimeComplexity ? 'Shranjevanje…' : 'Shrani'}
                 </button>
 
                 <button
@@ -298,7 +298,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
                   className="story-modal__secondary-button"
                   onClick={() => { setTimeComplexityStory(null); setError(''); }}
                 >
-                  Cancel
+                  Prekliči
                 </button>
               </div>
             </div>

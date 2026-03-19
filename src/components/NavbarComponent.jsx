@@ -51,13 +51,13 @@ function NavbarComponent({
               className="navbar-project-button"
               onClick={() => navigate('/create-project')}
             >
-              + New Project
+              + Nov Projekt
             </button>
             <button
               className="navbar-project-button"
               onClick={() => navigate('/admin')}
             >
-              Admin Panel
+              Admin Okno
             </button>
           </>
         )}
@@ -75,7 +75,7 @@ function NavbarComponent({
           </button>
           {lastLogin && (
             <span className="navbar-last-login">
-              Last login: {new Date(lastLogin).toLocaleString()}
+              Zadnja Prijava: {new Date(lastLogin).toLocaleString()}
             </span>
           )}
         </div>
@@ -87,7 +87,7 @@ function NavbarComponent({
               className="navbar-dropdown-item"
               onClick={handleLogoutClick}
             >
-              LOG OUT
+               ODJAVA
             </button>
           </div>
         )}

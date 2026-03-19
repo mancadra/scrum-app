@@ -86,14 +86,14 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
   return (
       <div className="project-panel project-sprint">
         <div className="project-panel__header">
-          <h2>Sprints</h2>
+          <h2>Sprinti</h2>
           {canAddSprint && (
             <button
                 type="button"
                 className="project-panel__button"
                 onClick={() => setIsFormOpen(true)}
             >
-              Add Sprint
+              Dodaj Sprint
             </button>
           )}
         </div>
@@ -110,7 +110,7 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
                   />
               ))
           ) : (
-              <div className="project-panel__empty">No sprints found for this project.</div>
+              <div className="project-panel__empty">Ni najdenih sprintov za izbran projekt.</div>
           )}
         </div>
 

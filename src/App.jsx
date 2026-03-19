@@ -124,7 +124,7 @@ function App() {
   if (loadingUser || isPostLoginLoading) {
     return (
         <div className="app-loading">
-          <p>Loading...</p>
+          <p>Nalaganje...</p>
         </div>
     );
   }

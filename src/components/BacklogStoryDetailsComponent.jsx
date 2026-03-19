@@ -30,7 +30,7 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
       >
         <div className="backlog-story-details__header">
           <div>
-            <p className="backlog-story-details__eyebrow">Story details</p>
+            <p className="backlog-story-details__eyebrow">Podrobnosti zgodbe</p>
             <h2 id="backlog-story-details-title">{story.name}</h2>
           </div>
 
@@ -46,25 +46,25 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
 
         <div className="backlog-story-details__content">
           <section className="backlog-story-details__section">
-            <h3>Overview</h3>
+            <h3></h3>
             <div className="backlog-story-details__grid">
               <div>
-                <span className="backlog-story-details__label">Description</span>
+                <span className="backlog-story-details__label">Opis</span>
                 <p>{story.description || '—'}</p>
               </div>
 
               <div>
-                <span className="backlog-story-details__label">Priority</span>
+                <span className="backlog-story-details__label">Prioriteta</span>
                 <p>{getStoryPriority?.(story) ?? '—'}</p>
               </div>
 
               <div>
-                <span className="backlog-story-details__label">Business value</span>
+                <span className="backlog-story-details__label">Poslovna vrednost</span>
                 <p>{story.businessValue ?? '—'}</p>
               </div>
 
               <div>
-                <span className="backlog-story-details__label">Time complexity</span>
+                <span className="backlog-story-details__label">Časovna zahtevnost</span>
                 <p>{story.timeComplexity != null && story.timeComplexity !== '' ? story.timeComplexity : '—'}</p>
               </div>
 
@@ -72,10 +72,10 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
                 <span className="backlog-story-details__label">Status</span>
                 <p>
                   {story.realized
-                    ? 'Realized'
+                    ? 'Realizirana'
                     : story.sprintId
-                      ? 'Assigned'
-                      : 'Unassigned'}
+                      ? 'Dodeljena'
+                      : 'Nedodeljena'}
                 </p>
               </div>
 
@@ -87,7 +87,7 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
           </section>
 
           <section className="backlog-story-details__section">
-            <h3>Acceptance tests</h3>
+            <h3>Sprejemni testi</h3>
             {acceptanceTests.length > 0 ? (
               <ul className="backlog-story-details__list">
                 {acceptanceTests.map((test, index) => (
@@ -95,7 +95,7 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
                 ))}
               </ul>
             ) : (
-              <p>No tests.</p>
+              <p>Ni testov.</p>
             )}
           </section>
         </div>

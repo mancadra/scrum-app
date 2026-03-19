@@ -12,7 +12,7 @@ const ProjectPageComponent = ({
                                 onSprintCreated,
                               }) => {
   if (!project) {
-    return <div className="project-page">No project selected.</div>;
+    return <div className="project-page">Ni izbranega projekta.</div>;
   }
 
   return (

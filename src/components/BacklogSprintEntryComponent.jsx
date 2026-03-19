@@ -23,15 +23,15 @@ const BacklogSprintEntryComponent = ({ sprint, onClick }) => {
         >
             <div className="sprint-card__title">Sprint #{sprint.id}</div>
             <div className="sprint-card__row">
-                <span className="sprint-card__label">Start date:</span>
+                <span className="sprint-card__label">Datum začetka:</span>
                 <span>{formatDate(sprint.startingDate)}</span>
             </div>
             <div className="sprint-card__row">
-                <span className="sprint-card__label">End date:</span>
+                <span className="sprint-card__label">Datum konca:</span>
                 <span>{formatDate(sprint.endingDate)}</span>
             </div>
             <div className="sprint-card__row">
-                <span className="sprint-card__label">Velocity:</span>
+                <span className="sprint-card__label">Hitrost:</span>
                 <span>{sprint.startingSpeed}</span>
             </div>
         </button>

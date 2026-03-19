@@ -13,78 +13,119 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 40px 20px;
-    background-color: #f4f6f8;
+    padding: 24px;
+    gap: 24px;
+    background: #0f172a;
+    color: #e2e8f0;
 }
 
 .create-project-card {
-    width: 100%;
-    max-width: 70%;
-    background-color: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    color: #111827;
+    width: min(100%, 880px);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.45);
+    color: #e2e8f0;
     text-align: left;
+    backdrop-filter: blur(8px);
 }
 
 .create-project-title {
-    margin: 0 0 8px;
+    margin: 0 0 6px;
+    color: #f8fafc;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
 }
 
 .create-project-subtitle {
     margin: 0 0 24px;
-    color: #666;
+    color: #cbd5e1;
+    font-size: 0.98rem;
 }
 
 .create-project-field {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .create-project-label {
-    font-size: 14px;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #374151;
+    color: #cbd5e1;
+}
+
+.create-project-input,
+.create-project-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    font-size: 0.98rem;
+    color: #e2e8f0;
+    background: #0f172a;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.create-project-input::placeholder {
+    color: #64748b;
+}
+
+.create-project-input:focus,
+.create-project-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    background: #111c33;
 }
 
 .create-project-input {
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-    color: #111827;
-    background-color: #fff;
+    min-height: 44px;
+}
+
+textarea.create-project-input {
+    min-height: 120px;
+    resize: vertical;
 }
 
 .create-project-add-row {
     display: flex;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    align-items: flex-start;
 }
 
-.create-project-select {
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-    color: #111827;
-    background-color: #fff;
+.create-project-add-row .create-project-select {
+    flex: 1 1 auto;
 }
 
 .create-project-button {
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: none;
-    background-color: #2563eb;
-    color: #fff;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #2563eb;
+    background: #3b82f6;
+    color: #ffffff;
     cursor: pointer;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.22);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.create-project-button:hover {
+    background: #2563eb;
+    border-color: #1d4ed8;
+}
+
+.create-project-button:active {
+    transform: translateY(1px);
 }
 
 .create-project-button:disabled {
-    opacity: 0.6;
+    opacity: 0.7;
     cursor: not-allowed;
 }
 
@@ -95,7 +136,7 @@
 }
 
 .create-project-empty-text {
-    color: #777;
+    color: #94a3b8;
 }
 
 .create-project-user-row {
@@ -104,18 +145,24 @@
     align-items: center;
     gap: 16px;
     padding: 14px 16px;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    background-color: #fafafa;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.72);
 }
 
 .create-project-user-name {
     font-weight: 500;
-    color: #111827;
+    color: #f8fafc;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .create-project-footer {
     display: flex;
     justify-content: flex-end;
     margin-top: 24px;
+}
+
+.error-badge {
+    margin: 14px 0 0;
 }
