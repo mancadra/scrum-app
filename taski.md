@@ -66,7 +66,7 @@ Za vsako zgodbo lahko določita njeno ime, besedilo, sprejemne teste, prioriteto
 
 - ~~Preveri regularen potek~~
 - ~~Preveri veljavnost ocene~~
-- Preveri zgodbo, ki je že dodeljena Sprintu
+- ~~Preveri zgodbo, ki je že dodeljena Sprintu~~
 
 
 ## 13 - Dodajanje zgodb v Sprint (Must have)
@@ -103,7 +103,7 @@ Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel �
 
 
 ## 20 - Zaključevanje nalog (Must have)
-Član skupine lahko označi svojo nalogo kot zaključeno.
+~~Član skupine~~ lahko označi svojo nalogo kot zaključeno.
 
 - Preveri regularen potek
 - ~~Preveri že zaključeno nalogo~~
