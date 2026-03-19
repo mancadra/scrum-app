@@ -1,0 +1,105 @@
+.backlog-story-card {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+}
+
+.backlog-story-card__body {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    border: 1px solid #dbe4f0;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 16px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.backlog-story-card__body:hover {
+    transform: translateY(-1px);
+    border-color: #c7d2fe;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.backlog-story-card__body:focus-visible {
+    outline: 3px solid rgba(59, 130, 246, 0.35);
+    outline-offset: 2px;
+}
+
+.backlog-story-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.backlog-story-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.backlog-story-card__badge {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    color: #ffffff;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.backlog-story-card__badge--must-have {
+    background: #ef4444;
+}
+
+.backlog-story-card__badge--should-have {
+    background: #f59e0b;
+}
+
+.backlog-story-card__badge--could-have {
+    background: #22c55e;
+}
+
+.backlog-story-card__badge--wont-have {
+    background: #3b82f6;
+}
+
+.backlog-story-card__meta {
+    display: grid;
+    gap: 8px;
+    color: #334155;
+    min-width: 0;
+}
+
+.backlog-story-card__meta-item {
+    font-size: 0.95rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.backlog-story-card__time-button {
+    margin-top: auto;
+    align-self: flex-end;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+    flex: 0 0 auto;
+}
