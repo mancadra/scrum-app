@@ -86,6 +86,16 @@ export async function getSprintBacklog(projectId) {
     return { sprint, stories: Array.from(storyMap.values()) }
 }
 
+export const updateTaskStatus = async (taskId, newStatus) => {
+  const { data, error } = await supabase
+    .from('Tasks')
+    .update({ status: newStatus })
+    .eq('id', taskId);
+
+  if (error) throw error;
+  return data;
+};
+
 export async function getSprintBacklogById(projectId, sprintId) {
     const { data, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) throw new Error(sessionError.message)
