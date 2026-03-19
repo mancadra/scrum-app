@@ -258,7 +258,7 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         .from('Tasks')
         .select('id')
         .eq('FK_userStoryId', userStoryId)
-        .eq('description', normalizedDescription)
+        .ilike('description', normalizedDescription)
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)

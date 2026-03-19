@@ -66,7 +66,7 @@ export async function createUser(requestingUserId, { username, password, email, 
   const { data: existingUser } = await supabaseAdmin
     .from('Users')
     .select('id')
-    .eq('username', username)
+    .ilike('username', username)
     .single()
 
   if (existingUser) {

@@ -68,7 +68,7 @@ export async function createProject(name, description, users) {
     const { data: existing, error: dupError } = await supabase
         .from('Projects')
         .select('id')
-        .eq('name', name)
+        .ilike('name', name)
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)

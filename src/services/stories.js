@@ -179,7 +179,7 @@ export async function createUserStory(projectId, { name, description, acceptance
         .from('UserStories')
         .select('id')
         .eq('FK_projectId', projectId)
-        .eq('name', name)
+        .ilike('name', name)
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)
