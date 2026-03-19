@@ -28,15 +28,18 @@
 
 .project-backlog__section .project-panel__list {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-auto-columns: 300px;
     gap: 12px;
     min-width: 0;
     align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    padding-right: 4px;
 
     --backlog-card-height: 220px;
     max-height: calc((3 * var(--backlog-card-height)) + (2 * 12px));
-    overflow-y: auto;
-    padding-right: 4px;
 }
 
 .project-panel__empty {
