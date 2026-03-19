@@ -5,45 +5,77 @@
 }
 
 .message.success { color: #38a169; }
-.message.error   { color: #e53e3e; }
+.message.error { color: #e53e3e; }
 
 .login-page {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  background-color: #f4f4f4;
+  justify-content: center;
+  padding: 24px;
+  gap: 50px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.login-page__title {
+  margin: 0;
+  font-size: clamp(2.2rem, 4.2vw, 3.15rem);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #f8fafc;
+  text-align: center;
+  text-shadow: 0 8px 30px rgba(15, 23, 42, 0.45);
 }
 
 .login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 320px;
-  padding: 24px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: grid;
+  gap: 14px;
+  width: min(100%, 420px);
+  padding: 28px;
+  margin-top: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
 }
 
 .login-title {
-  margin: 0;
+  margin: 0 0 4px;
   text-align: center;
-    color: Blue;
+  color: #f8fafc;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
 }
 
 .login-label {
-  font-weight: 500;
-    color: Blue;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-top: 2px;
 }
 
 .login-input {
-  padding: 10px;
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 12px 14px;
+  border: 1px solid #334155;
+  border-radius: 10px;
   box-sizing: border-box;
+  background: #0f172a;
+  color: #e2e8f0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.login-input::placeholder {
+  color: #64748b;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  background: #111c33;
 }
 
 .password-input-wrapper {
@@ -51,56 +83,90 @@
 }
 
 .password-input {
-  padding-right: 44px;
+  padding-right: 48px;
 }
 
 .password-toggle {
   position: absolute;
   top: 50%;
-  right: 10px;
+  right: 12px;
   transform: translateY(-50%);
   border: none;
   background: transparent;
   cursor: pointer;
   font-size: 18px;
   padding: 0;
+  color: #cbd5e1;
+}
+
+.password-toggle:hover {
+  color: #ffffff;
 }
 
 .login-button {
-  padding: 10px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid #2563eb;
+  border-radius: 10px;
+  background: #3b82f6;
   color: #ffffff;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.22);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .login-button:hover {
-  background-color: #0056b3;
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.login-button:active {
+  transform: translateY(1px);
+}
+
+.login-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .login-link {
   background: none;
   border: none;
-  color: #007bff;
+  color: #93c5fd;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   padding: 0;
   text-align: center;
   text-decoration: underline;
+  justify-self: center;
 }
 
 .login-link:hover {
-  color: #0056b3;
+  color: #bfdbfe;
+}
+
+.error-badge,
+.success-badge {
+  margin: 4px 0 0;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+
+.error-badge {
+  background: rgba(127, 29, 29, 0.45);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
 .success-badge {
-  background-color: #f0fff4;
-  color: #276749;
-  padding: 0.75rem;
-  border-radius: 6px;
-  border-left: 4px solid #38a169;
-  font-size: 0.875rem;
-  margin-top: 0.75rem;
+  background: rgba(22, 101, 52, 0.35);
+  color: #bbf7d0;
+  border: 1px solid rgba(74, 222, 128, 0.3);
 }

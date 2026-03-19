@@ -139,6 +139,7 @@ export default function LoginPage({ onLogin }) {
   if (mode === 'changePassword') {
     return (
       <div className="login-page">
+        <h1 className="login-page__title">Scrum App</h1>
         <form className="login-form" onSubmit={handleChangePasswordSubmit}>
           <h1 className="login-title">Change Password</h1>
 
@@ -199,6 +200,7 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="login-page">
+      <h1 className="login-page__title">Scrum App</h1>
       <form className="login-form" onSubmit={handleLoginSubmit}>
         <h1 className="login-title">Login</h1>
 
