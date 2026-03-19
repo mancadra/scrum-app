@@ -4,18 +4,19 @@
 <br>
 
 ## TODO:
-- sprejemni testi
-- uporabniška dokumentacija
-- display lastlogin
+- app v enem jeziku
+- sprejemni testi za predstavitve
+- clean up baze
+- priprava šrimerov za prestavitev
+- nedokončani taski za sprint 1
+- večji kontrast za pisavo
+- frontend cleanup čez delo aplikacijo
 - display role za admina
-- userpage s podatki
-- sprememba gesla
-- disable kopiranje gesla
-- razkritje gesla pri dodajanju novega uporabnika
-- razkritje zadnjega znaka
-- razritje zadnjega znaka pri loginu
+- userpage s podatki?
 - display uporabnikov projekta in roli?
-- poenoti ostale error displaye (za dodajanje uporabniških zgodb duplicate story name zgleda lepo)
+- poenoti ostale error displaye
+- dopolni LLM_use.md
+- ali rabi bit user_doc točno za vsako uporabniško zgodbo?
 
 
 <br>
