@@ -269,7 +269,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
             </div>
 
             <div className="story-modal__content">
-              <p><strong>Story:</strong> {timeComplexityStory.name}</p>
+              <p className="story-modal__story"><strong>Story:</strong> {timeComplexityStory.name}</p>
 
               <label className="story-modal__field">
                 <span>Time:</span>
@@ -282,8 +282,6 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
                   placeholder="e.g. 3"
                 />
               </label>
-
-              {error && <p className="error-badge">{error}</p>}
 
               <div className="story-modal__actions">
                 <button

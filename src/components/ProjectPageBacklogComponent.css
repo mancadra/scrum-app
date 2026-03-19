@@ -90,6 +90,11 @@
     margin: 0;
 }
 
+.story-modal__story {
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
 .story-modal__field {
     display: flex;
     align-items: center;

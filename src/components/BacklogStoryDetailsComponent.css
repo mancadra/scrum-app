@@ -47,6 +47,8 @@
     color: #0f172a;
     font-size: 1.5rem;
     line-height: 1.2;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
 
 .backlog-story-details__close {
