@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
+import { supabase } from "../config/supabase";
 import {
   getSprintBacklogById,
   createTask,
   acceptTask,
   finishTask,
-  updateTaskStatus
 } from '../services/tasks';
 
 export const useTasks = (projectId) => {
@@ -63,18 +63,36 @@ export const useTasks = (projectId) => {
   };
 
   // Ključna funkcija za Drag & Drop
-  const handleUpdateTaskStatus = async (taskId, newStatus) => {
-    try {
-      setLoading(true);
-      await updateTaskStatus(taskId, newStatus); 
-      refresh(); 
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
+  const handleUpdateStoryStatus = async (storyId, newStatus) => {
+  try {
+    setLoading(true);
+    let updateData = {};
+
+    // Logika glede na stolpce Kanbana
+    if (newStatus === 'unassigned') {
+      updateData = { accepted: false, realized: false };
+    } else if (newStatus === 'active') {
+      updateData = { accepted: true, realized: false };
+    } else if (newStatus === 'finished') {
+      updateData = { accepted: true, realized: true };
     }
-  };
+
+    // Pazi na ime tabele (UserStories vs stories)
+    const { error } = await supabase
+      .from('UserStories') 
+      .update(updateData)
+      .eq('id', storyId);
+
+    if (error) throw error;
+    
+    await refresh(); // Osveži podatke po premiku
+  } catch (err) {
+    setError(err.message);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   return { 
     sprintData, 
@@ -84,6 +102,6 @@ export const useTasks = (projectId) => {
     handleCreateTask, 
     handleAcceptTask,
     handleFinishTask,
-    handleUpdateTaskStatus
+    handleUpdateStoryStatus
   };
 };
