@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import UserStoryForm from './UserStoryForm';
 import BacklogStoryComponent from './BacklogStoryComponent';
+import BacklogStoryDetailsComponent from './BacklogStoryDetailsComponent';
 import { createUserStory, setTimeComplexity } from '../services/stories';
 import {
   getRealizedStories,
@@ -204,57 +205,12 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
       )}
 
       {selectedStory && (
-        <div className="story-modal-overlay" onClick={() => setSelectedStory(null)}>
-          <div className="story-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="story-modal__header">
-              <h2>{selectedStory.name}</h2>
-              <button
-                type="button"
-                className="story-modal__close"
-                onClick={() => setSelectedStory(null)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="story-modal__content">
-              <p><strong>Description:</strong> {selectedStory.description || '—'}</p>
-
-              <div>
-                <strong>Tests:</strong>
-                <ul>
-                  {getAcceptanceTests(selectedStory).length > 0 ? (
-                    getAcceptanceTests(selectedStory).map((test, index) => (
-                      <li key={`${test}-${index}`}>{test}</li>
-                    ))
-                  ) : (
-                    <li>No tests.</li>
-                  )}
-                </ul>
-              </div>
-
-              <p><strong>Priority:</strong> {getStoryPriority(selectedStory)}</p>
-              <p><strong>Business value:</strong> {selectedStory.businessValue ?? '—'}</p>
-
-              {selectedStory.timeComplexity != null && selectedStory.timeComplexity !== '' && (
-                <p><strong>Time complexity:</strong> {selectedStory.timeComplexity}</p>
-              )}
-
-              <p>
-                <strong>Status:</strong>{' '}
-                {selectedStory.realized
-                  ? 'Realized'
-                  : selectedStory.sprintId
-                    ? 'Assigned'
-                    : 'Unassigned'}
-              </p>
-
-              {selectedStory.sprintId && (
-                <p><strong>Sprint:</strong> {selectedStory.sprintId}</p>
-              )}
-            </div>
-          </div>
-        </div>
+        <BacklogStoryDetailsComponent
+          story={selectedStory}
+          onClose={() => setSelectedStory(null)}
+          getAcceptanceTests={getAcceptanceTests}
+          getStoryPriority={getStoryPriority}
+        />
       )}
 
       {timeComplexityStory && (
@@ -262,20 +218,13 @@ const ProjectPageBacklogComponent = ({ project, onStoryCreated }) => {
           <div className="story-modal story-modal--compact" onClick={(e) => e.stopPropagation()}>
             <div className="story-modal__header">
               <h2>Set time complexity</h2>
-              <button
-                type="button"
-                className="story-modal__close"
-                onClick={() => setTimeComplexityStory(null)}
-              >
-                ✕
-              </button>
             </div>
 
             <div className="story-modal__content">
               <p><strong>Story:</strong> {timeComplexityStory.name}</p>
 
               <label className="story-modal__field">
-                <span>Time complexity</span>
+                <span>Time:</span>
                 <input
                   type="number"
                   min="1"

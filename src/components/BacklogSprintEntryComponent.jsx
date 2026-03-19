@@ -1,6 +1,15 @@
 import React from 'react';
 import './ProjectPageSprintComponent.css';
 
+const formatDate = (value) => {
+    if (!value) return '—';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return new Intl.DateTimeFormat('en-GB').format(date);
+};
+
 const BacklogSprintEntryComponent = ({ sprint, onClick }) => {
     if (!sprint) {
         return null;
@@ -15,11 +24,11 @@ const BacklogSprintEntryComponent = ({ sprint, onClick }) => {
             <div className="sprint-card__title">Sprint #{sprint.id}</div>
             <div className="sprint-card__row">
                 <span className="sprint-card__label">Start date:</span>
-                <span>{sprint.startingDate}</span>
+                <span>{formatDate(sprint.startingDate)}</span>
             </div>
             <div className="sprint-card__row">
                 <span className="sprint-card__label">End date:</span>
-                <span>{sprint.endingDate}</span>
+                <span>{formatDate(sprint.endingDate)}</span>
             </div>
             <div className="sprint-card__row">
                 <span className="sprint-card__label">Velocity:</span>
