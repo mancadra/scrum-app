@@ -7,16 +7,17 @@
 - app v enem jeziku
 - sprejemni testi za predstavitve
 - clean up baze
-- priprava šrimerov za prestavitev
+- priprava primerov za prestavitev
 - nedokončani taski za sprint 1
 - večji kontrast za pisavo
-- frontend cleanup čez delo aplikacijo
+- frontend cleanup čez celo aplikacijo
 - display role za admina
 - userpage s podatki?
 - display uporabnikov projekta in roli?
 - poenoti ostale error displaye
 - dopolni LLM_use.md
-- ali rabi bit user_doc točno za vsako uporabniško zgodbo?
+- ~~ali rabi bit user_doc točno za vsako uporabniško zgodbo?~~
+- ~~dodaj developer doc~~
 
 
 <br>

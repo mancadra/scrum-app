@@ -4,6 +4,8 @@ In this document are written all the LLMs we used in the course of this project 
 - Help with connecting the app to supabase db.
 - Planning project structure
 - Implementation of services and their tests
+- writting user documentation
+- writting developer documentation
 
 
 ## ChatGPT (GPT-5.2)
