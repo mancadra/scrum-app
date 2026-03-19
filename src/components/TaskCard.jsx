@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import './TaskCard.css';
 
-const TaskCard = ({ task, isActiveSprint, handleAcceptTask, handleFinishTask, onUpdate }) => {
+const TaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, handleFinishTask, onUpdate }) => {
   const { user } = useAuth();
   const [acceptError, setAcceptError] = useState('');
   const [finishError, setFinishError] = useState('');
@@ -48,7 +48,13 @@ const TaskCard = ({ task, isActiveSprint, handleAcceptTask, handleFinishTask, on
         </div>
 
         {/* Gumbi za interakcijo */}
-        {isActiveSprint && !isFinished && !isAccepted && (
+        {isActiveSprint && !isFinished && !isAccepted && !canAcceptTasks && (
+          <small className="text-muted d-block text-center mt-3">
+            Samo razvijalci lahko sprejmejo nalogo
+          </small>
+        )}
+
+        {isActiveSprint && !isFinished && !isAccepted && canAcceptTasks && (
           <div className="mt-3">
             {(!task.FK_proposedDeveloper || isProposedToMe) ? (
               <button

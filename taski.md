@@ -93,7 +93,7 @@ Določijo opis naloge, oceno časa za dokončanje naloge in po želji tudi član
 
 
 ## 16 - Sprejemanje nalog (Must have)
-Član razvojne skupine lahko sprejme še nedodeljeno nalogo aktivnega Sprinta v delo.
+~~Član razvojne~~ skupine lahko sprejme še nedodeljeno nalogo aktivnega Sprinta v delo.
 
 Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel še kak drug član.
 
@@ -106,8 +106,8 @@ Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel �
 Član skupine lahko označi svojo nalogo kot zaključeno.
 
 - Preveri regularen potek
-- Preveri že zaključeno nalogo
-- Preveri nedodeljeno nalogo
+- ~~Preveri že zaključeno nalogo~~
+- ~~Preveri nedodeljeno nalogo~~
 
 
 ## 25 - Potrjevanje zgodb (Must have)
