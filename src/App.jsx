@@ -32,7 +32,9 @@ function App() {
         if (prevSelectedProject && myProjects.some((project) => project.id === prevSelectedProject.id)) {
           return prevSelectedProject;
         }
-        return myProjects[0] ?? null;
+        const savedId = localStorage.getItem('selectedProjectId');
+        const saved = savedId ? myProjects.find(p => String(p.id) === savedId) : null;
+        return saved ?? myProjects[0] ?? null;
       });
     } catch {
       setUserProjects([]);
@@ -101,6 +103,7 @@ function App() {
 
   const handleLogout = async () => {
     await signOut();
+    localStorage.removeItem('selectedProjectId');
     setCurrentUser(null);
     setUserProjects([]);
     setSelectedProject(null);
@@ -112,6 +115,7 @@ function App() {
 
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
+    localStorage.setItem('selectedProjectId', String(project.id));
     navigate('/');
   };
 

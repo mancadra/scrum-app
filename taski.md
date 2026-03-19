@@ -98,8 +98,8 @@ Določijo opis naloge, oceno časa za dokončanje naloge in po želji tudi član
 Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel še kak drug član.
 
 - Preveri regularen potek
-- Preveri nalogo, ki jo je že sprejel drug razvijalec
-- Preveri nedodeljeno nalogo
+- ~~Preveri nalogo, ki jo je že sprejel drug razvijalec~~
+- ~~Preveri nedodeljeno nalogo~~
 
 
 ## 20 - Zaključevanje nalog (Must have)
@@ -157,10 +157,10 @@ Uporabnik se lahko prijavi v sistem z uporabniškim imenom in geslom.
 - ~~Preveri dolžino gesla (vsaj 12 znakov)~~
 - ~~Preveri omejitve dolžine gesla~~
 - ~~Preveri, da se gesla ne krajšajo~~
-- Preveri spremembo gesla
-- Preveri zahtevo po starem in novem geslu
+- ~~Preveri spremembo gesla~~
+- ~~Preveri zahtevo po starem in novem geslu~~
 - ~~Preveri razkritje gesla~~
-- Preveri razkritje zadnjega znaka
+- ~~Preveri razkritje zadnjega znaka~~
 - Preveri password meter
 - ~~Preveri prepoved kopiranja gesla~~
 - Preveri hashiranje gesel

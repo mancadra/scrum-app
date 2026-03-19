@@ -1,21 +1,29 @@
-import React from 'react';
-import { useTasks } from '../hooks/useTasks';
-// Uvoz brez oklepajev, ker useAuth.js uporablja export default
+import React, { useState } from 'react';
 import useAuth from '../hooks/useAuth';
+import './TaskCard.css';
 
-const TaskCard = ({ task, isActiveSprint, onUpdate }) => {
-  // Prilagoditev na tvoj useTasks kavelj (funkcije iz servisa)
-  const { handleAcceptTask } = useTasks(); 
+const TaskCard = ({ task, isActiveSprint, handleAcceptTask, handleFinishTask, onUpdate }) => {
   const { user } = useAuth();
+  const [acceptError, setAcceptError] = useState('');
+  const [finishError, setFinishError] = useState('');
 
   const handleAccept = async () => {
+    setAcceptError('');
     try {
-      // Uporabimo tvoj servis acceptTask(taskId)
       await handleAcceptTask(task.id);
-      if (onUpdate) onUpdate(); // Osvežimo Sprint Page
-      alert("Naloga uspešno sprejeta!");
+      if (onUpdate) onUpdate();
     } catch (err) {
-      alert(err.message || "Naloge ni bilo mogoče sprejeti.");
+      setAcceptError(err.message || 'Naloge ni bilo mogoče sprejeti.');
+    }
+  };
+
+  const handleFinish = async () => {
+    setFinishError('');
+    try {
+      await handleFinishTask(task.id);
+      if (onUpdate) onUpdate();
+    } catch (err) {
+      setFinishError(err.message || 'Naloge ni bilo mogoče zaključiti.');
     }
   };
 
@@ -25,19 +33,17 @@ const TaskCard = ({ task, isActiveSprint, onUpdate }) => {
   const isProposedToMe = task.FK_proposedDeveloper === user?.id;
 
   return (
-    <div className="card mb-2 shadow-sm border-start border-4" 
-         style={{ borderLeftColor: task.FK_proposedDeveloper ? 'orange' : '#ccc' }}>
-      <div className="card-body p-3">
+    <div className="task-card-item">
         <h6 className="card-title">{task.description}</h6>
-        
-        <div className="d-flex justify-content-between align-items-center mb-2">
+
+        <div className="task-card-badges">
           <span className="badge bg-secondary">{task.timecomplexity} h</span>
           {isFinished ? (
             <span className="badge bg-success">Zaključeno</span>
           ) : isAccepted ? (
             <span className="badge bg-info text-dark">Dodeljeno</span>
           ) : (
-            <span className="badge bg-warning text-dark">Čaka</span>
+            <span className="badge bg-warning text-dark">Nedodeljeno</span>
           )}
         </div>
 
@@ -45,8 +51,8 @@ const TaskCard = ({ task, isActiveSprint, onUpdate }) => {
         {isActiveSprint && !isFinished && !isAccepted && (
           <div className="mt-3">
             {(!task.FK_proposedDeveloper || isProposedToMe) ? (
-              <button 
-                onClick={handleAccept} 
+              <button
+                onClick={handleAccept}
                 className="btn btn-sm btn-primary w-100"
               >
                 Sprejmi nalogo
@@ -56,6 +62,7 @@ const TaskCard = ({ task, isActiveSprint, onUpdate }) => {
                 Predlagano drugemu razvijalcu
               </small>
             )}
+            {acceptError && <p className="error-badge mt-2">{acceptError}</p>}
           </div>
         )}
 
@@ -64,7 +71,15 @@ const TaskCard = ({ task, isActiveSprint, onUpdate }) => {
             👤 Izvajalec: {task.FK_acceptedDeveloper === user?.id ? 'Vi' : 'Drug razvijalec'}
           </div>
         )}
-      </div>
+
+        {isActiveSprint && isAccepted && !isFinished && task.FK_acceptedDeveloper === user?.id && (
+          <div className="mt-2">
+            <button onClick={handleFinish} className="btn btn-sm btn-success w-100">
+              Zaključi nalogo
+            </button>
+            {finishError && <p className="error-badge mt-2">{finishError}</p>}
+          </div>
+        )}
     </div>
   );
 };
