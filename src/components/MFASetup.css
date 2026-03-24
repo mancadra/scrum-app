@@ -1,0 +1,154 @@
+.mfa-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.mfa-modal {
+  position: relative;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.6);
+  padding: 32px 28px 28px;
+  width: min(100%, 440px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #e2e8f0;
+}
+
+.mfa-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.mfa-close:hover {
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.mfa-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.mfa-text {
+  margin: 0;
+  color: #cbd5e1;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.mfa-text--success {
+  color: #86efac;
+}
+
+.mfa-qr {
+  display: block;
+  margin: 0 auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+}
+
+.mfa-secret {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.mfa-secret code {
+  color: #93c5fd;
+  font-family: monospace;
+}
+
+.mfa-verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mfa-label {
+  font-weight: 600;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.mfa-input {
+  padding: 11px 14px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 1.3rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.mfa-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.mfa-button {
+  padding: 11px 14px;
+  border: 1px solid #2563eb;
+  border-radius: 10px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.mfa-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.mfa-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mfa-button--danger {
+  background: #7f1d1d;
+  border-color: #991b1b;
+}
+
+.mfa-button--danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.mfa-error {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.45);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  font-size: 0.9rem;
+  text-align: center;
+}

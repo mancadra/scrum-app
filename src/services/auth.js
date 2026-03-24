@@ -47,8 +47,10 @@ export async function signIn(username, password) {
     const needsMFA = assuranceData.nextLevel === 'aal2' &&
     assuranceData.nextLevel !== assuranceData.currentLevel
 
-    if(needsMFA){
-      return{mfaRequired: true, userId: data.user.id}
+    if (needsMFA) {
+      const { data: factorsData } = await supabase.auth.mfa.listFactors()
+      const factorId = factorsData?.totp?.[0]?.id
+      return { mfaRequired: true, factorId }
     }
     
     await updateLastLogin(data.user.id)
@@ -131,6 +133,51 @@ export async function changePasswordAnon(username, oldPassword, newPassword) {
     if (error) throw new Error(error.message)
 
     await supabase.auth.signOut()
+}
+
+export async function completeMFALogin(factorId, code) {
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+    if (challengeError) throw new Error(challengeError.message)
+
+    const { error } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challengeData.id,
+        code,
+    })
+    if (error) throw new Error('Napačna koda. Poskusite znova.')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    await updateLastLogin(user.id)
+    return user
+}
+
+export async function getMFAFactors() {
+    const { data, error } = await supabase.auth.mfa.listFactors()
+    if (error) throw new Error(error.message)
+    return data?.totp ?? []
+}
+
+export async function enrollMFA() {
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
+    if (error) throw new Error(error.message)
+    return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret }
+}
+
+export async function verifyMFAEnrollment(factorId, code) {
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+    if (challengeError) throw new Error(challengeError.message)
+
+    const { error } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challengeData.id,
+        code,
+    })
+    if (error) throw new Error('Napačna koda. Poskusite znova.')
+}
+
+export async function unenrollMFA(factorId) {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId })
+    if (error) throw new Error(error.message)
 }
 
 export function validatePassword(password) {

@@ -9,6 +9,7 @@ function NavbarComponent({
   username = 'user',
   userInitial = 'U',
   onLogout,
+  onMFASettings,
   isAdmin = false,
   lastLogin = null,
 }) {
@@ -82,6 +83,13 @@ function NavbarComponent({
 
         {isUserMenuOpen && (
           <div className="navbar-dropdown">
+            <button
+              type="button"
+              className="navbar-dropdown-item"
+              onClick={() => { setIsUserMenuOpen(false); onMFASettings?.(); }}
+            >
+              2FA Nastavitve
+            </button>
             <button
               type="button"
               className="navbar-dropdown-item"

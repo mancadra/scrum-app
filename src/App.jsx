@@ -12,6 +12,7 @@ import { getUsersProjects, getProjectUsers } from "./services/projects";
 import { getStoriesForProject } from "./services/stories";
 import { getSprintsForProject } from "./services/sprints";
 import ProjectPageComponent from "./components/ProjectPageComponent.jsx";
+import MFASetup from "./components/MFASetup.jsx";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -22,6 +23,7 @@ function App() {
   const [selectedProjectStories, setSelectedProjectStories] = useState([]);
   const [selectedProjectSprints, setSelectedProjectSprints] = useState([]);
   const [selectedProjectUsers, setSelectedProjectUsers] = useState([]);
+  const [showMFASetup, setShowMFASetup] = useState(false);
   const navigate = useNavigate();
 
   async function loadProjects(user) {
@@ -139,10 +141,12 @@ function App() {
                 username={currentUser?.profile?.username ?? ''}
                 userInitial={currentUser?.profile?.username?.[0]?.toUpperCase() ?? '?'}
                 onLogout={handleLogout}
+                onMFASettings={() => setShowMFASetup(true)}
                 isAdmin={isAdmin}
                 lastLogin={currentUser?.profile?.lastLogin ?? null}
             />
         )}
+        {showMFASetup && <MFASetup onClose={() => setShowMFASetup(false)} />}
 
         <Routes>
           <Route

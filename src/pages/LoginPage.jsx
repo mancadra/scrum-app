@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import './LoginPage.css';
-import { signIn, changePasswordAnon } from '../services/auth';
+import { signIn, changePasswordAnon, completeMFALogin } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 
 function getDisplayValue(password, revealLastChar, showPassword) {
@@ -72,6 +72,10 @@ export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  // mfa state
+  const [pendingFactorId, setPendingFactorId] = useState(null);
+  const [totpCode, setTotpCode] = useState('');
+
   // change password state
   const [cpUsername, setCpUsername] = useState('');
   const [oldPassword, setOldPassword] = useState('');
@@ -98,7 +102,8 @@ export default function LoginPage({ onLogin }) {
       const result = await signIn(username, password);
 
       if (result?.mfaRequired) {
-        setError('MFA is required for this account.');
+        setPendingFactorId(result.factorId);
+        setMode('mfa');
         return;
       }
 
@@ -134,6 +139,59 @@ export default function LoginPage({ onLogin }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleMFASubmit(event) {
+    event.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const user = await completeMFALogin(pendingFactorId, totpCode.trim());
+      onLogin?.(user);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.message);
+      setTotpCode('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (mode === 'mfa') {
+    return (
+      <div className="login-page">
+        <h1 className="login-page__title">SCRUM Aplikacija</h1>
+        <form className="login-form" onSubmit={handleMFASubmit}>
+          <h1 className="login-title">Dvostopenjska Prijava</h1>
+          <p style={{ color: '#cbd5e1', textAlign: 'center', margin: '0' }}>
+            Vnesite 6-mestno kodo iz vaše aplikacije za avtentikacijo.
+          </p>
+
+          <label className="login-label" htmlFor="totp-code">Koda (TOTP)</label>
+          <input
+            className="login-input"
+            id="totp-code"
+            type="text"
+            inputMode="numeric"
+            placeholder="000000"
+            maxLength={6}
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+            autoComplete="one-time-code"
+            required
+          />
+
+          <button className="login-button" type="submit" disabled={loading || totpCode.length !== 6}>
+            {loading ? 'Preverjanje...' : 'Potrdi'}
+          </button>
+          <button className="login-link" type="button" onClick={() => { setMode('login'); setError(''); setTotpCode(''); }}>
+            Nazaj k Prijavi
+          </button>
+
+          {error && <p className="error-badge">{error}</p>}
+        </form>
+      </div>
+    );
   }
 
   if (mode === 'changePassword') {
