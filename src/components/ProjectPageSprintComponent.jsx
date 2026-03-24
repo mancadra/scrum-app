@@ -48,7 +48,7 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
   }, [project?.id, projectUsers]);
 
   if (!project) {
-    return <div className="project-panel">No project selected.</div>;
+    return <div className="project-panel">Ni izbranega projekta.</div>;
   }
 
   const handleCreateSprint = async ({ speed, startDate, endDate }) => {
@@ -69,7 +69,7 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
       setIsFormOpen(false);
       return createdSprint;
     } catch (err) {
-      setError(err.message || 'Failed to create sprint.');
+      setError(err.message || 'Napaka pri ustvarjanju sprinta.');
       return null;
     } finally {
       setLoading(false);

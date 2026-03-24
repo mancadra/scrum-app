@@ -22,6 +22,7 @@ function mockChain(overrides) {
         update:      vi.fn().mockReturnThis(),
         order:       vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
+        ilike:       vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
         ...overrides,
@@ -185,7 +186,7 @@ describe('createProject', () => {
     it('throws if the user is not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(createProject('Any Project', '', [])).rejects.toThrow('Not authenticated.')
+        await expect(createProject('Any Project', '', [])).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if the user is not an admin', async () => {
@@ -194,7 +195,7 @@ describe('createProject', () => {
             mockChain({ eq: vi.fn().mockResolvedValue({ data: [{ Roles: { name: 'User' } }], error: null }) })
         )
 
-        await expect(createProject('Any Project', '', [])).rejects.toThrow('Only admins can create projects.')
+        await expect(createProject('Any Project', '', [])).rejects.toThrow('Samo administratorji lahko ustvarjajo projekte.')
     })
 
     it('throws if the role query fails', async () => {
@@ -243,8 +244,8 @@ describe('createProject', () => {
             .mockReturnValueOnce(usersChain)
 
         const users = [
-            { id: 'uuid-1', projectRoleId: 1 },
-            { id: 'uuid-2', projectRoleId: 3 },
+            { id: 'uuid-1', projectRoleIds: [1] },
+            { id: 'uuid-2', projectRoleIds: [3] },
         ]
 
         const result = await createProject('Team Project', '', users)
@@ -266,7 +267,7 @@ describe('createProject', () => {
             .mockReturnValueOnce(dupChain)
 
         await expect(createProject('Existing Project', '', [])).rejects.toThrow(
-            'A project with the name "Existing Project" already exists.'
+            'Projekt z imenom "Existing Project" že obstaja.'
         )
     })
 
@@ -288,7 +289,7 @@ describe('createProject', () => {
             .mockReturnValueOnce(usersChain)
 
         await expect(
-            createProject('Broken Project', '', [{ id: 'bad-uuid', projectRoleId: 99 }])
+            createProject('Broken Project', '', [{ id: 'bad-uuid', projectRoleIds: [99] }])
         ).rejects.toThrow('foreign key constraint violation')
     })
 
@@ -309,7 +310,7 @@ describe('createProject', () => {
             .mockReturnValueOnce(projectChain)
             .mockReturnValueOnce(usersChain)
 
-        await createProject('ID Check', '', [{ id: 'uuid-x', projectRoleId: 2 }])
+        await createProject('ID Check', '', [{ id: 'uuid-x', projectRoleIds: [2] }])
 
         expect(usersChain.insert).toHaveBeenCalledWith(
             expect.arrayContaining([

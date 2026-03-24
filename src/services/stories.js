@@ -4,11 +4,11 @@ export async function setTimeComplexity(storyId, timeComplexity) {
     // 1. Check authentication
     const { data: { session } } = await supabase.auth.getSession()
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     // 2. Validate time complexity (must be a positive number)
     if (typeof timeComplexity !== 'number' || isNaN(timeComplexity) || timeComplexity <= 0) {
-        throw new Error('Time complexity must be a positive number.')
+        throw new Error('Časovna zahtevnost mora biti pozitivno število.')
     }
 
     // 3. Fetch the story
@@ -19,7 +19,7 @@ export async function setTimeComplexity(storyId, timeComplexity) {
         .maybeSingle()
 
     if (storyError) throw new Error(storyError.message)
-    if (!story) throw new Error('User story not found.')
+    if (!story) throw new Error('Uporabniška zgodba ni bila najdena.')
 
     // 4. Check user is a Scrum Master in this project
     const { data: memberships, error: memberError } = await supabase
@@ -29,11 +29,11 @@ export async function setTimeComplexity(storyId, timeComplexity) {
         .eq('FK_userId', user.id)
 
     if (memberError) throw new Error(memberError.message)
-    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
     const roles = memberships.map(m => m.ProjectRoles?.projectRole)
     if (!roles.includes('Scrum Master')) {
-        throw new Error('Only Scrum Masters can set time complexity.')
+        throw new Error('Samo skrbniki metodologije lahko nastavljajo časovno zahtevnost.')
     }
 
     // 5. Check story is not already assigned to a sprint
@@ -44,7 +44,7 @@ export async function setTimeComplexity(storyId, timeComplexity) {
         .maybeSingle()
 
     if (sprintLinkError) throw new Error(sprintLinkError.message)
-    if (sprintLink) throw new Error('Cannot set time complexity on a story that is already assigned to a sprint.')
+    if (sprintLink) throw new Error('Ni mogoče nastaviti časovne zahtevnosti za zgodbo, ki je že dodeljena sprintu.')
 
     // 6. Update time complexity
     const { data: updated, error: updateError } = await supabase
@@ -71,7 +71,7 @@ export async function addStoriesToSprint(sprintId, storyIds) {
 
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
-  if (!user) throw new Error('Not authenticated.')
+  if (!user) throw new Error('Niste prijavljeni.')
 
   const { data: sprint, error: sprintError } = await supabase
     .from('Sprints')
@@ -80,7 +80,7 @@ export async function addStoriesToSprint(sprintId, storyIds) {
     .maybeSingle()
 
   if (sprintError) throw new Error(sprintError.message)
-  if (!sprint) throw new Error('Sprint not found.')
+  if (!sprint) throw new Error('Sprint ni bil najden.')
 
   const { data: memberships, error: memberError } = await supabase
     .from('ProjectUsers')
@@ -89,11 +89,11 @@ export async function addStoriesToSprint(sprintId, storyIds) {
     .eq('FK_userId', user.id)
 
   if (memberError) throw new Error(memberError.message)
-  if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+  if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
   const roles = memberships.map(m => m.ProjectRoles?.projectRole)
   if (!roles.includes('Scrum Master')) {
-    throw new Error('Only Scrum Masters can add stories to a sprint.')
+    throw new Error('Samo skrbniki metodologije lahko dodajajo zgodbe v sprint.')
   }
 
   const { data: stories, error: storiesError } = await supabase
@@ -105,12 +105,12 @@ export async function addStoriesToSprint(sprintId, storyIds) {
 
   const realizedStories = stories.filter(s => s.realized)
   if (realizedStories.length > 0) {
-    throw new Error(`Cannot add realized stories to a sprint: ${realizedStories.map(s => s.id).join(', ')}`)
+    throw new Error(`Ni mogoče dodati realiziranih zgodb v sprint: ${realizedStories.map(s => s.id).join(', ')}`)
   }
 
   const unestimatedStories = stories.filter(s => !s.timeComplexity || s.timeComplexity <= 0)
   if (unestimatedStories.length > 0) {
-    throw new Error(`Cannot add stories without time complexity estimate: ${unestimatedStories.map(s => s.id).join(', ')}`)
+    throw new Error(`Ni mogoče dodati zgodb brez ocene časovne zahtevnosti: ${unestimatedStories.map(s => s.id).join(', ')}`)
   }
 
   const now = new Date().toISOString()
@@ -130,7 +130,7 @@ export async function addStoriesToSprint(sprintId, storyIds) {
   })
 
   if (alreadyActive.length > 0) {
-    throw new Error(`Some stories are already assigned to an active sprint: ${alreadyActive.map(l => l.FK_userStoryId).join(', ')}`)
+    throw new Error(`Nekatere zgodbe so že dodeljene aktivnemu sprintu: ${alreadyActive.map(l => l.FK_userStoryId).join(', ')}`)
   }
 
   const inserts = storyIds.map(storyId => ({
@@ -150,7 +150,7 @@ export async function addStoriesToSprint(sprintId, storyIds) {
 export async function createUserStory(projectId, { name, description, acceptanceTests, priorityId, businessValue }) {
     const { data: { session } } = await supabase.auth.getSession()
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
@@ -159,18 +159,18 @@ export async function createUserStory(projectId, { name, description, acceptance
         .eq('FK_userId', user.id)
 
     if (memberError) throw new Error(memberError.message)
-    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
     const roles = memberships.map(m => m.ProjectRoles?.projectRole)
     if (!roles.includes('Product Owner') && !roles.includes('Scrum Master')) {
-        throw new Error('Only Product Owners and Scrum Masters can create user stories.')
+        throw new Error('Samo produktni vodje in skrbniki metodologije lahko ustvarjajo uporabniške zgodbe.')
     }
 
     if (!Number.isInteger(businessValue) || businessValue < 1 || businessValue > 10) {
-        throw new Error('Business value must be an integer between 1 and 10.')
+        throw new Error('Poslovna vrednost mora biti celo število med 1 in 10.')
     }
 
-    if (!priorityId) throw new Error('Priority is required.')
+    if (!priorityId) throw new Error('Prioriteta je obvezna.')
 
     const { data: existing, error: dupError } = await supabase
         .from('UserStories')
@@ -180,7 +180,7 @@ export async function createUserStory(projectId, { name, description, acceptance
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)
-    if (existing) throw new Error('A user story with this name already exists in this project.')
+    if (existing) throw new Error('Uporabniška zgodba s tem imenom že obstaja v tem projektu.')
 
     const { data: story, error: storyError } = await supabase
         .from('UserStories')

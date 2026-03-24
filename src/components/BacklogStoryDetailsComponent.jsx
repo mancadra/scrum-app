@@ -38,7 +38,7 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
             type="button"
             className="backlog-story-details__close"
             onClick={() => onClose?.()}
-            aria-label="Close story details"
+            aria-label="Zapri podrobnosti zgodbe"
           >
             ✕
           </button>

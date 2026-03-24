@@ -27,7 +27,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
                 setAllUsers(users)
                 setProjectRoles(roles)
             } catch (err) {
-                setError('Failed to load users or roles.')
+                setError('Napaka pri nalaganju uporabnikov ali vlog.')
             }
         }
         loadData()

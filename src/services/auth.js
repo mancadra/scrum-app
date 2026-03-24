@@ -34,14 +34,14 @@ export async function signIn(username, password) {
       .eq('username', username)
       .single()
 
-    if (userError || !userData) throw new Error('Invalid username or password.')
+    if (userError || !userData) throw new Error('Napačno uporabniško ime ali geslo.')
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: userData.email,
       password,
     })
 
-    if (error) throw new Error('Invalid username or password.')
+    if (error) throw new Error('Napačno uporabniško ime ali geslo.')
     
     const { data: assuranceData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     const needsMFA = assuranceData.nextLevel === 'aal2' &&
@@ -105,7 +105,7 @@ export async function changePassword(oldPassword, newPassword) {
       password: oldPassword,
     })
 
-    if (signInError) throw new Error('Old password is incorrect.')
+    if (signInError) throw new Error('Trenutno geslo je napačno.')
 
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) throw new Error(error.message)
@@ -120,14 +120,14 @@ export async function changePasswordAnon(username, oldPassword, newPassword) {
       .eq('username', username)
       .single()
 
-    if (userError || !userData) throw new Error('Invalid username or password.')
+    if (userError || !userData) throw new Error('Napačno uporabniško ime ali geslo.')
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: userData.email,
       password: oldPassword,
     })
 
-    if (signInError) throw new Error('Invalid username or password.')
+    if (signInError) throw new Error('Napačno uporabniško ime ali geslo.')
 
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) throw new Error(error.message)
@@ -181,8 +181,8 @@ export async function unenrollMFA(factorId) {
 }
 
 export function validatePassword(password) {
-    if (password.length < 12) throw new Error('Password must be at least 12 characters.')
-    if (password.length > 128) throw new Error('Password must not exceed 128 characters.')
-    if (/  /.test(password)) throw new Error('Password must not contain consecutive spaces.')
-    if (TOP_100_PASSWORDS.has(password.toLowerCase())) throw new Error('Password is too common.')
+    if (password.length < 12) throw new Error('Geslo mora imeti vsaj 12 znakov.')
+    if (password.length > 128) throw new Error('Geslo ne sme presegati 128 znakov.')
+    if (/  /.test(password)) throw new Error('Geslo ne sme vsebovati zaporednih presledkov.')
+    if (TOP_100_PASSWORDS.has(password.toLowerCase())) throw new Error('Geslo je preveč pogosto.')
 }

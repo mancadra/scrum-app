@@ -10,7 +10,7 @@ vi.mock('../../config/supabase', () => ({
 }))
 
 beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
 })
 
 function mockChain(overrides) {
@@ -21,6 +21,7 @@ function mockChain(overrides) {
         eq:          vi.fn().mockReturnThis(),
         in:          vi.fn().mockReturnThis(),
         or:          vi.fn().mockReturnThis(),
+        ilike:       vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
         ...overrides,
@@ -30,22 +31,20 @@ function mockChain(overrides) {
 
 function mockProductOwner(userId = 'po-uuid') {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
-    return mockChain({
-        maybeSingle: vi.fn().mockResolvedValue({
-            data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Product Owner' } },
-            error: null,
-        }),
-    })
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Product Owner' } }], error: null })
+    return chain
 }
 
 function mockScrumMaster(userId = 'sm-uuid') {
-  supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
-  return mockChain({
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-      error: null,
-    }),
-  })
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+    return chain
 }
 
 const sprintId = 'sprint-uuid-123'
@@ -102,40 +101,37 @@ describe('createUserStory', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(createUserStory(1, validInput)).rejects.toThrow('Not authenticated.')
+        await expect(createUserStory(1, validInput)).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if user is not a project member', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'user-uuid' } } } })
-        supabase.from.mockReturnValueOnce(
-            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
-        )
+        const notMemberChain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+        notMemberChain.eq.mockReturnValueOnce(notMemberChain).mockResolvedValueOnce({ data: [], error: null })
+        supabase.from.mockReturnValueOnce(notMemberChain)
 
-        await expect(createUserStory(1, validInput)).rejects.toThrow('You are not a member of this project.')
+        await expect(createUserStory(1, validInput)).rejects.toThrow('Niste član tega projekta.')
     })
 
     it('throws if membership query fails', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'user-uuid' } } } })
-        supabase.from.mockReturnValueOnce(
-            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'query failed' } }) })
-        )
+        const failChain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+        failChain.eq.mockReturnValueOnce(failChain).mockResolvedValueOnce({ data: null, error: { message: 'query failed' } })
+        supabase.from.mockReturnValueOnce(failChain)
 
         await expect(createUserStory(1, validInput)).rejects.toThrow('query failed')
     })
 
     it('throws if user role is Developer', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'dev-uuid' } } } })
-        supabase.from.mockReturnValueOnce(
-            mockChain({
-                maybeSingle: vi.fn().mockResolvedValue({
-                    data: { FK_projectRoleId: 3, ProjectRoles: { projectRole: 'Developer' } },
-                    error: null,
-                }),
-            })
-        )
+        const devChain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+        devChain.eq
+            .mockReturnValueOnce(devChain)
+            .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Developer' } }], error: null })
+        supabase.from.mockReturnValueOnce(devChain)
 
         await expect(createUserStory(1, validInput)).rejects.toThrow(
-            'Only Product Owners and Scrum Masters can create user stories.'
+            'Samo produktni vodje in skrbniki metodologije lahko ustvarjajo uporabniške zgodbe.'
         )
     })
 
@@ -144,7 +140,7 @@ describe('createUserStory', () => {
         supabase.from.mockReturnValueOnce(memberChain)
 
         await expect(createUserStory(1, { ...validInput, businessValue: -5 })).rejects.toThrow(
-            'Business value must be a non-negative integer.'
+            'Poslovna vrednost mora biti celo število med 1 in 10.'
         )
     })
 
@@ -153,7 +149,7 @@ describe('createUserStory', () => {
         supabase.from.mockReturnValueOnce(memberChain)
 
         await expect(createUserStory(1, { ...validInput, businessValue: 1.5 })).rejects.toThrow(
-            'Business value must be a non-negative integer.'
+            'Poslovna vrednost mora biti celo število med 1 in 10.'
         )
     })
 
@@ -162,7 +158,7 @@ describe('createUserStory', () => {
         supabase.from.mockReturnValueOnce(memberChain)
 
         await expect(createUserStory(1, { ...validInput, priorityId: null })).rejects.toThrow(
-            'Priority is required.'
+            'Prioriteta je obvezna.'
         )
     })
 
@@ -174,7 +170,7 @@ describe('createUserStory', () => {
         supabase.from.mockReturnValueOnce(memberChain).mockReturnValueOnce(dupChain)
 
         await expect(createUserStory(1, validInput)).rejects.toThrow(
-            'A user story with this name already exists in this project.'
+            'Uporabniška zgodba s tem imenom že obstaja v tem projektu.'
         )
     })
 
@@ -262,12 +258,13 @@ describe('createUserStory', () => {
         const mockStory = { id: 10, name: validInput.name, FK_projectId: 1 }
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
-        const memberChain = mockChain({
-            maybeSingle: vi.fn().mockResolvedValue({
-                data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-                error: null,
-            }),
-        })
+        const memberChain = (() => {
+            const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            chain.eq
+                .mockReturnValueOnce(chain)
+                .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+            return chain
+        })()
         const dupChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
         const storyChain = mockChain({ single: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
 
@@ -286,25 +283,25 @@ describe('setTimeComplexity', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Not authenticated.')
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if time complexity is zero', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
-        await expect(setTimeComplexity(storyId, 0)).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(setTimeComplexity(storyId, 0)).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if time complexity is negative', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
-        await expect(setTimeComplexity(storyId, -3)).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(setTimeComplexity(storyId, -3)).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if time complexity is NaN', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
-        await expect(setTimeComplexity(storyId, NaN)).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(setTimeComplexity(storyId, NaN)).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if story is not found', async () => {
@@ -312,7 +309,7 @@ describe('setTimeComplexity', () => {
         const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
         supabase.from.mockReturnValueOnce(storyChain)
 
-        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('User story not found.')
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Uporabniška zgodba ni bila najdena.')
     })
 
     it('throws if story query fails', async () => {
@@ -326,24 +323,23 @@ describe('setTimeComplexity', () => {
     it('throws if user is not a member of the project', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
         const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
-        const memberChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
-        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(memberChain)
+        const notMemberChain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+        notMemberChain.eq.mockReturnValueOnce(notMemberChain).mockResolvedValueOnce({ data: [], error: null })
+        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(notMemberChain)
 
-        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('You are not a member of this project.')
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Niste član tega projekta.')
     })
 
     it('throws if user is not a Scrum Master', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'po-uuid' } } } })
         const storyChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) })
-        const memberChain = mockChain({
-            maybeSingle: vi.fn().mockResolvedValue({
-                data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Product Owner' } },
-                error: null,
-            }),
-        })
-        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(memberChain)
+        const poChain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+        poChain.eq
+            .mockReturnValueOnce(poChain)
+            .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Product Owner' } }], error: null })
+        supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(poChain)
 
-        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Only Scrum Masters can set time complexity.')
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Samo skrbniki metodologije lahko nastavljajo časovno zahtevnost.')
     })
 
     it('throws if story is already assigned to a sprint', async () => {
@@ -353,7 +349,7 @@ describe('setTimeComplexity', () => {
         const sprintLinkChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_sprintId: 99 }, error: null }) })
         supabase.from.mockReturnValueOnce(storyChain).mockReturnValueOnce(memberChain).mockReturnValueOnce(sprintLinkChain)
 
-        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Cannot set time complexity on a story that is already assigned to a sprint.')
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Ni mogoče nastaviti časovne zahtevnosti za zgodbo, ki je že dodeljena sprintu.')
     })
 
     it('updates and returns the story on success', async () => {
@@ -403,12 +399,13 @@ describe('addStoriesToSprint', () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
     const sprintChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockSprint, error: null }) })
-    const memberChain = mockChain({
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-        error: null,
-      }),
-    })
+    const memberChain = (() => {
+      const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+      chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+      return chain
+    })()
     const storiesChain = mockChain({ in: vi.fn().mockResolvedValue({ data: validStories, error: null }) })
     const activeLinksChain = mockChain({ in: vi.fn().mockResolvedValue({ data: [], error: null }) })
     const insertChain = mockChain({
@@ -432,7 +429,7 @@ describe('addStoriesToSprint', () => {
   it('throws if not authenticated', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Not authenticated.')
+    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Niste prijavljeni.')
   })
 
   it('throws if sprint is not found', async () => {
@@ -441,37 +438,39 @@ describe('addStoriesToSprint', () => {
 
     supabase.from.mockReturnValueOnce(sprintChain)
 
-    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Sprint not found.')
+    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Sprint ni bil najden.')
   })
 
   it('throws if user is not a Scrum Master', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'dev-uuid' } } } })
 
     const sprintChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockSprint, error: null }) })
-    const memberChain = mockChain({
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: { FK_projectRoleId: 3, ProjectRoles: { projectRole: 'Developer' } },
-        error: null,
-      }),
-    })
+    const devChain = (() => {
+      const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+      chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Developer' } }], error: null })
+      return chain
+    })()
 
     supabase.from
       .mockReturnValueOnce(sprintChain)
-      .mockReturnValueOnce(memberChain)
+      .mockReturnValueOnce(devChain)
 
-    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Only Scrum Masters can add stories to a sprint.')
+    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Samo skrbniki metodologije lahko dodajajo zgodbe v sprint.')
   })
 
   it('throws if any story is already realized', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
     const sprintChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockSprint, error: null }) })
-    const memberChain = mockChain({
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-        error: null,
-      }),
-    })
+    const memberChain = (() => {
+      const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+      chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+      return chain
+    })()
     const storiesChain = mockChain({
       in: vi.fn().mockResolvedValue({
         data: [
@@ -487,19 +486,20 @@ describe('addStoriesToSprint', () => {
       .mockReturnValueOnce(memberChain)
       .mockReturnValueOnce(storiesChain)
 
-    await expect(addStoriesToSprint(sprintId, [1, 2])).rejects.toThrow('Cannot add realized stories to a sprint')
+    await expect(addStoriesToSprint(sprintId, [1, 2])).rejects.toThrow('Ni mogoče dodati realiziranih zgodb v sprint')
   })
 
   it('throws if any story has no time complexity estimate', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
     const sprintChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockSprint, error: null }) })
-    const memberChain = mockChain({
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-        error: null,
-      }),
-    })
+    const memberChain = (() => {
+      const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+      chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+      return chain
+    })()
     const storiesChain = mockChain({
       in: vi.fn().mockResolvedValue({
         data: [
@@ -515,19 +515,20 @@ describe('addStoriesToSprint', () => {
       .mockReturnValueOnce(memberChain)
       .mockReturnValueOnce(storiesChain)
 
-    await expect(addStoriesToSprint(sprintId, [1, 2])).rejects.toThrow('Cannot add stories without time complexity estimate')
+    await expect(addStoriesToSprint(sprintId, [1, 2])).rejects.toThrow('Ni mogoče dodati zgodb brez ocene časovne zahtevnosti')
   })
 
   it('throws if any story is already assigned to an active sprint', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: 'sm-uuid' } } } })
 
     const sprintChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockSprint, error: null }) })
-    const memberChain = mockChain({
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-        error: null,
-      }),
-    })
+    const memberChain = (() => {
+      const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+      chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+      return chain
+    })()
     const storiesChain = mockChain({ in: vi.fn().mockResolvedValue({ data: validStories, error: null }) })
     const activeLinksChain = mockChain({
       in: vi.fn().mockResolvedValue({
@@ -548,6 +549,6 @@ describe('addStoriesToSprint', () => {
       .mockReturnValueOnce(storiesChain)
       .mockReturnValueOnce(activeLinksChain)
 
-    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Some stories are already assigned to an active sprint')
+    await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Nekatere zgodbe so že dodeljene aktivnemu sprintu')
   })
 })

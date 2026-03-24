@@ -58,7 +58,7 @@ function PasswordField({ id, className, placeholder, value, onChange, autoComple
         className="password-toggle"
         type="button"
         onClick={() => setShowPassword((prev) => !prev)}
-        aria-label={showPassword ? 'Hide password' : 'Show password'}
+        aria-label={showPassword ? 'Skrij geslo' : 'Prikaži geslo'}
       >
         {showPassword ? '🙈' : '👁'}
       </button>
@@ -111,7 +111,7 @@ export default function LoginPage({ onLogin }) {
       onLogin?.(result);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message || 'Login failed.');
+      setError(err.message || 'Prijava ni uspela.');
     } finally {
       setLoading(false);
     }
@@ -123,14 +123,14 @@ export default function LoginPage({ onLogin }) {
     setSuccess('');
 
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
+      setError('Novi gesli se ne ujemata.');
       return;
     }
 
     setLoading(true);
     try {
       await changePasswordAnon(cpUsername, oldPassword, newPassword);
-      setSuccess('Password changed successfully. You can now log in.');
+      setSuccess('Geslo je bilo uspešno spremenjeno. Sedaj se lahko prijavite.');
       setCpUsername('');
       setOldPassword('');
       setNewPassword('');
@@ -200,7 +200,7 @@ export default function LoginPage({ onLogin }) {
       <div className="login-page">
         <h1 className="login-page__title">SCRUM Aplikacija</h1>
         <form className="login-form" onSubmit={handleChangePasswordSubmit}>
-          <h1 className="login-title">Change Password</h1>
+          <h1 className="login-title">Sprememba Gesla</h1>
 
           <label className="login-label" htmlFor="cp-username">Uporabniško ime</label>
           <input

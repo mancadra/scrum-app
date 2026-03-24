@@ -10,7 +10,7 @@ async function checkProjectMembership(projectId, userId) {
     .eq('FK_userId', userId)
 
   if (error) throw new Error(error.message)
-  if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+  if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 }
 
 // ─── Helper: get authenticated user ──────────────────────────────────────────
@@ -18,7 +18,7 @@ async function checkProjectMembership(projectId, userId) {
 async function getAuthenticatedUser() {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
-  if (!user) throw new Error('Not authenticated.')
+  if (!user) throw new Error('Niste prijavljeni.')
   return user
 }
 

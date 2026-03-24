@@ -17,7 +17,7 @@ export async function createSprint(projectId, { startingDate, endingDate, starti
   if (sessionError) throw new Error(sessionError.message)
   const session = data?.session
   const user = session?.user
-  if (!user) throw new Error('Not authenticated.')
+  if (!user) throw new Error('Niste prijavljeni.')
 
   const { data: memberships, error: memberError } = await supabase
     .from('ProjectUsers')
@@ -26,22 +26,22 @@ export async function createSprint(projectId, { startingDate, endingDate, starti
     .eq('FK_userId', user.id)
 
   if (memberError) throw new Error(memberError.message)
-  if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+  if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
   const roles = memberships.map(m => m.ProjectRoles?.projectRole)
   if (!roles.includes('Scrum Master')) {
-    throw new Error('Only Scrum Masters can create sprints.')
+    throw new Error('Samo skrbniki metodologije lahko ustvarjajo sprinte.')
   }
 
   if (startingSpeed === undefined || startingSpeed === null) {
-    throw new Error('Starting speed is required.')
+    throw new Error('Začetna hitrost je obvezna.')
   }
   if (!Number.isInteger(startingSpeed) || startingSpeed <= 0) {
-    throw new Error('Starting speed must be a positive integer.')
+    throw new Error('Začetna hitrost mora biti pozitivno celo število.')
   }
 
   if (!startingDate || !endingDate) {
-    throw new Error('Starting and ending dates are required.')
+    throw new Error('Začetni in končni datum sta obvezna.')
   }
 
   const start = new Date(startingDate)
@@ -49,11 +49,11 @@ export async function createSprint(projectId, { startingDate, endingDate, starti
   const now = new Date()
 
   if (start <= now) {
-    throw new Error('Starting date must be in the future.')
+    throw new Error('Začetni datum mora biti v prihodnosti.')
   }
 
   if (end <= start) {
-    throw new Error('Ending date must be after starting date.')
+    throw new Error('Končni datum mora biti po začetnem datumu.')
   }
 
   const { data: overlapping, error: overlapError } = await supabase
@@ -71,7 +71,7 @@ export async function createSprint(projectId, { startingDate, endingDate, starti
   })
 
   if (hasOverlap) {
-    throw new Error('Sprint dates overlap with an existing sprint in this project.')
+    throw new Error('Datumi sprinta se prekrivajo z obstoječim sprintom v tem projektu.')
   }
 
   const { data: newSprint, error: sprintError } = await supabase

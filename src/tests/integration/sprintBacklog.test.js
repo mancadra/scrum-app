@@ -121,7 +121,7 @@ afterAll(async () => {
 describe('getSprintBacklog', () => {
     it('throws if not authenticated', async () => {
         await supabase.auth.signOut()
-        await expect(getSprintBacklog(TEST_PROJECT_ID)).rejects.toThrow('Not authenticated.')
+        await expect(getSprintBacklog(TEST_PROJECT_ID)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
 
@@ -135,7 +135,7 @@ describe('getSprintBacklog', () => {
 
             otherProjectId = other?.id
 
-            await expect(getSprintBacklog(otherProjectId)).rejects.toThrow('You are not a member of this project.')
+            await expect(getSprintBacklog(otherProjectId)).rejects.toThrow('Niste član tega projekta.')
         } finally {
             if (otherProjectId) {
                 await supabase.from('Projects').delete().eq('id', otherProjectId)
@@ -157,7 +157,7 @@ describe('getSprintBacklog', () => {
             const smRole = roles?.find(r => r.projectRole === 'Scrum Master')
             await supabase.from('ProjectUsers').insert({ FK_projectId: noSprintProjectId, FK_userId: TEST_USER_ID, FK_projectRoleId: smRole.id })
 
-            await expect(getSprintBacklog(noSprintProjectId)).rejects.toThrow('No active sprint found for this project.')
+            await expect(getSprintBacklog(noSprintProjectId)).rejects.toThrow('Za ta projekt ni aktivnega sprinta.')
         } finally {
             if (noSprintProjectId) {
                 await supabase.from('ProjectUsers').delete().eq('FK_projectId', noSprintProjectId)

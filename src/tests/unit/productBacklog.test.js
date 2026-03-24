@@ -39,20 +39,21 @@ function mockAuth(userId = 'user-uuid') {
   })
 }
 
-// membership check ends with .maybeSingle()
+// membership check ends with second .eq()
 function mockMember() {
-  return mockChain({
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: { FK_projectRoleId: 1 },
-      error: null,
-    }),
-  })
+  const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+  chain.eq
+    .mockReturnValueOnce(chain)
+    .mockResolvedValueOnce({ data: [{ FK_projectRoleId: 1 }], error: null })
+  return chain
 }
 
 function mockNotMember() {
-  return mockChain({
-    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-  })
+  const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+  chain.eq
+    .mockReturnValueOnce(chain)
+    .mockResolvedValueOnce({ data: [], error: null })
+  return chain
 }
 
 // sprint query ends with .gte()
@@ -114,14 +115,14 @@ describe('getRealizedStories()', () => {
   it('throws if not authenticated', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-    await expect(getRealizedStories(projectId)).rejects.toThrow('Not authenticated.')
+    await expect(getRealizedStories(projectId)).rejects.toThrow('Niste prijavljeni.')
   })
 
   it('throws if user is not a project member', async () => {
     mockAuth()
     supabase.from.mockReturnValueOnce(mockNotMember())
 
-    await expect(getRealizedStories(projectId)).rejects.toThrow('You are not a member of this project.')
+    await expect(getRealizedStories(projectId)).rejects.toThrow('Niste član tega projekta.')
   })
 
 })
@@ -169,14 +170,14 @@ describe('getAssignedStories()', () => {
   it('throws if not authenticated', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-    await expect(getAssignedStories(projectId)).rejects.toThrow('Not authenticated.')
+    await expect(getAssignedStories(projectId)).rejects.toThrow('Niste prijavljeni.')
   })
 
   it('throws if user is not a project member', async () => {
     mockAuth()
     supabase.from.mockReturnValueOnce(mockNotMember())
 
-    await expect(getAssignedStories(projectId)).rejects.toThrow('You are not a member of this project.')
+    await expect(getAssignedStories(projectId)).rejects.toThrow('Niste član tega projekta.')
   })
 
 })
@@ -216,14 +217,14 @@ describe('getUnassignedStories()', () => {
   it('throws if not authenticated', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-    await expect(getUnassignedStories(projectId)).rejects.toThrow('Not authenticated.')
+    await expect(getUnassignedStories(projectId)).rejects.toThrow('Niste prijavljeni.')
   })
 
   it('throws if user is not a project member', async () => {
     mockAuth()
     supabase.from.mockReturnValueOnce(mockNotMember())
 
-    await expect(getUnassignedStories(projectId)).rejects.toThrow('You are not a member of this project.')
+    await expect(getUnassignedStories(projectId)).rejects.toThrow('Niste član tega projekta.')
   })
 
 })

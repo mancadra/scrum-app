@@ -183,7 +183,7 @@ export default function AdminPage() {
             <div className="user-badge">
               <span className="username">@{user.username}</span>
               <span className={`role-tag ${user.UserRoles?.[0]?.Roles?.name === 'Admin' ? 'admin' : 'user'}`}>
-                {user.UserRoles?.[0]?.Roles?.name || 'User'}
+                {user.UserRoles?.[0]?.Roles?.name === 'Admin' ? 'Administrator' : 'Uporabnik'}
               </span>
             </div>
           </div>

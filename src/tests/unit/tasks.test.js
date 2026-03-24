@@ -10,7 +10,7 @@ vi.mock('../../config/supabase', () => ({
 }))
 
 beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
 })
 
 function mockChain(overrides) {
@@ -24,6 +24,7 @@ function mockChain(overrides) {
         in:          vi.fn().mockReturnThis(),
         not:         vi.fn().mockReturnThis(),
         is:          vi.fn().mockReturnThis(),
+        ilike:       vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
         ...overrides,
@@ -60,12 +61,11 @@ function mockScrumMaster(userId = 'sm-uuid', { story = mockStory, sprintLinks = 
     supabase.from
         .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: story, error: null }) }))
         .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: sprintLinks, error: null }) }))
-        .mockReturnValueOnce(mockChain({
-            maybeSingle: vi.fn().mockResolvedValue({
-                data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-                error: null,
-            }),
-        }))
+        .mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+            return c
+        })())
 }
 
 function mockDeveloper(userId = 'dev-uuid', { story = mockStory, sprintLinks = activeSprintLinks } = {}) {
@@ -73,12 +73,11 @@ function mockDeveloper(userId = 'dev-uuid', { story = mockStory, sprintLinks = a
     supabase.from
         .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: story, error: null }) }))
         .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: sprintLinks, error: null }) }))
-        .mockReturnValueOnce(mockChain({
-            maybeSingle: vi.fn().mockResolvedValue({
-                data: { FK_projectRoleId: 3, ProjectRoles: { projectRole: 'Developer' } },
-                error: null,
-            }),
-        }))
+        .mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Developer' } }], error: null })
+            return c
+        })())
 }
 
 // ---
@@ -87,7 +86,7 @@ describe('createTask', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(createTask(1, validInput)).rejects.toThrow('Not authenticated.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if user story does not exist', async () => {
@@ -96,7 +95,7 @@ describe('createTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
         )
 
-        await expect(createTask(999, validInput)).rejects.toThrow('User story not found.')
+        await expect(createTask(999, validInput)).rejects.toThrow('Uporabniška zgodba ni bila najdena.')
     })
 
     it('throws if user story query fails', async () => {
@@ -114,7 +113,7 @@ describe('createTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockStory, realized: true }, error: null }) })
         )
 
-        await expect(createTask(1, validInput)).rejects.toThrow('Cannot add tasks to a realized user story.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Ni mogoče dodati nalog realizirani uporabniški zgodbi.')
     })
 
     it('throws if sprint links query fails', async () => {
@@ -132,7 +131,7 @@ describe('createTask', () => {
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }))
 
-        await expect(createTask(1, validInput)).rejects.toThrow('User story is not part of an active or upcoming sprint.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Uporabniška zgodba ni del aktivnega ali prihodnjega sprinta.')
     })
 
     it('throws if user story is only in a past sprint', async () => {
@@ -141,7 +140,7 @@ describe('createTask', () => {
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: inactiveSprintLinks, error: null }) }))
 
-        await expect(createTask(1, validInput)).rejects.toThrow('User story is not part of an active or upcoming sprint.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Uporabniška zgodba ni del aktivnega ali prihodnjega sprinta.')
     })
 
     it('throws if user is not a project member', async () => {
@@ -149,9 +148,13 @@ describe('createTask', () => {
         supabase.from
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: activeSprintLinks, error: null }) }))
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce((() => {
+                const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+                c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [], error: null })
+                return c
+            })())
 
-        await expect(createTask(1, validInput)).rejects.toThrow('You are not a member of this project.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Niste član tega projekta.')
     })
 
     it('throws if membership query fails', async () => {
@@ -159,7 +162,11 @@ describe('createTask', () => {
         supabase.from
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: activeSprintLinks, error: null }) }))
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'member query failed' } }) }))
+            .mockReturnValueOnce((() => {
+                const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+                c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: null, error: { message: 'member query failed' } })
+                return c
+            })())
 
         await expect(createTask(1, validInput)).rejects.toThrow('member query failed')
     })
@@ -169,67 +176,70 @@ describe('createTask', () => {
         supabase.from
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockStory, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: activeSprintLinks, error: null }) }))
-            .mockReturnValueOnce(mockChain({
-                maybeSingle: vi.fn().mockResolvedValue({
-                    data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Product Owner' } },
-                    error: null,
-                }),
-            }))
+            .mockReturnValueOnce((() => {
+                const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+                c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Product Owner' } }], error: null })
+                return c
+            })())
 
-        await expect(createTask(1, validInput)).rejects.toThrow('Only Scrum Masters and Developers can create tasks.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Samo skrbniki metodologije in razvijalci lahko ustvarjajo naloge.')
     })
 
     it('throws if description is missing', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, description: '' })).rejects.toThrow('Description is required.')
+        await expect(createTask(1, { ...validInput, description: '' })).rejects.toThrow('Opis je obvezen.')
     })
 
     it('throws if description is only whitespace', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, description: '   ' })).rejects.toThrow('Description is required.')
+        await expect(createTask(1, { ...validInput, description: '   ' })).rejects.toThrow('Opis je obvezen.')
     })
 
     it('throws if time complexity is missing', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: null })).rejects.toThrow('Time complexity is required.')
+        await expect(createTask(1, { ...validInput, timecomplexity: null })).rejects.toThrow('Časovna zahtevnost je obvezna.')
     })
 
     it('throws if time complexity is zero', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: 0 })).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(createTask(1, { ...validInput, timecomplexity: 0 })).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if time complexity is negative', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: -2 })).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(createTask(1, { ...validInput, timecomplexity: -2 })).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if time complexity is NaN', async () => {
         mockScrumMaster()
 
-        await expect(createTask(1, { ...validInput, timecomplexity: NaN })).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(createTask(1, { ...validInput, timecomplexity: NaN })).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if proposed developer is not a project member', async () => {
         mockScrumMaster()
-        supabase.from.mockReturnValueOnce(
-            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
-        )
+        supabase.from.mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [], error: null })
+            return c
+        })())
 
         await expect(createTask(1, { ...validInput, FK_proposedDeveloper: 'unknown-uuid' }))
-            .rejects.toThrow('Proposed developer is not a member of this project.')
+            .rejects.toThrow('Predlagani razvijalec ni član tega projekta.')
     })
 
     it('throws if proposed developer query fails', async () => {
         mockScrumMaster()
-        supabase.from.mockReturnValueOnce(
-            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'dev query failed' } }) })
-        )
+        supabase.from.mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: null, error: { message: 'dev query failed' } })
+            return c
+        })())
 
         await expect(createTask(1, { ...validInput, FK_proposedDeveloper: 'some-uuid' }))
             .rejects.toThrow('dev query failed')
@@ -237,17 +247,14 @@ describe('createTask', () => {
 
     it('throws if proposed developer does not have Developer role', async () => {
         mockScrumMaster()
-        supabase.from.mockReturnValueOnce(
-            mockChain({
-                maybeSingle: vi.fn().mockResolvedValue({
-                    data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
-                    error: null,
-                }),
-            })
-        )
+        supabase.from.mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error: null })
+            return c
+        })())
 
         await expect(createTask(1, { ...validInput, FK_proposedDeveloper: 'sm-uuid' }))
-            .rejects.toThrow('Proposed developer must have the Developer role.')
+            .rejects.toThrow('Predlagani razvijalec mora imeti vlogo razvijalca.')
     })
 
     it('throws if a task with the same description already exists for the story', async () => {
@@ -256,7 +263,7 @@ describe('createTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 42 }, error: null }) })
         )
 
-        await expect(createTask(1, validInput)).rejects.toThrow('A task with this description already exists for this user story.')
+        await expect(createTask(1, validInput)).rejects.toThrow('Naloga s tem opisom za to uporabniško zgodbo že obstaja.')
     })
 
     it('throws if duplicate check query fails', async () => {
@@ -306,14 +313,11 @@ describe('createTask', () => {
         const mockTask = { id: 7, description: validInput.description, FK_userStoryId: 1, FK_proposedDeveloper: 'dev-uuid' }
         mockScrumMaster()
         // Proposed developer check
-        supabase.from.mockReturnValueOnce(
-            mockChain({
-                maybeSingle: vi.fn().mockResolvedValue({
-                    data: { FK_projectRoleId: 3, ProjectRoles: { projectRole: 'Developer' } },
-                    error: null,
-                }),
-            })
-        )
+        supabase.from.mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: 'Developer' } }], error: null })
+            return c
+        })())
         supabase.from
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
             .mockReturnValueOnce(mockChain({ single: vi.fn().mockResolvedValue({ data: mockTask, error: null }) }))
@@ -346,10 +350,12 @@ describe('createTask', () => {
 const mockSprint = { id: 1, FK_projectId: 5, startingDate: '2026-03-01T00:00:00Z', endingDate: '2026-03-31T00:00:00Z' }
 const mockStoryRow = { id: 10, name: 'Story A', description: '', businessValue: 5, realized: false, FK_priorityId: 1, Priorities: { priority: 'Must have' } }
 
-function mockMembership(data = { FK_projectRoleId: 2 }, error = null) {
-    supabase.from.mockReturnValueOnce(
-        mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data, error }) })
-    )
+function mockMembership(roles = [{ FK_projectRoleId: 2 }], error = null) {
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: error ? null : roles, error })
+    supabase.from.mockReturnValueOnce(chain)
 }
 
 function mockSprintQuery(data = mockSprint, error = null) {
@@ -380,7 +386,7 @@ describe('getSprintBacklog', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(getSprintBacklog(5)).rejects.toThrow('Not authenticated.')
+        await expect(getSprintBacklog(5)).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if membership query fails', async () => {
@@ -392,9 +398,9 @@ describe('getSprintBacklog', () => {
 
     it('throws if user is not a project member', async () => {
         mockAuth()
-        mockMembership(null)
+        mockMembership([])
 
-        await expect(getSprintBacklog(5)).rejects.toThrow('You are not a member of this project.')
+        await expect(getSprintBacklog(5)).rejects.toThrow('Niste član tega projekta.')
     })
 
     it('throws if sprint query fails', async () => {
@@ -410,7 +416,7 @@ describe('getSprintBacklog', () => {
         mockMembership()
         mockSprintQuery(null)
 
-        await expect(getSprintBacklog(5)).rejects.toThrow('No active sprint found for this project.')
+        await expect(getSprintBacklog(5)).rejects.toThrow('Za ta projekt ni aktivnega sprinta.')
     })
 
     it('throws if sprint stories query fails', async () => {
@@ -588,19 +594,18 @@ function mockAcceptSetup(userId = DEV_ID, {
         .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: task, error: null }) }))
         .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: story, error: null }) }))
         .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: sprintLinks, error: null }) }))
-        .mockReturnValueOnce(mockChain({
-            maybeSingle: vi.fn().mockResolvedValue({
-                data: { ProjectRoles: { projectRole: role } },
-                error: null,
-            }),
-        }))
+        .mockReturnValueOnce((() => {
+            const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+            c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: role } }], error: null })
+            return c
+        })())
 }
 
 describe('acceptTask', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(acceptTask(10)).rejects.toThrow('Not authenticated.')
+        await expect(acceptTask(10)).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if task does not exist', async () => {
@@ -609,7 +614,7 @@ describe('acceptTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
         )
 
-        await expect(acceptTask(999)).rejects.toThrow('Task not found.')
+        await expect(acceptTask(999)).rejects.toThrow('Naloga ni bila najdena.')
     })
 
     it('throws if task fetch fails', async () => {
@@ -627,7 +632,7 @@ describe('acceptTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, finished: true }, error: null }) })
         )
 
-        await expect(acceptTask(10)).rejects.toThrow('Cannot accept a finished task.')
+        await expect(acceptTask(10)).rejects.toThrow('Ni mogoče sprejeti zaključene naloge.')
     })
 
     it('throws if task is already accepted', async () => {
@@ -636,7 +641,7 @@ describe('acceptTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, FK_acceptedDeveloper: 'other-uuid' }, error: null }) })
         )
 
-        await expect(acceptTask(10)).rejects.toThrow('Task has already been accepted by another developer.')
+        await expect(acceptTask(10)).rejects.toThrow('Nalogo je že sprejel drug razvijalec.')
     })
 
     it('throws if task was proposed to a different developer', async () => {
@@ -645,7 +650,7 @@ describe('acceptTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, FK_proposedDeveloper: 'other-uuid' }, error: null }) })
         )
 
-        await expect(acceptTask(10)).rejects.toThrow('This task was proposed to a different developer.')
+        await expect(acceptTask(10)).rejects.toThrow('Ta naloga je bila predlagana drugemu razvijalcu.')
     })
 
     it('throws if story fetch fails', async () => {
@@ -663,7 +668,7 @@ describe('acceptTask', () => {
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
 
-        await expect(acceptTask(10)).rejects.toThrow('User story not found.')
+        await expect(acceptTask(10)).rejects.toThrow('Uporabniška zgodba ni bila najdena.')
     })
 
     it('throws if sprint links query fails', async () => {
@@ -683,7 +688,7 @@ describe('acceptTask', () => {
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1, FK_projectId: 10 }, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: inactiveSprintLinks, error: null }) }))
 
-        await expect(acceptTask(10)).rejects.toThrow('Task does not belong to an active sprint.')
+        await expect(acceptTask(10)).rejects.toThrow('Naloga ne pripada aktivnemu sprintu.')
     })
 
     it('throws if user is not a project member', async () => {
@@ -692,15 +697,19 @@ describe('acceptTask', () => {
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockUnassignedTask, error: null }) }))
             .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1, FK_projectId: 10 }, error: null }) }))
             .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: activeSprintLinks, error: null }) }))
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce((() => {
+                const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+                c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [], error: null })
+                return c
+            })())
 
-        await expect(acceptTask(10)).rejects.toThrow('You are not a member of this project.')
+        await expect(acceptTask(10)).rejects.toThrow('Niste član tega projekta.')
     })
 
     it('throws if user is not a Developer', async () => {
         mockAcceptSetup(DEV_ID, { role: 'Scrum Master' })
 
-        await expect(acceptTask(10)).rejects.toThrow('Only Developers can accept tasks.')
+        await expect(acceptTask(10)).rejects.toThrow('Samo razvijalci lahko sprejemajo naloge.')
     })
 
     it('throws if task update fails', async () => {
@@ -774,7 +783,7 @@ describe('finishTask', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 
-        await expect(finishTask(20)).rejects.toThrow('Not authenticated.')
+        await expect(finishTask(20)).rejects.toThrow('Niste prijavljeni.')
     })
 
     it('throws if task does not exist', async () => {
@@ -783,7 +792,7 @@ describe('finishTask', () => {
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
         )
 
-        await expect(finishTask(999)).rejects.toThrow('Task not found.')
+        await expect(finishTask(999)).rejects.toThrow('Naloga ni bila najdena.')
     })
 
     it('throws if task fetch fails', async () => {
@@ -799,21 +808,21 @@ describe('finishTask', () => {
         mockAuth(DEV_ID)
         mockTaskFetch(mockFinishedTask)
 
-        await expect(finishTask(21)).rejects.toThrow('Task is already finished.')
+        await expect(finishTask(21)).rejects.toThrow('Naloga je že zaključena.')
     })
 
     it('throws if current user did not accept the task', async () => {
         mockAuth('other-uuid')
         mockTaskFetch(mockUnfinishedTask) // accepted by DEV_ID, not 'other-uuid'
 
-        await expect(finishTask(20)).rejects.toThrow('You can only finish a task you have accepted.')
+        await expect(finishTask(20)).rejects.toThrow('Zaključite lahko samo nalogo, ki ste jo sprejeli.')
     })
 
     it('throws if task has no accepted developer', async () => {
         mockAuth(DEV_ID)
         mockTaskFetch({ ...mockUnfinishedTask, FK_acceptedDeveloper: null })
 
-        await expect(finishTask(20)).rejects.toThrow('You can only finish a task you have accepted.')
+        await expect(finishTask(20)).rejects.toThrow('Zaključite lahko samo nalogo, ki ste jo sprejeli.')
     })
 
     it('throws if timetable update fails', async () => {

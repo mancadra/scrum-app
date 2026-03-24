@@ -89,7 +89,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         setAssignedStories(assignedData ?? []);
         setUnassignedStories(unassignedData ?? []);
       } catch (err) {
-        setError(err.message || 'Failed to load backlog stories.');
+        setError(err.message || 'Napaka pri nalaganju zgodb.');
       } finally {
         setPageLoading(false);
       }
@@ -99,7 +99,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
   }, [project?.id]);
 
   if (!project) {
-    return <div className="project-panel">No project selected.</div>;
+    return <div className="project-panel">Ni izbranega projekta.</div>;
   }
 
   const refreshStories = async () => {
@@ -128,7 +128,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
       setIsFormOpen(false);
       return createdStory;
     } catch (err) {
-      setError(err.message || 'Failed to create story.');
+      setError(err.message || 'Napaka pri ustvarjanju zgodbe.');
       return null;
     } finally {
       setLoading(false);
@@ -151,7 +151,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
       const parsedValue = Number(timeComplexityValue);
 
       if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
-        throw new Error('Time complexity must be a positive number.');
+        throw new Error('Časovna zahtevnost mora biti pozitivno število.');
       }
 
       await setTimeComplexity(timeComplexityStory.id, parsedValue);
@@ -159,7 +159,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
       setTimeComplexityStory(null);
       setTimeComplexityValue('');
     } catch (err) {
-      setError(err.message || 'Failed to update time complexity.');
+      setError(err.message || 'Napaka pri posodobitvi časovne zahtevnosti.');
     } finally {
       setSavingTimeComplexity(false);
     }
@@ -181,10 +181,10 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     const rawPriority = story.priority ?? story.Priorities?.priority ?? story.FK_priorityId;
 
     const priorityMap = {
-      1: 'Must have',
-      2: 'Should have',
-      3: 'Could have',
-      4: 'Won’t have this time',
+      1: ‘Mora biti’,
+      2: ‘Bi moralo biti’,
+      3: ‘Lahko bi bilo’,
+      4: ‘Ne bo tokrat’,
     };
 
     return priorityMap[Number(rawPriority)] ?? rawPriority ?? '—';

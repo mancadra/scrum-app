@@ -75,8 +75,8 @@ describe('getProjectUsers', () => {
         const users = await getUsers()
         const roles = await getProjectRoles()
 
-        const projectUsers = [{ id: users[0].id, projectRoleId: roles[0].id }]
-        const project = await createProject('Integration GetProjectUsers Members Test', '', projectUsers)
+        const projectUsers = [{ id: users[0].id, projectRoleIds: [roles[0].id] }]
+        const project = await createProject(uniqueName('Integration GetProjectUsers Members Test'), '', projectUsers)
         createdProjectIds.push(project.id)
 
         const members = await getProjectUsers(project.id)
@@ -95,7 +95,7 @@ describe('getUsersProjects', () => {
         const userId = session?.user?.id
 
         const roles = await getProjectRoles()
-        const project = await createProject(uniqueName('getUsersProjects Test'), '', [{ id: userId, projectRoleId: roles[0].id }])
+        const project = await createProject(uniqueName('getUsersProjects Test'), '', [{ id: userId, projectRoleIds: [roles[0].id] }])
         createdProjectIds.push(project.id)
 
         const projects = await getUsersProjects(userId)
@@ -134,7 +134,7 @@ describe('createProject', () => {
         const users = await getUsers()
         const roles = await getProjectRoles()
 
-        const projectUsers = [{ id: users[0].id, projectRoleId: roles[0].id }]
+        const projectUsers = [{ id: users[0].id, projectRoleIds: [roles[0].id] }]
 
         const project = await createProject(uniqueName('Integration Test Project With Members'), '', projectUsers)
         createdProjectIds.push(project.id)

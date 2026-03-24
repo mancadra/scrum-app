@@ -31,6 +31,17 @@ function mockQuery(result) {
   return chain
 }
 
+function mockMemberEq(roles = [{ ProjectRoles: { projectRole: 'Scrum Master' } }], error = null) {
+    const chain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn(),
+    }
+    chain.eq
+        .mockReturnValueOnce(chain)
+        .mockResolvedValueOnce({ data: roles, error })
+    return chain
+}
+
 
 const projectId = 'project-uuid-123'
 const scrumMasterUserId = 'scrum-master-uuid'
@@ -60,10 +71,7 @@ describe('createSprint()', () => {
 
     mockFrom
       // ProjectUsers role check → Scrum Master
-      .mockReturnValueOnce(mockQuery({
-        data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Scrum Master' } },
-        error: null,
-      }))
+      .mockReturnValueOnce(mockMemberEq([{ ProjectRoles: { projectRole: 'Scrum Master' } }]))
       // Overlap check → no overlapping sprints
       .mockReturnValueOnce(mockQuery({ data: [], error: null }))
       // Insert sprint
@@ -79,10 +87,7 @@ describe('createSprint()', () => {
   test('throws when ending date is before starting date', async () => {
     mockAuthAs(scrumMasterUserId)
 
-    mockFrom.mockReturnValueOnce(mockQuery({
-      data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Scrum Master' } },
-      error: null,
-    }))
+    mockFrom.mockReturnValueOnce(mockMemberEq([{ ProjectRoles: { projectRole: 'Scrum Master' } }]))
 
     const payload = {
       ...validPayload,
@@ -91,16 +96,13 @@ describe('createSprint()', () => {
     }
 
     await expect(createSprint(projectId, payload))
-      .rejects.toThrow('Ending date must be after starting date.')
+      .rejects.toThrow('Končni datum mora biti po začetnem datumu.')
   })
 
   test('throws when starting date is in the past', async () => {
     mockAuthAs(scrumMasterUserId)
 
-    mockFrom.mockReturnValueOnce(mockQuery({
-      data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Scrum Master' } },
-      error: null,
-    }))
+    mockFrom.mockReturnValueOnce(mockMemberEq([{ ProjectRoles: { projectRole: 'Scrum Master' } }]))
 
     const payload = {
       ...validPayload,
@@ -108,29 +110,23 @@ describe('createSprint()', () => {
     }
 
     await expect(createSprint(projectId, payload))
-      .rejects.toThrow('Starting date must be in the future.')
+      .rejects.toThrow('Začetni datum mora biti v prihodnosti.')
   })
 
   test('throws when startingSpeed is not a positive integer', async () => {
     mockAuthAs(scrumMasterUserId)
 
-    mockFrom.mockReturnValueOnce(mockQuery({
-      data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Scrum Master' } },
-      error: null,
-    }))
+    mockFrom.mockReturnValueOnce(mockMemberEq([{ ProjectRoles: { projectRole: 'Scrum Master' } }]))
 
     await expect(createSprint(projectId, { ...validPayload, startingSpeed: -5 }))
-      .rejects.toThrow('Starting speed must be a positive integer.')
+      .rejects.toThrow('Začetna hitrost mora biti pozitivno celo število.')
   })
 
   test('throws when sprint overlaps with an existing sprint', async () => {
     mockAuthAs(scrumMasterUserId)
 
     mockFrom
-      .mockReturnValueOnce(mockQuery({
-        data: { FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Scrum Master' } },
-        error: null,
-      }))
+      .mockReturnValueOnce(mockMemberEq([{ ProjectRoles: { projectRole: 'Scrum Master' } }]))
       .mockReturnValueOnce(mockQuery({
         data: [{
           id: 'existing-sprint-uuid',
@@ -141,19 +137,16 @@ describe('createSprint()', () => {
       }))
 
     await expect(createSprint(projectId, validPayload))
-      .rejects.toThrow('Sprint dates overlap with an existing sprint in this project.')
+      .rejects.toThrow('Datumi sprinta se prekrivajo z obstoječim sprintom v tem projektu.')
   })
 
   test('throws when user is not a Scrum Master', async () => {
     mockAuthAs('developer-uuid')
 
-    mockFrom.mockReturnValueOnce(mockQuery({
-      data: { FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Developer' } },
-      error: null,
-    }))
+    mockFrom.mockReturnValueOnce(mockMemberEq([{ ProjectRoles: { projectRole: 'Developer' } }]))
 
     await expect(createSprint(projectId, validPayload))
-      .rejects.toThrow('Only Scrum Masters can create sprints.')
+      .rejects.toThrow('Samo skrbniki metodologije lahko ustvarjajo sprinte.')
   })
 
   test('throws when user is not authenticated', async () => {
@@ -163,7 +156,7 @@ describe('createSprint()', () => {
     })
 
     await expect(createSprint(projectId, validPayload))
-      .rejects.toThrow('Not authenticated.')
+      .rejects.toThrow('Niste prijavljeni.')
   })
 
 })

@@ -122,20 +122,20 @@ describe('createTask', () => {
         await supabase.auth.signOut()
         await expect(
             createTask(TEST_STORY_ID, { description: 'Should fail', timecomplexity: 1 })
-        ).rejects.toThrow('Not authenticated.')
+        ).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
 
     it('throws if user story does not exist', async () => {
         await expect(
             createTask(999999, { description: 'Should fail', timecomplexity: 1 })
-        ).rejects.toThrow('User story not found.')
+        ).rejects.toThrow('Uporabniška zgodba ni bila najdena.')
     })
 
     it('throws if user story is not part of an active or upcoming sprint', async () => {
         await expect(
             createTask(TEST_STORY_OUTSIDE_SPRINT_ID, { description: 'Outside sprint', timecomplexity: 2 })
-        ).rejects.toThrow('User story is not part of an active or upcoming sprint.')
+        ).rejects.toThrow('Uporabniška zgodba ni del aktivnega ali prihodnjega sprinta.')
     })
 
     it('throws if user story is already realized', async () => {
@@ -144,7 +144,7 @@ describe('createTask', () => {
 
         await expect(
             createTask(TEST_STORY_ID, { description: 'Should fail', timecomplexity: 1 })
-        ).rejects.toThrow('Cannot add tasks to a realized user story.')
+        ).rejects.toThrow('Ni mogoče dodati nalog realizirani uporabniški zgodbi.')
 
         // Restore
         await supabase.from('UserStories').update({ realized: false }).eq('id', TEST_STORY_ID)
@@ -185,7 +185,7 @@ describe('createTask', () => {
 
         await expect(
             createTask(otherStory.id, { description: 'Should fail', timecomplexity: 1 })
-        ).rejects.toThrow('You are not a member of this project.')
+        ).rejects.toThrow('Niste član tega projekta.')
 
         // Cleanup
         await supabase.from('SprintUserStories').delete().eq('FK_sprintId', otherSprint.id)
@@ -197,19 +197,19 @@ describe('createTask', () => {
     it('throws if description is empty', async () => {
         await expect(
             createTask(TEST_STORY_ID, { description: '', timecomplexity: 2 })
-        ).rejects.toThrow('Description is required.')
+        ).rejects.toThrow('Opis je obvezen.')
     })
 
     it('throws if time complexity is missing', async () => {
         await expect(
             createTask(TEST_STORY_ID, { description: 'Some task', timecomplexity: null })
-        ).rejects.toThrow('Time complexity is required.')
+        ).rejects.toThrow('Časovna zahtevnost je obvezna.')
     })
 
     it('throws if time complexity is not a positive number', async () => {
         await expect(
             createTask(TEST_STORY_ID, { description: 'Some task', timecomplexity: -1 })
-        ).rejects.toThrow('Time complexity must be a positive number.')
+        ).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('throws if proposed developer is not a project member', async () => {
@@ -219,7 +219,7 @@ describe('createTask', () => {
                 timecomplexity: 2,
                 FK_proposedDeveloper: '00000000-0000-0000-0000-000000000000',
             })
-        ).rejects.toThrow('Proposed developer is not a member of this project.')
+        ).rejects.toThrow('Predlagani razvijalec ni član tega projekta.')
     })
 
     it('throws if proposed developer does not have Developer role', async () => {
@@ -230,7 +230,7 @@ describe('createTask', () => {
                 timecomplexity: 2,
                 FK_proposedDeveloper: TEST_USER_ID,
             })
-        ).rejects.toThrow('Proposed developer must have the Developer role.')
+        ).rejects.toThrow('Predlagani razvijalec mora imeti vlogo razvijalca.')
     })
 
     it('creates a task successfully without proposed developer', async () => {
@@ -256,7 +256,7 @@ describe('createTask', () => {
 
         await expect(
             createTask(TEST_STORY_ID, { description, timecomplexity: 3 })
-        ).rejects.toThrow('A task with this description already exists for this user story.')
+        ).rejects.toThrow('Naloga s tem opisom za to uporabniško zgodbo že obstaja.')
     })
 })
 
@@ -332,12 +332,12 @@ describe('acceptTask', () => {
 
     it('throws if not authenticated', async () => {
         await supabase.auth.signOut()
-        await expect(acceptTask(999999)).rejects.toThrow('Not authenticated.')
+        await expect(acceptTask(999999)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
 
     it('throws if task does not exist', async () => {
-        await expect(acceptTask(999999)).rejects.toThrow('Task not found.')
+        await expect(acceptTask(999999)).rejects.toThrow('Naloga ni bila najdena.')
     })
 
     it('throws if task is already finished', async () => {
@@ -347,7 +347,7 @@ describe('acceptTask', () => {
             .select().single()
         acceptTaskIds.push(task.id)
 
-        await expect(acceptTask(task.id)).rejects.toThrow('Cannot accept a finished task.')
+        await expect(acceptTask(task.id)).rejects.toThrow('Ni mogoče sprejeti zaključene naloge.')
     })
 
     it('throws if task is already accepted by another developer', async () => {
@@ -357,7 +357,7 @@ describe('acceptTask', () => {
             .select().single()
         acceptTaskIds.push(task.id)
 
-        await expect(acceptTask(task.id)).rejects.toThrow('Task has already been accepted by another developer.')
+        await expect(acceptTask(task.id)).rejects.toThrow('Nalogo je že sprejel drug razvijalec.')
     })
 
     it('throws if task was proposed to a different developer', async () => {
@@ -384,7 +384,7 @@ describe('acceptTask', () => {
             .select().single()
         acceptTaskIds.push(task.id)
 
-        await expect(acceptTask(task.id)).rejects.toThrow('This task was proposed to a different developer.')
+        await expect(acceptTask(task.id)).rejects.toThrow('Ta naloga je bila predlagana drugemu razvijalcu.')
     })
 
     it('throws if user is not a Developer', async () => {
@@ -399,7 +399,7 @@ describe('acceptTask', () => {
             .select().single()
         acceptTaskIds.push(task.id)
 
-        await expect(acceptTask(task.id)).rejects.toThrow('Only Developers can accept tasks.')
+        await expect(acceptTask(task.id)).rejects.toThrow('Samo razvijalci lahko sprejemajo naloge.')
 
         await supabase.from('ProjectUsers')
             .update({ FK_projectRoleId: devRoleId })
@@ -504,12 +504,12 @@ describe('finishTask', () => {
 
     it('throws if not authenticated', async () => {
         await supabase.auth.signOut()
-        await expect(finishTask(999999)).rejects.toThrow('Not authenticated.')
+        await expect(finishTask(999999)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
 
     it('throws if task does not exist', async () => {
-        await expect(finishTask(999999)).rejects.toThrow('Task not found.')
+        await expect(finishTask(999999)).rejects.toThrow('Naloga ni bila najdena.')
     })
 
     it('throws if task is already finished', async () => {
@@ -519,7 +519,7 @@ describe('finishTask', () => {
             .select().single()
         finishTaskIds.push(task.id)
 
-        await expect(finishTask(task.id)).rejects.toThrow('Task is already finished.')
+        await expect(finishTask(task.id)).rejects.toThrow('Naloga je že zaključena.')
     })
 
     it('throws if the current user did not accept the task (starred)', async () => {
@@ -529,7 +529,7 @@ describe('finishTask', () => {
             .select().single()
         finishTaskIds.push(task.id)
 
-        await expect(finishTask(task.id)).rejects.toThrow('You can only finish a task you have accepted.')
+        await expect(finishTask(task.id)).rejects.toThrow('Zaključite lahko samo nalogo, ki ste jo sprejeli.')
     })
 
     it('marks an accepted task as finished', async () => {

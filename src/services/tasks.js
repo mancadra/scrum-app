@@ -5,7 +5,7 @@ export async function getSprintBacklog(projectId) {
     if (sessionError) throw new Error(sessionError.message)
     const session = data?.session
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
@@ -14,7 +14,7 @@ export async function getSprintBacklog(projectId) {
         .eq('FK_userId', user.id)
 
     if (memberError) throw new Error(memberError.message)
-    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
     const now = new Date().toISOString()
     const { data: sprint, error: sprintError } = await supabase
@@ -26,7 +26,7 @@ export async function getSprintBacklog(projectId) {
         .maybeSingle()
 
     if (sprintError) throw new Error(sprintError.message)
-    if (!sprint) throw new Error('No active sprint found for this project.')
+    if (!sprint) throw new Error('Za ta projekt ni aktivnega sprinta.')
 
     const { data: sprintStories, error: storiesError } = await supabase
         .from('SprintUserStories')
@@ -100,7 +100,7 @@ export async function getSprintBacklogById(projectId, sprintId) {
     if (sessionError) throw new Error(sessionError.message)
     const session = data?.session
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
@@ -109,7 +109,7 @@ export async function getSprintBacklogById(projectId, sprintId) {
         .eq('FK_userId', user.id)
 
     if (memberError) throw new Error(memberError.message)
-    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
     const { data: sprint, error: sprintError } = await supabase
         .from('Sprints')
@@ -119,7 +119,7 @@ export async function getSprintBacklogById(projectId, sprintId) {
         .maybeSingle()
 
     if (sprintError) throw new Error(sprintError.message)
-    if (!sprint) throw new Error('Sprint not found.')
+    if (!sprint) throw new Error('Sprint ni bil najden.')
 
     const { data: sprintStories, error: storiesError } = await supabase
         .from('SprintUserStories')
@@ -183,7 +183,7 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
     if (sessionError) throw new Error(sessionError.message)
     const session = data?.session
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: story, error: storyError } = await supabase
         .from('UserStories')
@@ -192,8 +192,8 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         .maybeSingle()
 
     if (storyError) throw new Error(storyError.message)
-    if (!story) throw new Error('User story not found.')
-    if (story.realized) throw new Error('Cannot add tasks to a realized user story.')
+    if (!story) throw new Error('Uporabniška zgodba ni bila najdena.')
+    if (story.realized) throw new Error('Ni mogoče dodati nalog realizirani uporabniški zgodbi.')
 
     const { data: sprintLinks, error: sprintError } = await supabase
         .from('SprintUserStories')
@@ -208,7 +208,7 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         return end && end >= now
     })
 
-    if (!isInCurrentOrFutureSprint) throw new Error('User story is not part of an active or upcoming sprint.')
+    if (!isInCurrentOrFutureSprint) throw new Error('Uporabniška zgodba ni del aktivnega ali prihodnjega sprinta.')
 
     const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
@@ -217,21 +217,21 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         .eq('FK_userId', user.id)
 
     if (memberError) throw new Error(memberError.message)
-    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
     const roles = memberships.map(m => m.ProjectRoles?.projectRole)
     if (!roles.includes('Scrum Master') && !roles.includes('Developer')) {
-        throw new Error('Only Scrum Masters and Developers can create tasks.')
+        throw new Error('Samo skrbniki metodologije in razvijalci lahko ustvarjajo naloge.')
     }
 
     const normalizedDescription = typeof description === 'string' ? description.trim() : '';
-    if (!normalizedDescription) throw new Error('Description is required.')
+    if (!normalizedDescription) throw new Error('Opis je obvezen.')
 
     if (timecomplexity === undefined || timecomplexity === null) {
-        throw new Error('Time complexity is required.')
+        throw new Error('Časovna zahtevnost je obvezna.')
     }
     if (typeof timecomplexity !== 'number' || isNaN(timecomplexity) || timecomplexity <= 0) {
-        throw new Error('Time complexity must be a positive number.')
+        throw new Error('Časovna zahtevnost mora biti pozitivno število.')
     }
 
     if (FK_proposedDeveloper !== null) {
@@ -242,11 +242,11 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
             .eq('FK_userId', FK_proposedDeveloper)
 
         if (devError) throw new Error(devError.message)
-        if (!devMemberships || devMemberships.length === 0) throw new Error('Proposed developer is not a member of this project.')
+        if (!devMemberships || devMemberships.length === 0) throw new Error('Predlagani razvijalec ni član tega projekta.')
 
         const devRoles = devMemberships.map(m => m.ProjectRoles?.projectRole)
         if (!devRoles.includes('Developer')) {
-            throw new Error('Proposed developer must have the Developer role.')
+            throw new Error('Predlagani razvijalec mora imeti vlogo razvijalca.')
         }
     }
 
@@ -258,7 +258,7 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)
-    if (existing) throw new Error('A task with this description already exists for this user story.')
+    if (existing) throw new Error('Naloga s tem opisom za to uporabniško zgodbo že obstaja.')
 
     const { data: task, error: taskError } = await supabase
         .from('Tasks')
@@ -275,7 +275,7 @@ export async function finishTask(taskId) {
     if (sessionError) throw new Error(sessionError.message)
     const session = data?.session
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: task, error: taskError } = await supabase
         .from('Tasks')
@@ -284,9 +284,9 @@ export async function finishTask(taskId) {
         .maybeSingle()
 
     if (taskError) throw new Error(taskError.message)
-    if (!task) throw new Error('Task not found.')
-    if (task.finished) throw new Error('Task is already finished.')
-    if (task.FK_acceptedDeveloper !== user.id) throw new Error('You can only finish a task you have accepted.')
+    if (!task) throw new Error('Naloga ni bila najdena.')
+    if (task.finished) throw new Error('Naloga je že zaključena.')
+    if (task.FK_acceptedDeveloper !== user.id) throw new Error('Zaključite lahko samo nalogo, ki ste jo sprejeli.')
 
     // Close any open timetable entry for this task
     const now = new Date().toISOString()
@@ -315,7 +315,7 @@ export async function acceptTask(taskId) {
     if (sessionError) throw new Error(sessionError.message)
     const session = data?.session
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: task, error: taskError } = await supabase
         .from('Tasks')
@@ -324,11 +324,11 @@ export async function acceptTask(taskId) {
         .maybeSingle()
 
     if (taskError) throw new Error(taskError.message)
-    if (!task) throw new Error('Task not found.')
-    if (task.finished) throw new Error('Cannot accept a finished task.')
-    if (task.FK_acceptedDeveloper) throw new Error('Task has already been accepted by another developer.')
+    if (!task) throw new Error('Naloga ni bila najdena.')
+    if (task.finished) throw new Error('Ni mogoče sprejeti zaključene naloge.')
+    if (task.FK_acceptedDeveloper) throw new Error('Nalogo je že sprejel drug razvijalec.')
     if (task.FK_proposedDeveloper && task.FK_proposedDeveloper !== user.id) {
-        throw new Error('This task was proposed to a different developer.')
+        throw new Error('Ta naloga je bila predlagana drugemu razvijalcu.')
     }
 
     const { data: story, error: storyError } = await supabase
@@ -338,7 +338,7 @@ export async function acceptTask(taskId) {
         .maybeSingle()
 
     if (storyError) throw new Error(storyError.message)
-    if (!story) throw new Error('User story not found.')
+    if (!story) throw new Error('Uporabniška zgodba ni bila najdena.')
 
     const { data: sprintLinks, error: sprintError } = await supabase
         .from('SprintUserStories')
@@ -354,7 +354,7 @@ export async function acceptTask(taskId) {
         return start && end && start <= now && end >= now
     })
 
-    if (!isInActiveSprint) throw new Error('Task does not belong to an active sprint.')
+    if (!isInActiveSprint) throw new Error('Naloga ne pripada aktivnemu sprintu.')
 
     const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
@@ -363,10 +363,10 @@ export async function acceptTask(taskId) {
         .eq('FK_userId', user.id)
 
     if (memberError) throw new Error(memberError.message)
-    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
 
     const roles = memberships.map(m => m.ProjectRoles?.projectRole)
-    if (!roles.includes('Developer')) throw new Error('Only Developers can accept tasks.')
+    if (!roles.includes('Developer')) throw new Error('Samo razvijalci lahko sprejemajo naloge.')
 
     const { data: updated, error: updateError } = await supabase
         .from('Tasks')

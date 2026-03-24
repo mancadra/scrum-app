@@ -24,12 +24,14 @@ function mockQuery(result) {
   const chain = {
     select: vi.fn(),
     eq: vi.fn(),
+    ilike: vi.fn(),
     single: vi.fn().mockResolvedValue(result),
     insert: vi.fn(),
     delete: vi.fn(),
   }
   chain.select.mockReturnValue(chain)
   chain.eq.mockReturnValue(chain)
+  chain.ilike.mockReturnValue(chain)
   chain.insert.mockReturnValue(chain)
   chain.delete.mockReturnValue(chain)
   return chain
@@ -83,7 +85,7 @@ describe('createUser()', () => {
       .mockReturnValueOnce(mockQuery({ data: { id: 'existing-uuid' }, error: null }))
 
     await expect(createUser(adminUserId, newUserPayload))
-      .rejects.toThrow('Username "jnovak" is already taken.')
+      .rejects.toThrow('Uporabniško ime "jnovak" je že zasedeno.')
 
     expect(mockCreateUser).not.toHaveBeenCalled()
   })
@@ -95,7 +97,7 @@ describe('createUser()', () => {
       .mockReturnValueOnce(mockQuery({ data: null, error: { code: 'PGRST116' } }))
 
     await expect(createUser('non-admin-uuid', newUserPayload))
-      .rejects.toThrow('Access denied. This is an admin-only action.')
+      .rejects.toThrow('Dostop zavrnjen. To dejanje je dovoljeno samo administratorjem.')
 
     expect(mockCreateUser).not.toHaveBeenCalled()
   })
@@ -109,7 +111,7 @@ describe('createUser()', () => {
     const incomplete = { ...newUserPayload, firstName: '' }
 
     await expect(createUser(adminUserId, incomplete))
-      .rejects.toThrow('All fields are required')
+      .rejects.toThrow('Vsa polja so obvezna')
   })
 
     test('throws when password is too common', async () => {
@@ -121,7 +123,7 @@ describe('createUser()', () => {
     const weakPassword = { ...newUserPayload, password: 'password1234' }
 
     await expect(createUser(adminUserId, weakPassword))
-        .rejects.toThrow('Password is too common')
+        .rejects.toThrow('Geslo je preveč pogosto.')
     })
 
 })

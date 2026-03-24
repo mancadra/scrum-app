@@ -118,6 +118,8 @@ useEffect(() => {
     if (sprintId) fetchSprintBacklog(sprintId);
   }, [sprintId, fetchSprintBacklog]);
 
+  const STATUS_LABELS = { unassigned: 'NEDODELJENO', active: 'V DELU', testing: 'TESTIRANJE', finished: 'ZAKLJUČENO' };
+
   if (loading) return <div className="p-5 text-center">Nalagam Sprint tablo...</div>;
 
   return (
@@ -132,13 +134,13 @@ useEffect(() => {
 
       <div className="kanban-board four-columns">
         {['unassigned', 'active', 'testing', 'finished'].map(status => (
-          <div 
-            key={status} 
+          <div
+            key={status}
             className="kanban-column"
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, status)}
           >
-            <h5 className={`column-header ${status}`}>{status.toUpperCase()}</h5>
+            <h5 className={`column-header ${status}`}>{STATUS_LABELS[status]}</h5>
             
             <div className="story-list">
               {getStoriesByStatus(status).map(story => (

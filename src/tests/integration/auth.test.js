@@ -16,10 +16,10 @@ describe('signIn', () => {
         expect(user.id).toBeDefined()
     })
     it('fails with wrong password', async () => {
-        await expect(signIn(TEST_USERNAME, 'wrongpassword')).rejects.toThrow('Invalid username or password.')
+        await expect(signIn(TEST_USERNAME, 'wrongpassword')).rejects.toThrow('Napačno uporabniško ime ali geslo.')
     })
     it('fails with wrong username', async () => {
-        await expect(signIn('nonexistent', TEST_PASSWORD)).rejects.toThrow('Invalid username or password.')
+        await expect(signIn('nonexistent', TEST_PASSWORD)).rejects.toThrow('Napačno uporabniško ime ali geslo.')
     })
 })
 
@@ -47,7 +47,7 @@ describe('changePassword', () => {
 
     it('throws with incorrect old password', async () => {
       await signIn(TEST_USERNAME, TEST_PASSWORD)
-      await expect(changePassword('wrongoldpassword', 'newpassword456!')).rejects.toThrow('Old password is incorrect.')
+      await expect(changePassword('wrongoldpassword', 'newpassword456!')).rejects.toThrow('Trenutno geslo je napačno.')
     })
 })
 

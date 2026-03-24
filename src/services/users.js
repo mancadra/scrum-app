@@ -16,7 +16,7 @@ async function getRoleId(roleName) {
     .eq('name', roleName)
     .single()
 
-  if (error || !data) throw new Error(`Role "${roleName}" not found.`)
+  if (error || !data) throw new Error(`Vloga "${roleName}" ni bila najdena.`)
   return data.id
 }
 
@@ -48,12 +48,12 @@ export async function createUser(requestingUserId, { username, password, email, 
 
   // 1. Verify the requesting user is an admin
   if (!(await isAdmin(requestingUserId))) {
-    throw new Error('Access denied. This is an admin-only action.')
+    throw new Error('Dostop zavrnjen. To dejanje je dovoljeno samo administratorjem.')
   }
 
   // 2. Validate required fields
   if (!username || !password || !email || !firstName || !lastName || !role) {
-    throw new Error('All fields are required, fill out missing data.')
+    throw new Error('Vsa polja so obvezna, izpolnite manjkajoče podatke.')
   }
 
   // 3. Validate password against rules + common password list
@@ -70,7 +70,7 @@ export async function createUser(requestingUserId, { username, password, email, 
     .single()
 
   if (existingUser) {
-    throw new Error(`Username "${username}" is already taken.`)
+    throw new Error(`Uporabniško ime "${username}" je že zasedeno.`)
   }
 
   // 6. Create the auth user (Supabase handles password hashing automatically)
@@ -80,7 +80,7 @@ export async function createUser(requestingUserId, { username, password, email, 
     email_confirm: true,
   })
 
-  if (authError) throw new Error(`Failed to create auth user: ${authError.message}`)
+  if (authError) throw new Error(`Napaka pri ustvarjanju uporabnika: ${authError.message}`)
 
   // 7. Insert into public Users table
   const { data: newUser, error: insertError } = await supabaseAdmin
@@ -97,7 +97,7 @@ export async function createUser(requestingUserId, { username, password, email, 
 
   if (insertError) {
     await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-    throw new Error(`Failed to create user profile: ${insertError.message}`)
+    throw new Error(`Napaka pri ustvarjanju profila: ${insertError.message}`)
   }
 
   // 8. Assign the role in UserRoles
@@ -112,7 +112,7 @@ export async function createUser(requestingUserId, { username, password, email, 
     // Roll back both the auth user and the profile row
     await supabaseAdmin.from('Users').delete().eq('id', newUser.id)
     await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-    throw new Error(`Failed to assign role: ${roleError.message}`)
+    throw new Error(`Napaka pri dodeljevanju vloge: ${roleError.message}`)
   }
 
   return { ...newUser, role }

@@ -58,7 +58,7 @@ export async function createProject(name, description, users) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) throw new Error(sessionError.message)
     const user = session?.user
-    if (!user) throw new Error('Not authenticated.')
+    if (!user) throw new Error('Niste prijavljeni.')
 
     const { data: roleData, error: roleError } = await supabase
         .from('UserRoles')
@@ -68,7 +68,7 @@ export async function createProject(name, description, users) {
     if (roleError) throw new Error(roleError.message)
 
     const isAdmin = roleData?.some(r => r.Roles?.name === 'Admin')
-    if (!isAdmin) throw new Error('Only admins can create projects.')
+    if (!isAdmin) throw new Error('Samo administratorji lahko ustvarjajo projekte.')
 
     const { data: existing, error: dupError } = await supabase
         .from('Projects')
@@ -77,7 +77,7 @@ export async function createProject(name, description, users) {
         .maybeSingle()
 
     if (dupError) throw new Error(dupError.message)
-    if (existing) throw new Error(`A project with the name "${name}" already exists.`)
+    if (existing) throw new Error(`Projekt z imenom "${name}" že obstaja.`)
 
     const { data: project, error: projectError } = await supabase
         .from('Projects')

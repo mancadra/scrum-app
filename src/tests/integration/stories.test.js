@@ -107,7 +107,7 @@ describe('createUserStory', () => {
                 priorityId: 1,
                 businessValue: 1,
             })
-        ).rejects.toThrow('Not authenticated.')
+        ).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
 
@@ -120,7 +120,7 @@ describe('createUserStory', () => {
                 priorityId: 1,
                 businessValue: 1,
             })
-        ).rejects.toThrow('You are not a member of this project.')
+        ).rejects.toThrow('Niste član tega projekta.')
     })
 
     it('throws if business value is not a non-negative integer', async () => {
@@ -132,7 +132,7 @@ describe('createUserStory', () => {
                 priorityId: 1,
                 businessValue: -1,
             })
-        ).rejects.toThrow('Business value must be a non-negative integer.')
+        ).rejects.toThrow('Poslovna vrednost mora biti celo število med 1 in 10.')
     })
 
     it('throws if priority is missing', async () => {
@@ -144,7 +144,7 @@ describe('createUserStory', () => {
                 priorityId: null,
                 businessValue: 5,
             })
-        ).rejects.toThrow('Priority is required.')
+        ).rejects.toThrow('Prioriteta je obvezna.')
     })
 
     it('creates a user story with no acceptance tests', async () => {
@@ -214,7 +214,7 @@ describe('createUserStory', () => {
                 priorityId,
                 businessValue: 2,
             })
-        ).rejects.toThrow('A user story with this name already exists in this project.')
+        ).rejects.toThrow('Uporabniška zgodba s tem imenom že obstaja v tem projektu.')
     })
 })
 
@@ -285,14 +285,14 @@ describe('setTimeComplexity', () => {
 
     it('throws if not authenticated', async () => {
         await supabase.auth.signOut()
-        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Not authenticated.')
+        await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
 
     it('throws if time complexity is not a positive number', async () => {
-        await expect(setTimeComplexity(storyId, 0)).rejects.toThrow('Time complexity must be a positive number.')
-        await expect(setTimeComplexity(storyId, -1)).rejects.toThrow('Time complexity must be a positive number.')
-        await expect(setTimeComplexity(storyId, NaN)).rejects.toThrow('Time complexity must be a positive number.')
+        await expect(setTimeComplexity(storyId, 0)).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
+        await expect(setTimeComplexity(storyId, -1)).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
+        await expect(setTimeComplexity(storyId, NaN)).rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
     })
 
     it('sets time complexity with a float value', async () => {
@@ -301,7 +301,7 @@ describe('setTimeComplexity', () => {
     })
 
     it('throws if story is not found', async () => {
-        await expect(setTimeComplexity(999999, 5)).rejects.toThrow('User story not found.')
+        await expect(setTimeComplexity(999999, 5)).rejects.toThrow('Uporabniška zgodba ni bila najdena.')
     })
 
     it('throws if user is not a Scrum Master (user is Product Owner on TEST_PROJECT_ID)', async () => {
@@ -319,7 +319,7 @@ describe('setTimeComplexity', () => {
 
         createdStoryIds.push(poStory.id)
 
-        await expect(setTimeComplexity(poStory.id, 5)).rejects.toThrow('Only Scrum Masters can set time complexity.')
+        await expect(setTimeComplexity(poStory.id, 5)).rejects.toThrow('Samo skrbniki metodologije lahko nastavljajo časovno zahtevnost.')
     })
 
     it('sets time complexity on an unassigned story', async () => {
@@ -364,7 +364,7 @@ describe('setTimeComplexity', () => {
 
         try {
             await expect(setTimeComplexity(assignedStory.id, 3)).rejects.toThrow(
-                'Cannot set time complexity on a story that is already assigned to a sprint.'
+                'Ni mogoče nastaviti časovne zahtevnosti za zgodbo, ki je že dodeljena sprintu.'
             )
         } finally {
             await supabase.from('SprintUserStories').delete().eq('FK_userStoryId', assignedStory.id)
