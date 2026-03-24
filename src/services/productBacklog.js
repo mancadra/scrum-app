@@ -3,15 +3,14 @@ import { supabase } from "../config/supabase";
 // ─── Helper: check project membership ────────────────────────────────────────
 
 async function checkProjectMembership(projectId, userId) {
-  const { data: membership, error } = await supabase
+  const { data: memberships, error } = await supabase
     .from('ProjectUsers')
     .select('FK_projectRoleId')
     .eq('FK_projectId', projectId)
     .eq('FK_userId', userId)
-    .maybeSingle()
 
   if (error) throw new Error(error.message)
-  if (!membership) throw new Error('You are not a member of this project.')
+  if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 }
 
 // ─── Helper: get authenticated user ──────────────────────────────────────────

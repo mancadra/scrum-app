@@ -7,15 +7,14 @@ export async function getSprintBacklog(projectId) {
     const user = session?.user
     if (!user) throw new Error('Not authenticated.')
 
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
         .select('FK_projectRoleId')
         .eq('FK_projectId', projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
     const now = new Date().toISOString()
     const { data: sprint, error: sprintError } = await supabase
@@ -103,15 +102,14 @@ export async function getSprintBacklogById(projectId, sprintId) {
     const user = session?.user
     if (!user) throw new Error('Not authenticated.')
 
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
         .select('FK_projectRoleId')
         .eq('FK_projectId', projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
     const { data: sprint, error: sprintError } = await supabase
         .from('Sprints')
@@ -212,18 +210,17 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
 
     if (!isInCurrentOrFutureSprint) throw new Error('User story is not part of an active or upcoming sprint.')
 
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
-        .select('FK_projectRoleId, ProjectRoles(projectRole)')
+        .select('ProjectRoles(projectRole)')
         .eq('FK_projectId', story.FK_projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
-    const role = membership.ProjectRoles?.projectRole
-    if (role !== 'Scrum Master' && role !== 'Developer') {
+    const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+    if (!roles.includes('Scrum Master') && !roles.includes('Developer')) {
         throw new Error('Only Scrum Masters and Developers can create tasks.')
     }
 
@@ -238,18 +235,17 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
     }
 
     if (FK_proposedDeveloper !== null) {
-        const { data: devMembership, error: devError } = await supabase
+        const { data: devMemberships, error: devError } = await supabase
             .from('ProjectUsers')
-            .select('FK_projectRoleId, ProjectRoles(projectRole)')
+            .select('ProjectRoles(projectRole)')
             .eq('FK_projectId', story.FK_projectId)
             .eq('FK_userId', FK_proposedDeveloper)
-            .maybeSingle()
 
         if (devError) throw new Error(devError.message)
-        if (!devMembership) throw new Error('Proposed developer is not a member of this project.')
+        if (!devMemberships || devMemberships.length === 0) throw new Error('Proposed developer is not a member of this project.')
 
-        const devRole = devMembership.ProjectRoles?.projectRole
-        if (devRole !== 'Developer') {
+        const devRoles = devMemberships.map(m => m.ProjectRoles?.projectRole)
+        if (!devRoles.includes('Developer')) {
             throw new Error('Proposed developer must have the Developer role.')
         }
     }
@@ -360,18 +356,17 @@ export async function acceptTask(taskId) {
 
     if (!isInActiveSprint) throw new Error('Task does not belong to an active sprint.')
 
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
-        .select('FK_projectRoleId, ProjectRoles(projectRole)')
+        .select('ProjectRoles(projectRole)')
         .eq('FK_projectId', story.FK_projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
-    const role = membership.ProjectRoles?.projectRole
-    if (role !== 'Developer') throw new Error('Only Developers can accept tasks.')
+    const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+    if (!roles.includes('Developer')) throw new Error('Only Developers can accept tasks.')
 
     const { data: updated, error: updateError } = await supabase
         .from('Tasks')

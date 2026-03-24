@@ -27,14 +27,11 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
         const currentUser = await getCurrentUser();
         const currentUserId = currentUser?.id;
 
-        const currentMembership = projectUsers.find(
-          (membership) => membership.FK_userId === currentUserId
-        );
-
-        const role = currentMembership?.ProjectRoles?.projectRole ?? null;
+        const userMemberships = projectUsers.filter(m => m.FK_userId === currentUserId);
+        const roles = userMemberships.map(m => m.ProjectRoles?.projectRole);
 
         if (!cancelled) {
-          setCanAddSprint(role === 'Scrum Master');
+          setCanAddSprint(roles.includes('Scrum Master'));
         }
       } catch {
         if (!cancelled) {

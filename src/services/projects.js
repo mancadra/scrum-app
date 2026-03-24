@@ -17,7 +17,12 @@ export async function getUsersProjects(userId) {
         .eq('FK_userId', userId)
 
     if (error) throw new Error(error.message)
-    return data.map(row => row.Projects)
+    const seen = new Set()
+    return data.map(row => row.Projects).filter(p => {
+        if (!p || seen.has(p.id)) return false
+        seen.add(p.id)
+        return true
+    })
 }
 
 export async function getProjectRoles() {
@@ -83,17 +88,21 @@ export async function createProject(name, description, users) {
     if (projectError) throw new Error(projectError.message)
 
     if (users && users.length > 0) {
-        const projectUsers = users.map((projectUser) => ({
-            FK_projectId: project.id,
-            FK_userId: projectUser.id,
-            FK_projectRoleId: projectUser.projectRoleId,
-        }))
+        const projectUsers = users.flatMap((projectUser) =>
+            projectUser.projectRoleIds.map((roleId) => ({
+                FK_projectId: project.id,
+                FK_userId: projectUser.id,
+                FK_projectRoleId: roleId,
+            }))
+        )
 
-        const { error: usersError } = await supabase
-            .from('ProjectUsers')
-            .insert(projectUsers)
+        if (projectUsers.length > 0) {
+            const { error: usersError } = await supabase
+                .from('ProjectUsers')
+                .insert(projectUsers)
 
-        if (usersError) throw new Error(usersError.message)
+            if (usersError) throw new Error(usersError.message)
+        }
     }
 
     return project

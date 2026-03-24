@@ -19,18 +19,17 @@ export async function createSprint(projectId, { startingDate, endingDate, starti
   const user = session?.user
   if (!user) throw new Error('Not authenticated.')
 
-  const { data: membership, error: memberError } = await supabase
+  const { data: memberships, error: memberError } = await supabase
     .from('ProjectUsers')
-    .select('FK_projectRoleId, ProjectRoles(projectRole)')
+    .select('ProjectRoles(projectRole)')
     .eq('FK_projectId', projectId)
     .eq('FK_userId', user.id)
-    .maybeSingle()
 
   if (memberError) throw new Error(memberError.message)
-  if (!membership) throw new Error('You are not a member of this project.')
+  if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
-  const role = membership.ProjectRoles?.projectRole
-  if (role !== 'Scrum Master') {
+  const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+  if (!roles.includes('Scrum Master')) {
     throw new Error('Only Scrum Masters can create sprints.')
   }
 

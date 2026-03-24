@@ -40,14 +40,11 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         const currentUser = await getCurrentUser();
         const currentUserId = currentUser?.id;
 
-        const currentMembership = projectUsers.find(
-          (membership) => membership.FK_userId === currentUserId
-        );
+        const userMemberships = projectUsers.filter(m => m.FK_userId === currentUserId);
+        const roles = userMemberships.map(m => m.ProjectRoles?.projectRole);
 
-        const role = currentMembership?.ProjectRoles?.projectRole ?? null;
-
-        const nextCanAddStory = role === 'Scrum Master' || role === 'Product Owner';
-        const nextCanEditTimeComplexity = role === 'Scrum Master';
+        const nextCanAddStory = roles.includes('Scrum Master') || roles.includes('Product Owner');
+        const nextCanEditTimeComplexity = roles.includes('Scrum Master');
 
         if (!cancelled) {
           setCanAddStory(nextCanAddStory);

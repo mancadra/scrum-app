@@ -1,4 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
+
+const PROJECT_ROLE_LABELS = {
+    'Product Owner': 'Produktni vodja',
+    'Scrum Master': 'Skrbnik metodologije',
+    'Developer': 'Razvijalec',
+}
+
+const EXCLUSIVE_ROLES = ['Product Owner', 'Scrum Master']
 import './CreateProjectPage.css'
 import { getUsers, getProjectRoles, createProject } from '../services/projects'
 
@@ -37,6 +45,7 @@ export default function CreateProjectPage({ onProjectCreated }) {
         const userToAdd = allUsers.find((u) => u.id === selectedUserId)
         if (!userToAdd) return
 
+        const developerRole = projectRoles.find((r) => r.projectRole === 'Developer')
         setProjectUsers((prev) => [
             ...prev,
             {
@@ -44,16 +53,25 @@ export default function CreateProjectPage({ onProjectCreated }) {
                 username: userToAdd.username,
                 name: userToAdd.name,
                 surname: userToAdd.surname,
-                projectRoleId: projectRoles[0].id,
+                projectRoleIds: developerRole ? [developerRole.id] : [],
             },
         ])
 
         setSelectedUserId('')
     }
 
-    const handleRoleChange = (userId, projectRoleId) => {
+    const handleRoleToggle = (userId, roleId) => {
         setProjectUsers((prev) =>
-            prev.map((u) => (u.id === userId ? { ...u, projectRoleId: Number(projectRoleId) } : u))
+            prev.map((u) => {
+                if (u.id !== userId) return u
+                const has = u.projectRoleIds.includes(roleId)
+                return {
+                    ...u,
+                    projectRoleIds: has
+                        ? u.projectRoleIds.filter((id) => id !== roleId)
+                        : [...u.projectRoleIds, roleId],
+                }
+            })
         )
     }
 
@@ -63,6 +81,30 @@ export default function CreateProjectPage({ onProjectCreated }) {
 
     const handleCreateProject = async () => {
         if (!projectName.trim()) return
+
+        const noRolesUser = projectUsers.find((u) => u.projectRoleIds.length === 0)
+        if (noRolesUser) {
+            setError(`Uporabnik "${noRolesUser.username}" nima dodeljene nobene vloge.`)
+            return
+        }
+
+        const productOwnerRole = projectRoles.find((r) => r.projectRole === 'Product Owner')
+        const scrumMasterRole = projectRoles.find((r) => r.projectRole === 'Scrum Master')
+        const hasProductOwner = projectUsers.some((u) => u.projectRoleIds.includes(productOwnerRole?.id))
+        const hasScrumMaster = projectUsers.some((u) => u.projectRoleIds.includes(scrumMasterRole?.id))
+
+        if (!hasProductOwner && !hasScrumMaster) {
+            setError('Projekt mora imeti vsaj enega Produktnega vodjo in enega Skrbnika metodologije.')
+            return
+        }
+        if (!hasProductOwner) {
+            setError('Projekt mora imeti vsaj enega Produktnega vodjo.')
+            return
+        }
+        if (!hasScrumMaster) {
+            setError('Projekt mora imeti vsaj enega Skrbnika metodologije.')
+            return
+        }
 
         setLoading(true)
         setError('')
@@ -152,17 +194,28 @@ export default function CreateProjectPage({ onProjectCreated }) {
                                     {user.username} {user.name ? `(${user.name} ${user.surname ?? ''})` : ''}
                                 </span>
 
-                                <select
-                                    value={user.projectRoleId}
-                                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                    className="create-project-select"
-                                >
-                                    {projectRoles.map((role) => (
-                                        <option key={role.id} value={role.id}>
-                                            {role.projectRole}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="create-project-roles">
+                                    {projectRoles.map((role) => {
+                                        const isExclusive = EXCLUSIVE_ROLES.includes(role.projectRole)
+                                        const takenByOther = isExclusive &&
+                                            !user.projectRoleIds.includes(role.id) &&
+                                            projectUsers.some(u => u.id !== user.id && u.projectRoleIds.includes(role.id))
+                                        return (
+                                            <label
+                                                key={role.id}
+                                                className={`create-project-role-checkbox${takenByOther ? ' disabled' : ''}`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={user.projectRoleIds.includes(role.id)}
+                                                    onChange={() => handleRoleToggle(user.id, role.id)}
+                                                    disabled={takenByOther}
+                                                />
+                                                {PROJECT_ROLE_LABELS[role.projectRole] ?? role.projectRole}
+                                            </label>
+                                        )
+                                    })}
+                                </div>
 
                                 <button
                                     type="button"

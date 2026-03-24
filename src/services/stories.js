@@ -22,18 +22,17 @@ export async function setTimeComplexity(storyId, timeComplexity) {
     if (!story) throw new Error('User story not found.')
 
     // 4. Check user is a Scrum Master in this project
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
-        .select('FK_projectRoleId, ProjectRoles(projectRole)')
+        .select('ProjectRoles(projectRole)')
         .eq('FK_projectId', story.FK_projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
-    const role = membership.ProjectRoles?.projectRole
-    if (role !== 'Scrum Master') {
+    const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+    if (!roles.includes('Scrum Master')) {
         throw new Error('Only Scrum Masters can set time complexity.')
     }
 
@@ -83,18 +82,17 @@ export async function addStoriesToSprint(sprintId, storyIds) {
   if (sprintError) throw new Error(sprintError.message)
   if (!sprint) throw new Error('Sprint not found.')
 
-  const { data: membership, error: memberError } = await supabase
+  const { data: memberships, error: memberError } = await supabase
     .from('ProjectUsers')
-    .select('FK_projectRoleId, ProjectRoles(projectRole)')
+    .select('ProjectRoles(projectRole)')
     .eq('FK_projectId', sprint.FK_projectId)
     .eq('FK_userId', user.id)
-    .maybeSingle()
 
   if (memberError) throw new Error(memberError.message)
-  if (!membership) throw new Error('You are not a member of this project.')
+  if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
-  const role = membership.ProjectRoles?.projectRole
-  if (role !== 'Scrum Master') {
+  const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+  if (!roles.includes('Scrum Master')) {
     throw new Error('Only Scrum Masters can add stories to a sprint.')
   }
 
@@ -154,18 +152,17 @@ export async function createUserStory(projectId, { name, description, acceptance
     const user = session?.user
     if (!user) throw new Error('Not authenticated.')
 
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberships, error: memberError } = await supabase
         .from('ProjectUsers')
-        .select('FK_projectRoleId, ProjectRoles(projectRole)')
+        .select('ProjectRoles(projectRole)')
         .eq('FK_projectId', projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('You are not a member of this project.')
+    if (!memberships || memberships.length === 0) throw new Error('You are not a member of this project.')
 
-    const role = membership.ProjectRoles?.projectRole
-    if (role !== 'Product Owner' && role !== 'Scrum Master') {
+    const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+    if (!roles.includes('Product Owner') && !roles.includes('Scrum Master')) {
         throw new Error('Only Product Owners and Scrum Masters can create user stories.')
     }
 

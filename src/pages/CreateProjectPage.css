@@ -139,6 +139,34 @@ textarea.create-project-input {
     color: #94a3b8;
 }
 
+.create-project-roles {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.create-project-role-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.create-project-role-checkbox.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.create-project-role-checkbox input[type="checkbox"] {
+    accent-color: #3b82f6;
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
 .create-project-user-row {
     display: flex;
     justify-content: space-between;
