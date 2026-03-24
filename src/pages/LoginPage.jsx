@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import './LoginPage.css';
 import { signIn, changePasswordAnon, completeMFALogin } from '../services/auth';
+import PasswordMeter from '../components/PasswordMeter';
 import { useNavigate } from 'react-router-dom';
 
 function getDisplayValue(password, revealLastChar, showPassword) {
@@ -231,6 +232,8 @@ export default function LoginPage({ onLogin }) {
             onChange={setNewPassword}
             autoComplete="new-password"
           />
+
+          <PasswordMeter password={newPassword} />
 
           <label className="login-label" htmlFor="cp-confirm">Potrdite novo geslo</label>
           <PasswordField

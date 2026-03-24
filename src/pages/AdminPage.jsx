@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../config/supabase";
 import { getUsers } from "../services/projects";
 import { validatePassword } from "../services/auth";
+import PasswordMeter from "../components/PasswordMeter";
 import "./AdminPage.css";
 
 function getDisplayValue(password, revealLastChar, showPassword) {
@@ -18,6 +19,10 @@ export default function AdminPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [revealLastChar, setRevealLastChar] = useState(false);
   const revealTimer = useRef(null);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [revealLastCharConfirm, setRevealLastCharConfirm] = useState(false);
+  const revealTimerConfirm = useRef(null);
   const [formData, setFormData] = useState({
     username: "", password: "", firstName: "", lastName: "", email: "", role: "User"
   });
@@ -47,6 +52,31 @@ export default function AdminPage() {
     }
   };
 
+  const handleConfirmPasswordChange = (e) => {
+    const newVal = e.target.value;
+    const oldDisplay = getDisplayValue(confirmPassword, revealLastCharConfirm, showConfirmPassword);
+    const diff = newVal.length - oldDisplay.length;
+
+    if (showConfirmPassword) {
+      setConfirmPassword(newVal);
+    } else if (diff !== 0) {
+      let pos = 0;
+      while (pos < Math.min(newVal.length, oldDisplay.length) && newVal[pos] === oldDisplay[pos]) pos++;
+      if (diff > 0) {
+        const inserted = newVal.slice(pos, pos + diff);
+        setConfirmPassword(p => p.slice(0, pos) + inserted + p.slice(pos));
+      } else {
+        setConfirmPassword(p => p.slice(0, pos) + p.slice(pos - diff));
+      }
+    }
+
+    if (!showConfirmPassword) {
+      setRevealLastCharConfirm(true);
+      clearTimeout(revealTimerConfirm.current);
+      revealTimerConfirm.current = setTimeout(() => setRevealLastCharConfirm(false), 1000);
+    }
+  };
+
   useEffect(() => { loadUsers(); }, []);
 
   async function loadUsers() {
@@ -63,6 +93,12 @@ export default function AdminPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+
+    if (formData.password !== confirmPassword) {
+      setMessage("Gesli se ne ujemata.");
+      setMessageType("error");
+      return;
+    }
 
     try {
       validatePassword(formData.password);
@@ -83,6 +119,7 @@ export default function AdminPage() {
       setMessage("Uporabnik uspešno dodan.");
       setMessageType("success");
       setFormData({ username: "", password: "", firstName: "", lastName: "", email: "", role: "User" });
+      setConfirmPassword('');
       loadUsers();
     } catch (err) {
       setMessage(err.message);
@@ -109,6 +146,13 @@ export default function AdminPage() {
               <input type="text" autoComplete="new-password" name="password" placeholder="Geslo" value={getDisplayValue(formData.password, revealLastChar, showPassword)} onChange={handlePasswordChange} onCopy={(e) => e.preventDefault()} onCut={(e) => e.preventDefault()} className="password-input" />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? "Skrij geslo" : "Prikaži geslo"}>
                 {showPassword ? '🙈' : '👁'}
+              </button>
+            </div>
+            <PasswordMeter password={formData.password} />
+            <div className="password-input-wrapper">
+              <input type="text" autoComplete="new-password" placeholder="Potrdi geslo" value={getDisplayValue(confirmPassword, revealLastCharConfirm, showConfirmPassword)} onChange={handleConfirmPasswordChange} onCopy={(e) => e.preventDefault()} onCut={(e) => e.preventDefault()} className="password-input" />
+              <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(p => !p)} aria-label={showConfirmPassword ? "Skrij geslo" : "Prikaži geslo"}>
+                {showConfirmPassword ? '🙈' : '👁'}
               </button>
             </div>
             <select name="role" value={formData.role} onChange={handleChange}>
