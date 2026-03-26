@@ -11,11 +11,11 @@ const BacklogStoryComponent = ({
     if (!story) return null;
 
     const priorityClassName = {
-        ‘Mora biti’: ‘backlog-story-card__badge backlog-story-card__badge--must-have’,
-        ‘Bi moralo biti’: ‘backlog-story-card__badge backlog-story-card__badge--should-have’,
-        ‘Lahko bi bilo’: ‘backlog-story-card__badge backlog-story-card__badge--could-have’,
-        ‘Ne bo tokrat’: ‘backlog-story-card__badge backlog-story-card__badge--wont-have’,
-    }[priority] ?? ‘backlog-story-card__badge’;
+        'Must have': 'backlog-story-card__badge backlog-story-card__badge--must-have',
+        'Should have': 'backlog-story-card__badge backlog-story-card__badge--should-have',
+        'Could have': 'backlog-story-card__badge backlog-story-card__badge--could-have',
+        "Won't have this time": 'backlog-story-card__badge backlog-story-card__badge--wont-have',
+    }[priority] ?? 'backlog-story-card__badge';
 
     return (
         <div className="backlog-story-card">

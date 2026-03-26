@@ -181,10 +181,10 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     const rawPriority = story.priority ?? story.Priorities?.priority ?? story.FK_priorityId;
 
     const priorityMap = {
-      1: ‘Mora biti’,
-      2: ‘Bi moralo biti’,
-      3: ‘Lahko bi bilo’,
-      4: ‘Ne bo tokrat’,
+      1: 'Must have',
+      2: 'Should have',
+      3: 'Could have',
+      4: "Won't have this time",
     };
 
     return priorityMap[Number(rawPriority)] ?? rawPriority ?? '—';
