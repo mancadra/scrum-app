@@ -44,6 +44,22 @@ export async function getProjectUsers(projectId) {
     return data
 }
 
+export async function getMyProjectRoles(projectId) {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
+    const user = session?.user
+    if (!user) throw new Error('Niste prijavljeni.')
+
+    const { data, error } = await supabase
+        .from('ProjectUsers')
+        .select('ProjectRoles(projectRole)')
+        .eq('FK_projectId', projectId)
+        .eq('FK_userId', user.id)
+
+    if (error) throw new Error(error.message)
+    return (data ?? []).map(m => m.ProjectRoles?.projectRole).filter(Boolean)
+}
+
 export async function getProjects() {
     const { data, error } = await supabase
         .from('Projects')

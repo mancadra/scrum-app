@@ -190,7 +190,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     return priorityMap[Number(rawPriority)] ?? rawPriority ?? '—';
   };
 
-  const renderStories = (stories, emptyMessage) => {
+  const renderStories = (stories, emptyMessage, status) => {
     if (!stories || stories.length === 0) {
       return <div className="project-panel__empty">{emptyMessage}</div>;
     }
@@ -202,7 +202,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
             key={story.id}
             story={story}
             priority={getStoryPriority(story)}
-            onClick={setSelectedStory}
+            onClick={(s) => setSelectedStory({ ...s, _status: status })}
             onTimeComplexityClick={handleOpenTimeComplexityModal}
             canEditTimeComplexity={canEditTimeComplexity}
           />

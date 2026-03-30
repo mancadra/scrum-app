@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import './TaskCard.css';
 
-const TaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, handleFinishTask, onUpdate }) => {
+const TaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, handleFinishTask, projectDevelopers = [], onUpdate }) => {
   const { user } = useAuth();
   const [acceptError, setAcceptError] = useState('');
   const [finishError, setFinishError] = useState('');
@@ -74,7 +74,10 @@ const TaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, hand
 
         {isAccepted && (
           <div className="small text-muted mt-2 border-top pt-2">
-            👤 Izvajalec: {task.FK_acceptedDeveloper === user?.id ? 'Vi' : 'Drug razvijalec'}
+            👤 Izvajalec: {(() => {
+              const dev = projectDevelopers.find(d => d.id === task.FK_acceptedDeveloper);
+              return dev ? (dev.full_name || dev.username) : 'Drug razvijalec';
+            })()}
           </div>
         )}
 

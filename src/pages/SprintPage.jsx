@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTasks } from '../hooks/useTasks';
-import TaskCard from '../components/TaskCard'; // Lahko ohranite za manjši prikaz nalog
+import TaskCard from '../components/TaskCard';
 import TaskForm from '../components/TaskForm';
 import { getStoriesForProject, addStoriesToSprint } from '../services/stories';
+import { getMyProjectRoles, getProjectUsers } from '../services/projects';
 import './SprintPage.css';
 
 const SprintPage = () => {
   const { projectId, sprintId } = useParams();
   
-  // hook zdaj uporablja handleUpdateStoryStatus namesto task statusa
-  const { sprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask } = useTasks(projectId);
-  
+  const { sprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleFinishTask } = useTasks(projectId);
+
   const [showAddTask, setShowAddTask] = useState(false);
   const [showManageStories, setShowManageStories] = useState(false);
   const [backlogStories, setBacklogStories] = useState([]);
   const [selectedStoryForTask, setSelectedStoryForTask] = useState(null);
+  const [myProjectRoles, setMyProjectRoles] = useState([]);
+  const [projectDevelopers, setProjectDevelopers] = useState([]);
 
   const handleAddStoryToSprint = async (storyId) => {
   // Vedno poskušaj dobiti ID iz URL-ja ali iz podatkov sprinta
@@ -118,6 +120,32 @@ useEffect(() => {
     if (sprintId) fetchSprintBacklog(sprintId);
   }, [sprintId, fetchSprintBacklog]);
 
+  useEffect(() => {
+    if (projectId) {
+      getMyProjectRoles(projectId)
+        .then(setMyProjectRoles)
+        .catch(() => setMyProjectRoles([]));
+
+      getProjectUsers(projectId)
+        .then(members => {
+          const devs = members
+            .filter(m => m.ProjectRoles?.projectRole === 'Developer')
+            .map(m => ({
+              id: m.FK_userId,
+              username: m.Users?.username ?? '',
+              full_name: [m.Users?.name, m.Users?.surname].filter(Boolean).join(' '),
+            }));
+          setProjectDevelopers(devs);
+        })
+        .catch(() => setProjectDevelopers([]));
+    }
+  }, [projectId]);
+
+  const canAcceptTasks = myProjectRoles.includes('Developer');
+  const isActiveSprint = sprintData?.sprint
+    ? new Date(sprintData.sprint.startingDate) <= new Date() && new Date(sprintData.sprint.endingDate) >= new Date()
+    : false;
+
   const STATUS_LABELS = { unassigned: 'NEDODELJENO', active: 'V DELU', testing: 'TESTIRANJE', finished: 'ZAKLJUČENO' };
 
   if (loading) return <div className="p-5 text-center">Nalagam Sprint tablo...</div>;
@@ -162,12 +190,18 @@ useEffect(() => {
 
                   {/* Seznam nalog znotraj User Story-ja */}
                   <div className="story-card-tasks p-2 bg-white">
-                    {/* Združimo vse naloge zgodbe (vsi statusi), ker je zgodba že v svojem stolpcu */}
                     {Object.values(story.tasks || {}).flat().length > 0 ? (
                       Object.values(story.tasks).flat().map(task => (
-                        <div key={task.id} className="mini-task-item border-bottom py-1">
-                          <small>• {task.description}</small>
-                        </div>
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          isActiveSprint={isActiveSprint}
+                          canAcceptTasks={canAcceptTasks}
+                          handleAcceptTask={handleAcceptTask}
+                          handleFinishTask={handleFinishTask}
+                          projectDevelopers={projectDevelopers}
+                          onUpdate={() => fetchSprintBacklog(sprintId)}
+                        />
                       ))
                     ) : (
                       <small className="text-muted">Ni nalog</small>
@@ -230,14 +264,15 @@ useEffect(() => {
           Dodajanje naloge za: <strong>{selectedStoryForTask?.name || "izbrano zgodbo"}</strong>
         </p>
         
-        <TaskForm 
+        <TaskForm
           handleCreateTask={handleCreateTask}
-          stories={sprintData?.stories || []} 
+          stories={sprintData?.stories || []}
           preselectedStoryId={selectedStoryForTask?.id}
+          projectMembers={projectDevelopers}
           onSuccess={() => {
             setShowAddTask(false);
             fetchSprintBacklog(sprintId);
-          }} 
+          }}
         />
       </div>
       

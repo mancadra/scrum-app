@@ -81,7 +81,7 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
 
               <div>
                 <span className="backlog-story-details__label">Sprint</span>
-                <p>{story.sprintId ?? '—'}</p>
+                <p>{story.sprintId ? `Sprint #${story.sprintId}` : '—'}</p>
               </div>
             </div>
           </section>

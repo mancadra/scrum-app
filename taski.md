@@ -16,12 +16,7 @@
 - display uporabnikov projekta in roli?
 - poenoti ostale error displaye
 - dopolni LLM_use.md
-- ~~ali rabi bit user_doc točno za vsako uporabniško zgodbo?~~
-- ~~dodaj developer doc~~
-- userji imajo lahko več vlog (npr. hkrati scrum master in developer)
-- ~~podvajanje prjektov naj bo case insensitive~~
 - nov zavihek wont have this time
-- business value od 1-10
 - če naredimo sprint danes je avtomatsko aktiven
 
 
@@ -104,7 +99,7 @@ Določijo opis naloge, oceno časa za dokončanje naloge in po želji tudi član
 
 Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel še kak drug član.
 
-- Preveri regularen potek
+- ~~Preveri regularen potek~~
 - ~~Preveri nalogo, ki jo je že sprejel drug razvijalec~~
 - ~~Preveri nedodeljeno nalogo~~
 
@@ -112,7 +107,7 @@ Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel �
 ## 20 - Zaključevanje nalog (Must have)
 ~~Član skupine~~ lahko označi svojo nalogo kot zaključeno.
 
-- Preveri regularen potek
+- ~~Preveri regularen potek~~
 - ~~Preveri že zaključeno nalogo~~
 - ~~Preveri nedodeljeno nalogo~~
 

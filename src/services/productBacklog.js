@@ -60,16 +60,17 @@ export async function getAssignedStories(projectId) {
 
   const sprintIds = currentOrFutureSprints.map(s => s.id)
 
-  // Get story IDs linked to those sprints
+  // Get story IDs linked to those sprints (include sprintId for display)
   const { data: sprintLinks, error: linkError } = await supabase
     .from('SprintUserStories')
-    .select('FK_userStoryId')
+    .select('FK_userStoryId, FK_sprintId')
     .in('FK_sprintId', sprintIds)
 
   if (linkError) throw new Error(linkError.message)
   if (!sprintLinks || sprintLinks.length === 0) return []
 
   const assignedStoryIds = sprintLinks.map(l => l.FK_userStoryId)
+  const storySprintMap = Object.fromEntries(sprintLinks.map(l => [l.FK_userStoryId, l.FK_sprintId]))
 
   // Fetch the actual stories that are not realized
   const { data, error } = await supabase
@@ -80,7 +81,7 @@ export async function getAssignedStories(projectId) {
     .in('id', assignedStoryIds)
 
   if (error) throw new Error(error.message)
-  return data
+  return (data ?? []).map(story => ({ ...story, sprintId: storySprintMap[story.id] ?? null }))
 }
 
 // ─── 3. Unassigned (and not realized) stories ─────────────────────────────────
