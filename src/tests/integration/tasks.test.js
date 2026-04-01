@@ -8,6 +8,7 @@ const TEST_PASSWORD = 'testpassword123!'
 
 let TEST_PROJECT_ID
 let TEST_USER_ID
+let savedSession
 let TEST_STORY_ID
 let TEST_STORY_OUTSIDE_SPRINT_ID
 let TEST_SPRINT_ID
@@ -17,6 +18,7 @@ beforeAll(async () => {
     await signIn(TEST_USERNAME, TEST_PASSWORD)
 
     const { data: { session } } = await supabase.auth.getSession()
+    savedSession = session
     TEST_USER_ID = session?.user?.id
 
     // Create a temporary test project
@@ -119,7 +121,7 @@ afterAll(async () => {
 
 describe('createTask', () => {
     it('throws if not authenticated', async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         await expect(
             createTask(TEST_STORY_ID, { description: 'Should fail', timecomplexity: 1 })
         ).rejects.toThrow('Niste prijavljeni.')
@@ -331,7 +333,7 @@ describe('acceptTask', () => {
     })
 
     it('throws if not authenticated', async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         await expect(acceptTask(999999)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
@@ -503,7 +505,7 @@ describe('finishTask', () => {
     })
 
     it('throws if not authenticated', async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         await expect(finishTask(999999)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })

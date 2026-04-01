@@ -10,6 +10,7 @@ let TEST_PROJECT_ID
 let TEST_USER_ID
 let TEST_SPRINT_ID
 let TEST_STORY_ID
+let savedSession
 const createdTaskIds = []
 const createdTimetableIds = []
 
@@ -18,6 +19,7 @@ beforeAll(async () => {
 
     const { data: { session } } = await supabase.auth.getSession()
     TEST_USER_ID = session?.user?.id
+    savedSession = session
 
     const { data: project, error: projectError } = await supabase
         .from('Projects')
@@ -120,7 +122,7 @@ afterAll(async () => {
 
 describe('getSprintBacklog', () => {
     it('throws if not authenticated', async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         await expect(getSprintBacklog(TEST_PROJECT_ID)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })

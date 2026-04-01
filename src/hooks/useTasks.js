@@ -5,6 +5,7 @@ import {
   createTask,
   acceptTask,
   finishTask,
+  rejectTask,
 } from '../services/tasks';
 
 export const useTasks = (projectId) => {
@@ -42,35 +43,39 @@ export const useTasks = (projectId) => {
     }
   };
 
-  // V useTasks.js
-const handleAcceptTask = async (taskId, currentUser) => {
-  if (!currentUser) return;
-
-  try {
-    // 1. UI posodobitev (Optimistic)
-    setSprintData(prev => {
-      if (!prev) return prev;
-      const newStories = prev.stories.map(story => {
-        // Poiščemo zgodbo, ki vsebuje to nalogo
-        const updatedTasks = { ...story.tasks };
-        Object.keys(updatedTasks).forEach(status => {
-          updatedTasks[status] = updatedTasks[status].map(task => 
-            task.id === taskId ? { ...task, FK_developer: currentUser.id, developer_name: currentUser.username } : task
-          );
+  const handleAcceptTask = async (taskId, userId) => {
+    if (!userId) return;
+    try {
+      setSprintData(prev => {
+        if (!prev) return prev;
+        const newStories = prev.stories.map(story => {
+          const updatedTasks = { ...story.tasks };
+          Object.keys(updatedTasks).forEach(status => {
+            updatedTasks[status] = updatedTasks[status].map(task =>
+              task.id === taskId ? { ...task, FK_acceptedDeveloper: userId } : task
+            );
+          });
+          return { ...story, tasks: updatedTasks };
         });
-        return { ...story, tasks: updatedTasks };
+        return { ...prev, stories: newStories };
       });
-      return { ...prev, stories: newStories };
-    });
+      await acceptTask(taskId);
+    } catch (err) {
+      console.error('Napaka pri sprejemanju naloge:', err);
+      refresh();
+      throw err;
+    }
+  };
 
-    // 2. Klic v bazo (v servisih moraš imeti acceptTask, ki sprejme taskId in userId)
-    await acceptTask(taskId);
-    
-  } catch (err) {
-    console.error("Napaka pri sprejemanju naloge:", err);
-    refresh(); // Če gre kaj narobe, povrnemo realno stanje iz baze
-  }
-};
+  const handleRejectTask = async (taskId) => {
+    try {
+      await rejectTask(taskId);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
 
   const handleFinishTask = async (taskId) => {
     try {
@@ -82,50 +87,39 @@ const handleAcceptTask = async (taskId, currentUser) => {
     }
   };
 
-  // Ključna funkcija za Drag & Drop
-  // Posodobljena funkcija za tiho posodabljanje (brez loadinga in refresha)
   const handleUpdateStoryStatus = async (storyId, newStatus) => {
     try {
-      // 1. ODSTRANIMO setLoading(true), da tabla ne izgine
-      let updateData = {};
-
-      if (newStatus === 'unassigned') {
-        updateData = { accepted: false, realized: false, testing: false };
-      } else if (newStatus === 'active') {
-        // Oba stolpca v bazi trenutno pomenita "Accepted"
-        updateData = { accepted: true, realized: false, testing: false };
-      } else if (newStatus === 'testing') {
-        updateData = { accepted: true, realized: false, testing: true };
-      } else if (newStatus === 'finished') {
-        updateData = { accepted: true, realized: true, testing: true };
-      }
+      const statusMap = {
+        unassigned: { accepted: false, realized: false, testing: false },
+        active:     { accepted: true,  realized: false, testing: false },
+        testing:    { accepted: true,  realized: false, testing: true  },
+        finished:   { accepted: true,  realized: true,  testing: true  },
+      };
+      const updateData = statusMap[newStatus] ?? {};
 
       const { error: supabaseError } = await supabase
-        .from('UserStories') 
+        .from('UserStories')
         .update(updateData)
         .eq('id', storyId);
 
       if (supabaseError) throw supabaseError;
-      
-      // 2. ODSTRANIMO refresh(), ker smo UI posodobili že v SprintPage.jsx
-      // await refresh(); 
-
     } catch (err) {
-      console.error("Napaka pri posodabljanju baze:", err);
+      console.error('Napaka pri posodabljanju baze:', err);
       setError(err.message);
-      throw err; // Vrže napako nazaj v SprintPage, da ta lahko naredi "rollback"
+      throw err;
     }
   };
-  
-  return { 
-    sprintData, 
+
+  return {
+    sprintData,
     setSprintData,
-    loading, 
-    error, 
-    fetchSprintBacklog, 
-    handleCreateTask, 
+    loading,
+    error,
+    fetchSprintBacklog,
+    handleCreateTask,
     handleAcceptTask,
+    handleRejectTask,
     handleFinishTask,
-    handleUpdateStoryStatus
+    handleUpdateStoryStatus,
   };
 };

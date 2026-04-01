@@ -104,7 +104,7 @@ Določijo opis naloge, oceno časa za dokončanje naloge in po želji tudi član
 
 Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel še kak drug član.
 
-- Preveri regularen potek
+- ~~Preveri regularen potek~~
 - ~~Preveri nalogo, ki jo je že sprejel drug razvijalec~~
 - ~~Preveri nedodeljeno nalogo~~
 
@@ -112,7 +112,7 @@ Naloga se označi kot dodeljena, s tem pa se prepreči, da bi jo lahko sprejel �
 ## 20 - Zaključevanje nalog (Must have)
 ~~Član skupine~~ lahko označi svojo nalogo kot zaključeno.
 
-- Preveri regularen potek
+- ~~Preveri regularen potek~~
 - ~~Preveri že zaključeno nalogo~~
 - ~~Preveri nedodeljeno nalogo~~
 

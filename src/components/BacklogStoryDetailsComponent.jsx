@@ -64,11 +64,6 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
               </div>
 
               <div>
-                <span className="backlog-story-details__label">Časovna zahtevnost</span>
-                <p>{story.timeComplexity != null && story.timeComplexity !== '' ? story.timeComplexity : '—'}</p>
-              </div>
-
-              <div>
                 <span className="backlog-story-details__label">Status</span>
                 <p>
                   {story.realized
@@ -77,6 +72,11 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
                       ? 'Dodeljena'
                       : 'Nedodeljena'}
                 </p>
+              </div>
+
+              <div>
+                <span className="backlog-story-details__label">Časovna zahtevnost</span>
+                <p>{story.timeComplexity != null && story.timeComplexity !== '' ? story.timeComplexity : '—'}</p>
               </div>
 
               <div>
