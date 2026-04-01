@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getSprintBacklog, createTask, acceptTask, finishTask } from '../../services/tasks'
+import { getSprintBacklog, createTask, acceptTask, finishTask, rejectTask, canAcceptTask, categorizeStoryForKanban, getProjectRolesForUser, getProjectDevelopers, getSprintNumber } from '../../services/tasks'
 import { supabase } from '../../config/supabase'
 
 vi.mock('../../config/supabase', () => ({
@@ -382,6 +382,12 @@ function mockTimeTablesQuery(data = [], error = null) {
     )
 }
 
+function mockAnyLogEntriesQuery(data = [], error = null) {
+    supabase.from.mockReturnValueOnce(
+        mockChain({ not: vi.fn().mockResolvedValue({ data, error }) })
+    )
+}
+
 describe('getSprintBacklog', () => {
     it('throws if not authenticated', async () => {
         supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
@@ -482,6 +488,7 @@ describe('getSprintBacklog', () => {
         mockSprintStories()
         mockTasksQuery([task])
         mockTimeTablesQuery([]) // no open entries
+        mockAnyLogEntriesQuery([]) // no log entries
 
         const { stories } = await getSprintBacklog(5)
         expect(stories[0].tasks.unassigned).toHaveLength(1)
@@ -496,6 +503,7 @@ describe('getSprintBacklog', () => {
         mockSprintStories()
         mockTasksQuery([task])
         mockTimeTablesQuery([]) // no open entries → not active
+        mockAnyLogEntriesQuery([]) // no log entries
 
         const { stories } = await getSprintBacklog(5)
         expect(stories[0].tasks.assigned).toHaveLength(1)
@@ -510,6 +518,7 @@ describe('getSprintBacklog', () => {
         mockSprintStories()
         mockTasksQuery([task])
         mockTimeTablesQuery([{ FK_taskId: 3 }]) // open timetable entry → active
+        mockAnyLogEntriesQuery([{ FK_taskId: 3 }]) // has log entries
 
         const { stories } = await getSprintBacklog(5)
         expect(stories[0].tasks.active).toHaveLength(1)
@@ -524,6 +533,7 @@ describe('getSprintBacklog', () => {
         mockSprintStories()
         mockTasksQuery([task])
         mockTimeTablesQuery([])
+        mockAnyLogEntriesQuery([])
 
         const { stories } = await getSprintBacklog(5)
         expect(stories[0].tasks.finished).toHaveLength(1)
@@ -539,6 +549,7 @@ describe('getSprintBacklog', () => {
         mockSprintStories()
         mockTasksQuery([task])
         mockTimeTablesQuery([{ FK_taskId: 5 }]) // open entry, but finished wins
+        mockAnyLogEntriesQuery([{ FK_taskId: 5 }])
 
         const { stories } = await getSprintBacklog(5)
         expect(stories[0].tasks.finished).toHaveLength(1)
@@ -558,6 +569,7 @@ describe('getSprintBacklog', () => {
         mockSprintStories()
         mockTasksQuery(tasks)
         mockTimeTablesQuery([{ FK_taskId: 3 }]) // task 3 is active
+        mockAnyLogEntriesQuery([{ FK_taskId: 3 }]) // task 3 has log entries
 
         const { stories } = await getSprintBacklog(5)
         const t = stories[0].tasks
@@ -645,10 +657,7 @@ describe('acceptTask', () => {
     })
 
     it('throws if task was proposed to a different developer', async () => {
-        mockAuth(DEV_ID)
-        supabase.from.mockReturnValueOnce(
-            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockUnassignedTask, FK_proposedDeveloper: 'other-uuid' }, error: null }) })
-        )
+        mockAcceptSetup(DEV_ID, { task: { ...mockUnassignedTask, FK_proposedDeveloper: 'other-uuid' } })
 
         await expect(acceptTask(10)).rejects.toThrow('Ta naloga je bila predlagana drugemu razvijalcu.')
     })
@@ -865,5 +874,372 @@ describe('finishTask', () => {
         await finishTask(20)
 
         expect(updateChain.update).toHaveBeenCalledWith({ finished: true })
+    })
+})
+
+// ---
+
+const baseTask = { id: 1, FK_acceptedDeveloper: null, FK_proposedDeveloper: null, finished: false }
+
+describe('canAcceptTask', () => {
+    it('returns false if task is null', () => {
+        expect(canAcceptTask(null, 'user-uuid', ['Developer'])).toBe(false)
+    })
+
+    it('returns false if task is already accepted', () => {
+        expect(canAcceptTask({ ...baseTask, FK_acceptedDeveloper: 'other-uuid' }, 'user-uuid', ['Developer'])).toBe(false)
+    })
+
+    it('returns false if task is finished', () => {
+        expect(canAcceptTask({ ...baseTask, finished: true }, 'user-uuid', ['Developer'])).toBe(false)
+    })
+
+    it('returns false if user is not a Developer', () => {
+        expect(canAcceptTask(baseTask, 'user-uuid', ['Scrum Master'])).toBe(false)
+    })
+
+    it('returns false if user has no roles', () => {
+        expect(canAcceptTask(baseTask, 'user-uuid', [])).toBe(false)
+    })
+
+    it('returns true for an unproposed task when user is a Developer', () => {
+        expect(canAcceptTask(baseTask, 'user-uuid', ['Developer'])).toBe(true)
+    })
+
+    it('returns true when task is proposed to the current user', () => {
+        expect(canAcceptTask({ ...baseTask, FK_proposedDeveloper: 'user-uuid' }, 'user-uuid', ['Developer'])).toBe(true)
+    })
+
+    it('returns false when task is proposed to a different user', () => {
+        expect(canAcceptTask({ ...baseTask, FK_proposedDeveloper: 'other-uuid' }, 'user-uuid', ['Developer'])).toBe(false)
+    })
+
+    it('returns false for SM+Developer when task is proposed to someone else', () => {
+        expect(canAcceptTask({ ...baseTask, FK_proposedDeveloper: 'other-uuid' }, 'user-uuid', ['Developer', 'Scrum Master'])).toBe(false)
+    })
+
+    it('returns true for SM+Developer when task has no proposed developer', () => {
+        expect(canAcceptTask(baseTask, 'user-uuid', ['Developer', 'Scrum Master'])).toBe(true)
+    })
+
+    it('returns true for SM+Developer when task is proposed to them', () => {
+        expect(canAcceptTask({ ...baseTask, FK_proposedDeveloper: 'user-uuid' }, 'user-uuid', ['Developer', 'Scrum Master'])).toBe(true)
+    })
+})
+
+// ---
+
+describe('categorizeStoryForKanban', () => {
+    it('returns unassigned for a default story', () => {
+        expect(categorizeStoryForKanban({ accepted: false, realized: false, testing: false, hasTimeLogs: false })).toBe('unassigned')
+    })
+
+    it('returns active when accepted', () => {
+        expect(categorizeStoryForKanban({ accepted: true, realized: false, testing: false, hasTimeLogs: false })).toBe('active')
+    })
+
+    it('returns active when has time logs', () => {
+        expect(categorizeStoryForKanban({ accepted: false, realized: false, testing: false, hasTimeLogs: true })).toBe('active')
+    })
+
+    it('returns active when both accepted and has time logs', () => {
+        expect(categorizeStoryForKanban({ accepted: true, realized: false, testing: false, hasTimeLogs: true })).toBe('active')
+    })
+
+    it('returns testing when testing is true', () => {
+        expect(categorizeStoryForKanban({ accepted: false, realized: false, testing: true, hasTimeLogs: false })).toBe('testing')
+    })
+
+    it('returns finished when realized', () => {
+        expect(categorizeStoryForKanban({ accepted: false, realized: true, testing: false, hasTimeLogs: false })).toBe('finished')
+    })
+
+    it('realized takes priority over testing', () => {
+        expect(categorizeStoryForKanban({ accepted: false, realized: true, testing: true, hasTimeLogs: false })).toBe('finished')
+    })
+
+    it('testing takes priority over accepted', () => {
+        expect(categorizeStoryForKanban({ accepted: true, realized: false, testing: true, hasTimeLogs: false })).toBe('testing')
+    })
+
+    it('testing takes priority over hasTimeLogs', () => {
+        expect(categorizeStoryForKanban({ accepted: false, realized: false, testing: true, hasTimeLogs: true })).toBe('testing')
+    })
+})
+
+// ---
+
+const PROPOSED_DEV_ID = 'proposed-dev-uuid'
+const mockProposedTask = { id: 30, FK_userStoryId: 1, FK_proposedDeveloper: PROPOSED_DEV_ID, FK_acceptedDeveloper: null, finished: false }
+
+function mockRejectSetup(userId = PROPOSED_DEV_ID, { task = mockProposedTask, sprintLinks = activeSprintLinks } = {}) {
+    mockAuth(userId)
+    supabase.from
+        .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: task, error: null }) }))
+        .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: sprintLinks, error: null }) }))
+}
+
+describe('rejectTask', () => {
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+
+        await expect(rejectTask(30)).rejects.toThrow('Niste prijavljeni.')
+    })
+
+    it('throws if task does not exist', async () => {
+        mockAuth(PROPOSED_DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+        )
+
+        await expect(rejectTask(999)).rejects.toThrow('Naloga ni bila najdena.')
+    })
+
+    it('throws if task fetch fails', async () => {
+        mockAuth(PROPOSED_DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'task fetch failed' } }) })
+        )
+
+        await expect(rejectTask(30)).rejects.toThrow('task fetch failed')
+    })
+
+    it('throws if task is finished', async () => {
+        mockAuth(PROPOSED_DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockProposedTask, finished: true }, error: null }) })
+        )
+
+        await expect(rejectTask(30)).rejects.toThrow('Ni mogoče zavrniti zaključene naloge.')
+    })
+
+    it('throws if task is already accepted', async () => {
+        mockAuth(PROPOSED_DEV_ID)
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockProposedTask, FK_acceptedDeveloper: 'other-uuid' }, error: null }) })
+        )
+
+        await expect(rejectTask(30)).rejects.toThrow('Ni mogoče zavrniti že sprejete naloge.')
+    })
+
+    it('throws if user is not the proposed developer', async () => {
+        mockAuth('other-uuid')
+        supabase.from.mockReturnValueOnce(
+            mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockProposedTask, error: null }) })
+        )
+
+        await expect(rejectTask(30)).rejects.toThrow('Zavrnite lahko samo naloge, predlagane vam.')
+    })
+
+    it('throws if sprint links query fails', async () => {
+        mockAuth(PROPOSED_DEV_ID)
+        supabase.from
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockProposedTask, error: null }) }))
+            .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'sprint query failed' } }) }))
+
+        await expect(rejectTask(30)).rejects.toThrow('sprint query failed')
+    })
+
+    it('throws if task is not in an active sprint', async () => {
+        mockRejectSetup(PROPOSED_DEV_ID, { sprintLinks: inactiveSprintLinks })
+
+        await expect(rejectTask(30)).rejects.toThrow('Naloga ne pripada aktivnemu sprintu.')
+    })
+
+    it('throws if task has no sprint links', async () => {
+        mockRejectSetup(PROPOSED_DEV_ID, { sprintLinks: [] })
+
+        await expect(rejectTask(30)).rejects.toThrow('Naloga ne pripada aktivnemu sprintu.')
+    })
+
+    it('throws if update fails', async () => {
+        mockRejectSetup()
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) })
+        )
+
+        await expect(rejectTask(30)).rejects.toThrow('update failed')
+    })
+
+    it('clears FK_proposedDeveloper on success', async () => {
+        const updated = { ...mockProposedTask, FK_proposedDeveloper: null }
+        mockRejectSetup()
+        const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        supabase.from.mockReturnValueOnce(updateChain)
+
+        await rejectTask(30)
+
+        expect(updateChain.update).toHaveBeenCalledWith({ FK_proposedDeveloper: null })
+    })
+
+    it('returns the updated task', async () => {
+        const updated = { ...mockProposedTask, FK_proposedDeveloper: null }
+        mockRejectSetup()
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        )
+
+        const result = await rejectTask(30)
+
+        expect(result.FK_proposedDeveloper).toBeNull()
+    })
+})
+
+// ---
+
+function mockDoubleEqQuery(data, error = null) {
+    const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data, error })
+    supabase.from.mockReturnValueOnce(c)
+}
+
+describe('getProjectRolesForUser', () => {
+    it('throws if query fails', async () => {
+        mockDoubleEqQuery(null, { message: 'roles query failed' })
+
+        await expect(getProjectRolesForUser(10, 'user-uuid')).rejects.toThrow('roles query failed')
+    })
+
+    it('returns empty array if memberships is null', async () => {
+        mockDoubleEqQuery(null)
+
+        const result = await getProjectRolesForUser(10, 'user-uuid')
+        expect(result).toEqual([])
+    })
+
+    it('returns empty array if user has no memberships', async () => {
+        mockDoubleEqQuery([])
+
+        const result = await getProjectRolesForUser(10, 'user-uuid')
+        expect(result).toEqual([])
+    })
+
+    it('returns array of role strings', async () => {
+        mockDoubleEqQuery([
+            { ProjectRoles: { projectRole: 'Developer' } },
+            { ProjectRoles: { projectRole: 'Scrum Master' } },
+        ])
+
+        const result = await getProjectRolesForUser(10, 'user-uuid')
+        expect(result).toEqual(['Developer', 'Scrum Master'])
+    })
+
+    it('filters out null roles', async () => {
+        mockDoubleEqQuery([
+            { ProjectRoles: null },
+            { ProjectRoles: { projectRole: 'Developer' } },
+        ])
+
+        const result = await getProjectRolesForUser(10, 'user-uuid')
+        expect(result).toEqual(['Developer'])
+    })
+})
+
+// ---
+
+describe('getProjectDevelopers', () => {
+    it('throws if query fails', async () => {
+        mockDoubleEqQuery(null, { message: 'developers query failed' })
+
+        await expect(getProjectDevelopers(10)).rejects.toThrow('developers query failed')
+    })
+
+    it('returns empty array if no data', async () => {
+        mockDoubleEqQuery(null)
+
+        const result = await getProjectDevelopers(10)
+        expect(result).toEqual([])
+    })
+
+    it('returns correctly shaped developer objects', async () => {
+        mockDoubleEqQuery([{
+            FK_userId: 'dev-uuid',
+            Users: { id: 'dev-uuid', username: 'jdoe', name: 'Jane', surname: 'Doe' },
+            ProjectRoles: { projectRole: 'Developer' },
+        }])
+
+        const result = await getProjectDevelopers(10)
+        expect(result).toEqual([{ id: 'dev-uuid', username: 'jdoe', full_name: 'Jane Doe' }])
+    })
+
+    it('sets full_name to null when name or surname is missing', async () => {
+        mockDoubleEqQuery([{
+            FK_userId: 'dev-uuid',
+            Users: { id: 'dev-uuid', username: 'jdoe', name: null, surname: null },
+            ProjectRoles: { projectRole: 'Developer' },
+        }])
+
+        const result = await getProjectDevelopers(10)
+        expect(result[0].full_name).toBeNull()
+    })
+
+    it('filters out rows where ProjectRoles is not Developer', async () => {
+        mockDoubleEqQuery([
+            {
+                FK_userId: 'sm-uuid',
+                Users: { id: 'sm-uuid', username: 'sm', name: 'Scrum', surname: 'Master' },
+                ProjectRoles: null,
+            },
+            {
+                FK_userId: 'dev-uuid',
+                Users: { id: 'dev-uuid', username: 'dev', name: 'Dev', surname: 'User' },
+                ProjectRoles: { projectRole: 'Developer' },
+            },
+        ])
+
+        const result = await getProjectDevelopers(10)
+        expect(result).toHaveLength(1)
+        expect(result[0].id).toBe('dev-uuid')
+    })
+})
+
+// ---
+
+function mockSprintsListQuery(data, error = null) {
+    supabase.from.mockReturnValueOnce(
+        mockChain({ order: vi.fn().mockResolvedValue({ data, error }) })
+    )
+}
+
+describe('getSprintNumber', () => {
+    it('throws if query fails', async () => {
+        mockSprintsListQuery(null, { message: 'sprints query failed' })
+
+        await expect(getSprintNumber(10, 1)).rejects.toThrow('sprints query failed')
+    })
+
+    it('returns null if data is null', async () => {
+        mockSprintsListQuery(null)
+
+        const result = await getSprintNumber(10, 1)
+        expect(result).toBeNull()
+    })
+
+    it('returns null if sprint is not found', async () => {
+        mockSprintsListQuery([{ id: 1, startingDate: '2026-01-01' }, { id: 2, startingDate: '2026-02-01' }])
+
+        const result = await getSprintNumber(10, 99)
+        expect(result).toBeNull()
+    })
+
+    it('returns 1 for the first sprint', async () => {
+        mockSprintsListQuery([{ id: 1, startingDate: '2026-01-01' }, { id: 2, startingDate: '2026-02-01' }])
+
+        const result = await getSprintNumber(10, 1)
+        expect(result).toBe(1)
+    })
+
+    it('returns 2 for the second sprint', async () => {
+        mockSprintsListQuery([{ id: 1, startingDate: '2026-01-01' }, { id: 2, startingDate: '2026-02-01' }])
+
+        const result = await getSprintNumber(10, 2)
+        expect(result).toBe(2)
+    })
+
+    it('matches sprint id as string or number', async () => {
+        mockSprintsListQuery([{ id: 3, startingDate: '2026-03-01' }])
+
+        const result = await getSprintNumber(10, '3')
+        expect(result).toBe(1)
     })
 })

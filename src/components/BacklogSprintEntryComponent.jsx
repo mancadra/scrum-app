@@ -10,7 +10,7 @@ const formatDate = (value) => {
     return new Intl.DateTimeFormat('en-GB').format(date);
 };
 
-const BacklogSprintEntryComponent = ({ sprint, onClick }) => {
+const BacklogSprintEntryComponent = ({ sprint, sprintNumber, onClick }) => {
     if (!sprint) {
         return null;
     }
@@ -21,7 +21,7 @@ const BacklogSprintEntryComponent = ({ sprint, onClick }) => {
             className="sprint-card"
             onClick={onClick}
         >
-            <div className="sprint-card__title">Sprint #{sprint.id}</div>
+            <div className="sprint-card__title">Sprint #{sprintNumber ?? sprint.id}</div>
             <div className="sprint-card__row">
                 <span className="sprint-card__label">Datum začetka:</span>
                 <span>{formatDate(sprint.startingDate)}</span>

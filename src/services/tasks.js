@@ -30,7 +30,7 @@ export async function getSprintBacklog(projectId) {
 
     const { data: sprintStories, error: storiesError } = await supabase
         .from('SprintUserStories')
-        .select('UserStories(id, name, description, businessValue, realized, FK_priorityId, Priorities(priority))')
+        .select('UserStories(id, name, description, businessValue, accepted, realized, testing, timeComplexity, FK_priorityId, Priorities(priority))')
         .eq('FK_sprintId', sprint.id)
 
     if (storiesError) throw new Error(storiesError.message)
@@ -44,13 +44,14 @@ export async function getSprintBacklog(projectId) {
 
     const { data: tasks, error: tasksError } = await supabase
         .from('Tasks')
-        .select('*')
+        .select('*, acceptedDev:FK_acceptedDeveloper(username, name, surname), proposedDev:FK_proposedDeveloper(username, name, surname)')
         .in('FK_userStoryId', storyIds)
 
     if (tasksError) throw new Error(tasksError.message)
 
     const taskIds = (tasks ?? []).map(t => t.id)
     let activeTaskIds = new Set()
+    let storiesWithTimeLogs = new Set()
 
     if (taskIds.length > 0) {
         const { data: openEntries, error: ttError } = await supabase
@@ -62,6 +63,18 @@ export async function getSprintBacklog(projectId) {
 
         if (ttError) throw new Error(ttError.message)
         activeTaskIds = new Set(openEntries?.map(e => e.FK_taskId) ?? [])
+
+        const { data: anyLogEntries, error: anyLogError } = await supabase
+            .from('TimeTables')
+            .select('FK_taskId')
+            .in('FK_taskId', taskIds)
+            .not('starttime', 'is', null)
+
+        if (anyLogError) throw new Error(anyLogError.message)
+        const taskToStoryId = new Map((tasks ?? []).map(t => [t.id, t.FK_userStoryId]))
+        storiesWithTimeLogs = new Set(
+            (anyLogEntries ?? []).map(e => taskToStoryId.get(e.FK_taskId)).filter(Boolean)
+        )
     }
 
     const categorize = (task) => {
@@ -73,7 +86,7 @@ export async function getSprintBacklog(projectId) {
 
     const storyMap = new Map(stories.map(s => [
         s.id,
-        { ...s, tasks: { unassigned: [], assigned: [], active: [], finished: [] } }
+        { ...s, hasTimeLogs: storiesWithTimeLogs.has(s.id), tasks: { unassigned: [], assigned: [], active: [], finished: [] } }
     ]))
 
     for (const task of (tasks ?? [])) {
@@ -85,15 +98,64 @@ export async function getSprintBacklog(projectId) {
     return { sprint, stories: Array.from(storyMap.values()) }
 }
 
-export const updateTaskStatus = async (taskId, newStatus) => {
-  const { data, error } = await supabase
-    .from('Tasks')
-    .update({ status: newStatus })
-    .eq('id', taskId);
+export function canAcceptTask(task, currentUserId, userProjectRoles) {
+    if (!task || !!task.FK_acceptedDeveloper || task.finished) return false
+    if (!userProjectRoles.includes('Developer')) return false
+    return !task.FK_proposedDeveloper || task.FK_proposedDeveloper === currentUserId
+}
 
-  if (error) throw error;
-  return data;
-};
+export function canRejectTask(task, currentUserId) {
+    if (!task || task.finished || !!task.FK_acceptedDeveloper) return false
+    return task.FK_proposedDeveloper === currentUserId
+}
+
+export function categorizeStoryForKanban(story) {
+    if (story.realized) return 'finished'
+    if (story.testing) return 'testing'
+    if (story.accepted || story.hasTimeLogs) return 'active'
+    return 'unassigned'
+}
+
+export async function getProjectRolesForUser(projectId, userId) {
+    const { data: memberships, error } = await supabase
+        .from('ProjectUsers')
+        .select('ProjectRoles(projectRole)')
+        .eq('FK_projectId', projectId)
+        .eq('FK_userId', userId)
+
+    if (error) throw new Error(error.message)
+    return memberships?.map(m => m.ProjectRoles?.projectRole).filter(Boolean) ?? []
+}
+
+export async function getProjectDevelopers(projectId) {
+    const { data, error } = await supabase
+        .from('ProjectUsers')
+        .select('FK_userId, Users(id, username, name, surname), ProjectRoles(projectRole)')
+        .eq('FK_projectId', projectId)
+        .eq('ProjectRoles.projectRole', 'Developer')
+
+    if (error) throw new Error(error.message)
+    return (data ?? [])
+        .filter(m => m.ProjectRoles?.projectRole === 'Developer' && m.Users)
+        .map(m => ({
+            id: m.FK_userId,
+            username: m.Users.username,
+            full_name: m.Users.name && m.Users.surname ? `${m.Users.name} ${m.Users.surname}` : null,
+        }))
+}
+
+export async function getSprintNumber(projectId, sprintId) {
+    const { data: allSprints, error } = await supabase
+        .from('Sprints')
+        .select('id, startingDate')
+        .eq('FK_projectId', projectId)
+        .order('startingDate', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    if (!allSprints) return null
+    const idx = allSprints.findIndex(s => String(s.id) === String(sprintId))
+    return idx >= 0 ? idx + 1 : null
+}
 
 export async function getSprintBacklogById(projectId, sprintId) {
     const { data, error: sessionError } = await supabase.auth.getSession()
@@ -123,7 +185,7 @@ export async function getSprintBacklogById(projectId, sprintId) {
 
     const { data: sprintStories, error: storiesError } = await supabase
         .from('SprintUserStories')
-        .select('UserStories(id, name, description, businessValue, realized, FK_priorityId, Priorities(priority))')
+        .select('UserStories(id, name, description, businessValue, accepted, realized, testing, timeComplexity, FK_priorityId, Priorities(priority))')
         .eq('FK_sprintId', sprint.id)
 
     if (storiesError) throw new Error(storiesError.message)
@@ -137,13 +199,14 @@ export async function getSprintBacklogById(projectId, sprintId) {
 
     const { data: tasks, error: tasksError } = await supabase
         .from('Tasks')
-        .select('*')
+        .select('*, acceptedDev:FK_acceptedDeveloper(username, name, surname), proposedDev:FK_proposedDeveloper(username, name, surname)')
         .in('FK_userStoryId', storyIds)
 
     if (tasksError) throw new Error(tasksError.message)
 
     const taskIds = (tasks ?? []).map(t => t.id)
     let activeTaskIds = new Set()
+    let storiesWithTimeLogs = new Set()
 
     if (taskIds.length > 0) {
         const { data: openEntries, error: ttError } = await supabase
@@ -155,6 +218,18 @@ export async function getSprintBacklogById(projectId, sprintId) {
 
         if (ttError) throw new Error(ttError.message)
         activeTaskIds = new Set(openEntries?.map(e => e.FK_taskId) ?? [])
+
+        const { data: anyLogEntries, error: anyLogError } = await supabase
+            .from('TimeTables')
+            .select('FK_taskId')
+            .in('FK_taskId', taskIds)
+            .not('starttime', 'is', null)
+
+        if (anyLogError) throw new Error(anyLogError.message)
+        const taskToStoryId = new Map((tasks ?? []).map(t => [t.id, t.FK_userStoryId]))
+        storiesWithTimeLogs = new Set(
+            (anyLogEntries ?? []).map(e => taskToStoryId.get(e.FK_taskId)).filter(Boolean)
+        )
     }
 
     const categorize = (task) => {
@@ -166,7 +241,7 @@ export async function getSprintBacklogById(projectId, sprintId) {
 
     const storyMap = new Map(stories.map(s => [
         s.id,
-        { ...s, tasks: { unassigned: [], assigned: [], active: [], finished: [] } }
+        { ...s, hasTimeLogs: storiesWithTimeLogs.has(s.id), tasks: { unassigned: [], assigned: [], active: [], finished: [] } }
     ]))
 
     for (const task of (tasks ?? [])) {
@@ -327,9 +402,6 @@ export async function acceptTask(taskId) {
     if (!task) throw new Error('Naloga ni bila najdena.')
     if (task.finished) throw new Error('Ni mogoče sprejeti zaključene naloge.')
     if (task.FK_acceptedDeveloper) throw new Error('Nalogo je že sprejel drug razvijalec.')
-    if (task.FK_proposedDeveloper && task.FK_proposedDeveloper !== user.id) {
-        throw new Error('Ta naloga je bila predlagana drugemu razvijalcu.')
-    }
 
     const { data: story, error: storyError } = await supabase
         .from('UserStories')
@@ -368,9 +440,58 @@ export async function acceptTask(taskId) {
     const roles = memberships.map(m => m.ProjectRoles?.projectRole)
     if (!roles.includes('Developer')) throw new Error('Samo razvijalci lahko sprejemajo naloge.')
 
+    if (task.FK_proposedDeveloper && task.FK_proposedDeveloper !== user.id) {
+        throw new Error('Ta naloga je bila predlagana drugemu razvijalcu.')
+    }
+
     const { data: updated, error: updateError } = await supabase
         .from('Tasks')
         .update({ FK_acceptedDeveloper: user.id })
+        .eq('id', taskId)
+        .select()
+        .single()
+
+    if (updateError) throw new Error(updateError.message)
+    return updated
+}
+
+export async function rejectTask(taskId) {
+    const { data, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
+    const user = data?.session?.user
+    if (!user) throw new Error('Niste prijavljeni.')
+
+    const { data: task, error: taskError } = await supabase
+        .from('Tasks')
+        .select('id, FK_userStoryId, FK_proposedDeveloper, FK_acceptedDeveloper, finished')
+        .eq('id', taskId)
+        .maybeSingle()
+
+    if (taskError) throw new Error(taskError.message)
+    if (!task) throw new Error('Naloga ni bila najdena.')
+    if (task.finished) throw new Error('Ni mogoče zavrniti zaključene naloge.')
+    if (task.FK_acceptedDeveloper) throw new Error('Ni mogoče zavrniti že sprejete naloge.')
+    if (task.FK_proposedDeveloper !== user.id) throw new Error('Zavrnite lahko samo naloge, predlagane vam.')
+
+    const { data: sprintLinks, error: sprintError } = await supabase
+        .from('SprintUserStories')
+        .select('FK_sprintId, Sprints(startingDate, endingDate)')
+        .eq('FK_userStoryId', task.FK_userStoryId)
+
+    if (sprintError) throw new Error(sprintError.message)
+
+    const now = new Date()
+    const isInActiveSprint = sprintLinks?.some(link => {
+        const start = link.Sprints?.startingDate ? new Date(link.Sprints.startingDate) : null
+        const end = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
+        return start && end && start <= now && end >= now
+    })
+
+    if (!isInActiveSprint) throw new Error('Naloga ne pripada aktivnemu sprintu.')
+
+    const { data: updated, error: updateError } = await supabase
+        .from('Tasks')
+        .update({ FK_proposedDeveloper: null })
         .eq('id', taskId)
         .select()
         .single()

@@ -1,27 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from "../config/supabase";
 import { useTasks } from '../hooks/useTasks';
+import {
+  canAcceptTask,
+  canRejectTask,
+  categorizeStoryForKanban,
+  getProjectRolesForUser,
+  getProjectDevelopers,
+  getSprintNumber,
+} from '../services/tasks';
 import TaskForm from '../components/TaskForm';
 import { getStoriesForProject, addStoriesToSprint } from '../services/stories';
 import './SprintPage.css';
+import '../components/BacklogStoryComponent.css';
+import '../components/BacklogStoryDetailsComponent.css';
+
+const STATUS_LABELS = {
+  unassigned: 'NEDODELJENO',
+  active: 'V DELU',
+  testing: 'TESTIRANJE',
+  finished: 'ZAKLJUČENO',
+};
+
+const formatUserName = (user) => {
+  if (!user) return null;
+  return user.name && user.surname ? `${user.name} ${user.surname}` : user.username;
+};
 
 const SprintPage = () => {
   const { projectId, sprintId } = useParams();
-  const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask } = useTasks(projectId);
+  const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleRejectTask, handleFinishTask } = useTasks(projectId);
   const [currentUser, setCurrentUser] = useState(null);
+  const [sprintNumber, setSprintNumber] = useState(null);
+  const [projectDevelopers, setProjectDevelopers] = useState([]);
+  const [currentUserProjectRoles, setCurrentUserProjectRoles] = useState([]);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showManageStories, setShowManageStories] = useState(false);
   const [backlogStories, setBacklogStories] = useState([]);
   const [selectedStoryForTask, setSelectedStoryForTask] = useState(null);
   const [selectedStoryForDetails, setSelectedStoryForDetails] = useState(null);
 
-  const openStoryDetails = (story) => {
-    setSelectedStoryForDetails(story);
-  };
-  const closeStoryDetails = () => {
-    setSelectedStoryForDetails(null);
-  };
+  const openStoryDetails = (story) => setSelectedStoryForDetails(story);
+  const closeStoryDetails = () => setSelectedStoryForDetails(null);
 
   const handleAddStoryToSprint = async (storyId) => {
     const activeSprintId = sprintId || sprintData?.sprint?.id;
@@ -45,7 +66,7 @@ const SprintPage = () => {
   };
 
   const handleDragOver = (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
   };
 
   const handleDrop = async (e, newStatus) => {
@@ -60,10 +81,10 @@ const SprintPage = () => {
           let realized = story.realized;
           let testing = story.testing;
 
-          if (newStatus === 'unassigned') { accepted = false; realized = false; testing = false; }
-          else if (newStatus === 'active') { accepted = true; realized = false; testing = false; }
-          else if (newStatus === 'testing') { accepted = true; realized = false; testing = true; }
-          else if (newStatus === 'finished') { accepted = true; realized = true; testing = true; }
+          if (newStatus === 'unassigned')    { accepted = false; realized = false; testing = false; }
+          else if (newStatus === 'active')   { accepted = true;  realized = false; testing = false; }
+          else if (newStatus === 'testing')  { accepted = true;  realized = false; testing = true;  }
+          else if (newStatus === 'finished') { accepted = true;  realized = true;  testing = true;  }
 
           return { ...story, accepted, realized, testing };
         }
@@ -87,16 +108,7 @@ const SprintPage = () => {
 
   const getStoriesByStatus = (status) => {
     if (!sprintData?.stories) return [];
-    console.log(`Filtriram zgodbe za status: ${status}`, sprintData.stories);
-    return sprintData.stories.filter(story => {
-      switch (status) {
-        case 'unassigned': return !story.accepted && !story.realized && !story.testing;
-        case 'active': return story.accepted && !story.realized && !story.testing;
-        case 'testing': return story.accepted && !story.realized && story.testing;
-        case 'finished': return story.accepted && story.realized && story.testing;
-        default: return false;
-      }
-    });
+    return sprintData.stories.filter(story => categorizeStoryForKanban(story) === status);
   };
 
   const loadBacklog = async () => {
@@ -115,9 +127,7 @@ const SprintPage = () => {
   };
 
   useEffect(() => {
-    if (sprintData) {
-      loadBacklog();
-    }
+    if (sprintData) loadBacklog();
   }, [sprintData]);
 
   useEffect(() => {
@@ -125,25 +135,52 @@ const SprintPage = () => {
   }, [sprintId, fetchSprintBacklog]);
 
   useEffect(() => {
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user);
-    console.log("Uporabnik naložen:", user?.id);
-  };
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      if (user && projectId) {
+        const roles = await getProjectRolesForUser(projectId, user.id);
+        setCurrentUserProjectRoles(roles);
+      }
+    };
+    checkUser();
+  }, [projectId]);
 
-  checkUser();
-}, []);
+  useEffect(() => {
+    if (!projectId) return;
+    getProjectDevelopers(projectId).then(setProjectDevelopers).catch(console.error);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId || !sprintId) return;
+    getSprintNumber(projectId, sprintId).then(setSprintNumber).catch(console.error);
+  }, [projectId, sprintId]);
 
   const activeStoryForModal = sprintData?.stories?.find(s => s.id === selectedStoryForDetails?.id);
 
-  const STATUS_LABELS = { unassigned: 'NEDODELJENO', active: 'V DELU', testing: 'TESTIRANJE', finished: 'ZAKLJUČENO' };
+  const isSprintActive = useMemo(() => {
+    if (!sprintData?.sprint) return false;
+    const now = new Date();
+    return new Date(sprintData.sprint.startingDate) <= now && new Date(sprintData.sprint.endingDate) >= now;
+  }, [sprintData?.sprint]);
 
   if (loading) return <div className="p-5 text-center">Nalagam Sprint tablo...</div>;
+
+  const modalAllTasks = Object.values(activeStoryForModal?.tasks || {}).flat();
+  const modalFinishedCount = modalAllTasks.filter(t => t.finished).length;
 
   return (
     <div className="dashboard-container p-4">
       <div className="header-section d-flex justify-content-between align-items-center mb-4">
-        <h2>Sprint Board: {sprintData?.sprint?.name || "Neznan"}</h2>
+        <div>
+          <h2 className="mb-0">{sprintNumber != null ? `Sprint #${sprintNumber}` : 'Sprint Board'}</h2>
+          {sprintData?.sprint && (
+            <div className="sprint-header__dates">
+              <div><span className="sprint-header__date-label">Začetek:</span> {new Date(sprintData.sprint.startingDate).toLocaleDateString('sl-SI')}</div>
+              <div><span className="sprint-header__date-label">Konec:</span> {new Date(sprintData.sprint.endingDate).toLocaleDateString('sl-SI')}</div>
+            </div>
+          )}
+        </div>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-primary" onClick={() => setShowManageStories(true)}>Uredi vsebino</button>
         </div>
@@ -153,66 +190,60 @@ const SprintPage = () => {
         {['unassigned', 'active', 'testing', 'finished'].map(status => (
           <div key={status} className="kanban-column" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status)}>
             <h5 className={`column-header ${status}`}>{STATUS_LABELS[status]}</h5>
-            
+
             <div className="story-list">
               {getStoriesByStatus(status).map(story => {
-                // 1. POPRAVEK: Izračun premaknjen znotraj map funkcije
                 const allTasks = Object.values(story.tasks || {}).flat();
-                const completedTasks = allTasks.filter(task => task.realized).length;
+                const completedTasks = allTasks.filter(task => task.finished).length;
                 const totalTasks = allTasks.length;
-                const priorityClass = story.priority === 'H' ? 'priority-high' : story.priority === 'M' ? 'priority-medium' : 'priority-low';
+                const priority = story.Priorities?.priority ?? null;
+                const priorityClass = priority === 'Must have' ? 'priority-high' : priority === 'Should have' ? 'priority-medium' : 'priority-low';
 
                 return (
-                  <div 
-                    key={story.id} 
-                    draggable 
+                  <div
+                    key={story.id}
+                    draggable
                     onDragStart={(e) => handleDragStart(e, story.id)}
                     onClick={() => openStoryDetails(story)}
-                    className={`user-story-kanban-card modern-card shadow-sm mb-3 ${priorityClass}`}
-                    style={{ cursor: 'pointer' }}
+                    className={`user-story-kanban-card mb-3 ${priorityClass}`}
                   >
-                    <div className="card-priority-indicator"></div>
-                    <div className="card-main-content p-3">
-                      <div className="card-header-row d-flex justify-content-between align-items-start mb-2">
-                        <h6 className="story-title m-0 fw-bold text-truncate" title={story.name}>
-                          <span className="story-id text-muted me-1">#{story.id}</span>
+                    <div className="card-main-content">
+                      <div className="card-header-row">
+                        <h6 className="story-title" title={story.name}>
                           {story.name}
                         </h6>
-                        <button 
-                          className="btn btn-xs btn-light quick-add-task-btn" 
+                        <button
+                          className="quick-add-task-btn"
                           onClick={(e) => { e.stopPropagation(); openAddTaskModal(story); }}
-                          title="Hitro dodaj nalogo"
+                          title="Dodaj nalogo"
                         >+</button>
                       </div>
 
-                      <div className="card-meta-row d-flex justify-content-between align-items-center mb-2 small">
-                        <div className="story-points">
-                          <span className="badge bg-light text-dark border rounded-pill">
-                            {story.timeComplexity ? `${story.timeComplexity} točk` : '? točk'}
-                          </span>
+                      {priority && (
+                        <span className={`story-priority-badge story-priority-badge--${priorityClass}`}>
+                          {priority}
+                        </span>
+                      )}
+
+                      <div className="card-meta-row">
+                        <div className="card-meta-item">
+                          <strong>Časovna zahtevnost:</strong> {story.timeComplexity ?? '—'} točk
                         </div>
-                        {story.FK_developer_story ? (
-                          <div className="story-assignee" title={`Dodeljeno: ${story.developer_story_name}`}>
-                            <span className="avatar-initials bg-info text-white rounded-circle">
-                              {story.developer_story_name?.substring(0, 2).toUpperCase()}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="story-assignee text-muted" title="Nedodeljeno">?</div>
-                        )}
+                        <div className="card-meta-item">
+                          <strong>Poslovna vrednost:</strong> {story.businessValue ?? '—'}
+                        </div>
                       </div>
 
                       {totalTasks > 0 && (
-                        <div className="card-progress-row mt-2">
-                          <div className="d-flex justify-content-between align-items-center small text-muted mb-1">
-                            <span>Naloge </span>
-                            <span>{completedTasks} / {totalTasks}</span>
+                        <div className="card-progress-row">
+                          <div className="card-progress-label">
+                            <span>Končane naloge: {completedTasks} / {totalTasks}</span>
                           </div>
                           <div className="progress" style={{ height: '5px' }}>
-                            <div 
-                              className="progress-bar bg-success" 
-                              role="progressbar" 
-                              style={{ width: `${(completedTasks / totalTasks) * 100}%` }} 
+                            <div
+                              className="progress-bar bg-success"
+                              role="progressbar"
+                              style={{ width: `${(completedTasks / totalTasks) * 100}%` }}
                             ></div>
                           </div>
                         </div>
@@ -220,7 +251,7 @@ const SprintPage = () => {
                     </div>
                   </div>
                 );
-              })} 
+              })}
             </div>
           </div>
         ))}
@@ -261,7 +292,7 @@ const SprintPage = () => {
 
       {/* Popup za dodajanje nalog */}
       {showAddTask && (
-        <div className="modal-overlay" style={{ zIndex: 9999, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowAddTask(false)}>
+        <div className="modal-overlay" style={{ zIndex: 10001, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowAddTask(false)}>
           <div className="custom-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '100%', maxWidth: '500px' }}>
             <div className="modal-header-custom d-flex justify-content-between align-items-center mb-3">
               <h5 className="m-0 fw-bold">Nova naloga</h5>
@@ -269,82 +300,128 @@ const SprintPage = () => {
             </div>
             <div className="modal-body-custom">
               <p className="text-muted small mb-3">Dodajanje naloge za: <strong>{selectedStoryForTask?.name}</strong></p>
-              <TaskForm 
+              <TaskForm
                 handleCreateTask={handleCreateTask}
-                stories={sprintData?.stories || []} 
+                stories={sprintData?.stories || []}
+                projectMembers={projectDevelopers}
                 preselectedStoryId={selectedStoryForTask?.id}
-                onSuccess={() => { setShowAddTask(false); fetchSprintBacklog(sprintId); }} 
+                onSuccess={() => { setShowAddTask(false); fetchSprintBacklog(sprintId); }}
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. POPRAVEK: Popup za podrobnosti zgodbe (Položaj in z-index) */}
       {activeStoryForModal && (
-        <div className="modal show d-block" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={closeStoryDetails}>
-          <div className="modal-dialog modal-lg" style={{ width: '100%', maxWidth: '800px', margin: 'auto', backgroundColor: 'white' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content shadow-lg border-0">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">#{activeStoryForModal.id}: {activeStoryForModal.name}</h5>
+        <div className="backlog-story-details__overlay" style={{ zIndex: 10000 }} onClick={closeStoryDetails}>
+          <div className="backlog-story-details" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
 
+            <div className="backlog-story-details__header">
+              <div>
+                <p className="backlog-story-details__eyebrow">Podrobnosti zgodbe</p>
+                <h2>{activeStoryForModal.name}</h2>
               </div>
-              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <section className="mb-4">
-                  <h6 className="fw-bold text-uppercase small text-muted">Opis zgodbe</h6>
-                  <p>{activeStoryForModal.description || "Ni podanega opisa."}</p>
-                </section>
-                <section>
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h6 className="fw-bold text-uppercase small text-muted m-0">Naloge</h6>
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => openAddTaskModal(activeStoryForModal)}>+ Nova naloga</button>
+              <button type="button" className="backlog-story-details__close" onClick={closeStoryDetails} aria-label="Zapri">✕</button>
+            </div>
+
+            <div className="backlog-story-details__content">
+
+              <section className="backlog-story-details__section">
+                <div className="backlog-story-details__grid">
+                  <div>
+                    <span className="backlog-story-details__label">Opis</span>
+                    <p>{activeStoryForModal.description || '—'}</p>
                   </div>
-                  <div className="list-group">
+                  <div>
+                    <span className="backlog-story-details__label">Prioriteta</span>
+                    <p>{activeStoryForModal.Priorities?.priority ?? '—'}</p>
+                  </div>
+                  <div>
+                    <span className="backlog-story-details__label">Poslovna vrednost</span>
+                    <p>{activeStoryForModal.businessValue ?? '—'}</p>
+                  </div>
+                  <div>
+                    <span className="backlog-story-details__label">Časovna zahtevnost</span>
+                    <p>{activeStoryForModal.timeComplexity != null ? `${activeStoryForModal.timeComplexity} točk` : '—'}</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="backlog-story-details__section">
+                <div className="sprint-modal-tasks-header">
+                  <h3>Naloge</h3>
+                  <button className="btn btn-sm btn-outline-primary" onClick={() => openAddTaskModal(activeStoryForModal)}>+ Nova naloga</button>
+                </div>
+
+                {Object.values(activeStoryForModal.tasks || {}).flat().length === 0 ? (
+                  <p className="sprint-modal-no-tasks">Ni dodanih nalog.</p>
+                ) : (
+                  <div className="sprint-modal-task-list">
                     {Object.values(activeStoryForModal.tasks || {}).flat().map(task => {
-  // Preverimo, če je naloga že dodeljena (pazimo na null/undefined/prazne nize)
-  const isAssigned = !!task.FK_acceptedDeveloper; 
+                      const isFinished = !!task.finished;
+                      const isAssigned = !!task.FK_acceptedDeveloper;
+                      const isAcceptedByMe = task.FK_acceptedDeveloper === currentUser?.id;
+                      const canAccept = canAcceptTask(task, currentUser?.id, currentUserProjectRoles);
+                      const devName = formatUserName(task.acceptedDev);
+                      const proposedDevName = formatUserName(task.proposedDev);
 
-  return (
-    <div key={task.id} className="list-group-item d-flex justify-content-between align-items-center">
-      <div>
-        <div className={`fw-bold ${isAssigned ? 'text-muted' : ''}`}>
-          {task.description}
-        </div>
-        <div className="small text-muted">
-           {isAssigned ? `👤 Dodeljeno: ${task.username}` : '⚪ Na voljo za prevzem'}
-        </div>
-      </div>
-
-      {/* Gumb prikažemo samo, če naloga NI dodeljena */}
-      {!isAssigned ? (
-        <button 
-          className="btn btn-sm btn-success"
-          disabled={!currentUser} // Preprečimo klik, če se uporabnik še nalaga
-          onClick={async () => {
-            if (task.FK_acceptedDeveloper) {
-              alert("Ta naloga je bila pravkar dodeljena nekomu drugemu!");
-              return;
-            }
-            
-            await handleAcceptTask(task.id, currentUser.id);
-            // NUJNO: Osvežimo podatke, da gumb izgine in se prikaže ime
-            fetchSprintBacklog(sprintId); 
-          }}
-        >
-          Sprejmi
-        </button>
-      ) : (
-        <span className="badge bg-light text-dark border">Zasedeno</span>
-      )}
-    </div>
-  );
-})}
+                      return (
+                        <div key={task.id} className={`sprint-modal-task ${isFinished ? 'sprint-modal-task--finished' : ''}`}>
+                          <div className="sprint-modal-task__info">
+                            <span className="sprint-modal-task__desc">{task.description}</span>
+                            <span className="sprint-modal-task__sub">
+                              {task.timecomplexity ? `${task.timecomplexity} h` : null}
+                              {task.timecomplexity && (isAssigned || isFinished) ? ' · ' : null}
+                              {isFinished
+                                ? `Zaključeno${devName ? ` · ${devName}` : ''}`
+                                : isAssigned
+                                  ? `Dodeljeno: ${devName ?? 'Neznan'}`
+                                  : null}
+                            </span>
+                          </div>
+                          <div className="sprint-modal-task__action">
+                            {isFinished ? (
+                              <span className="sprint-modal-badge sprint-modal-badge--done">Zaključeno</span>
+                            ) : isAcceptedByMe ? (
+                              <button className="btn btn-sm btn-warning" onClick={async () => {
+                                try { await handleFinishTask(task.id); fetchSprintBacklog(sprintId); }
+                                catch (err) { alert(`Napaka: ${err.message}`); }
+                              }}>Zaključi</button>
+                            ) : (
+                              <div className="sprint-modal-task__action-col">
+                                <span className="sprint-modal-task__proposed">
+                                  {proposedDevName ? `Predlagano: ${proposedDevName}` : 'Prosto za prevzem'}
+                                </span>
+                                {canAccept && (
+                                  isSprintActive ? (
+                                    <div className="sprint-modal-task__action-row">
+                                      <button className="btn btn-sm btn-success" disabled={!currentUser} onClick={async () => {
+                                        try { await handleAcceptTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+                                        catch (err) { alert(`Napaka: ${err.message}`); }
+                                      }}>Sprejmi</button>
+                                    </div>
+                                  ) : (
+                                    <span className="sprint-modal-task__inactive">Sprint ni aktiven</span>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </section>
-              </div>
-              <div className="modal-footer bg-light">
-                <button className="btn btn-secondary" onClick={closeStoryDetails}>Zapri</button>
-              </div>
+                )}
+              </section>
+            </div>
+
+            <div className="sprint-modal-footer">
+              {modalAllTasks.length > 0 ? (
+                <span className="sprint-modal-footer__count">
+                  Končane naloge: <strong>{modalFinishedCount} / {modalAllTasks.length}</strong>
+                </span>
+              ) : <span />}
+              <button className="btn btn-secondary" onClick={closeStoryDetails}>Zapri</button>
             </div>
           </div>
         </div>

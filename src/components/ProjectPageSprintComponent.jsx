@@ -99,10 +99,13 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
 
         <div className="project-panel__list">
           {sprints.length > 0 ? (
-              sprints.map((sprint) => (
+              [...sprints]
+                .sort((a, b) => new Date(a.startingDate) - new Date(b.startingDate))
+                .map((sprint, index) => (
                   <BacklogSprintEntryComponent
                       key={sprint.id}
                       sprint={sprint}
+                      sprintNumber={index + 1}
                       onClick={() => handleSprintClick(sprint.id)}
                   />
               ))

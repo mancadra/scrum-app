@@ -9,6 +9,7 @@ const TEST_PASSWORD = 'testpassword123!'
 let TEST_PROJECT_ID
 let TEST_USER_ID
 let TEST_SM_PROJECT_ID
+let savedSession
 const createdStoryIds = []
 
 beforeAll(async () => {
@@ -16,6 +17,7 @@ beforeAll(async () => {
 
     const { data: { session } } = await supabase.auth.getSession()
     TEST_USER_ID = session?.user?.id
+    savedSession = session
 
     const { data: existingPriorities } = await supabase.from('Priorities').select('id').limit(1)
     if (!existingPriorities || existingPriorities.length === 0) {
@@ -98,7 +100,7 @@ describe('getPriorities', () => {
 
 describe('createUserStory', () => {
     it('throws if not authenticated', async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         await expect(
             createUserStory(TEST_PROJECT_ID, {
                 name: 'Should fail',
@@ -284,7 +286,7 @@ describe('setTimeComplexity', () => {
     })
 
     it('throws if not authenticated', async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
         await expect(setTimeComplexity(storyId, 5)).rejects.toThrow('Niste prijavljeni.')
         await signIn(TEST_USERNAME, TEST_PASSWORD)
     })
