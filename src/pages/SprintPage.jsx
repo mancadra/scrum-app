@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from "../config/supabase";
 import { useTasks } from '../hooks/useTasks';
@@ -158,11 +158,11 @@ const SprintPage = () => {
 
   const activeStoryForModal = sprintData?.stories?.find(s => s.id === selectedStoryForDetails?.id);
 
-  const isSprintActive = useMemo(() => {
+  const isSprintActive = (() => {
     if (!sprintData?.sprint) return false;
     const now = new Date();
     return new Date(sprintData.sprint.startingDate) <= now && new Date(sprintData.sprint.endingDate) >= now;
-  }, [sprintData?.sprint]);
+  })();
 
   if (loading) return <div className="p-5 text-center">Nalagam Sprint tablo...</div>;
 
@@ -362,6 +362,7 @@ const SprintPage = () => {
                       const isAssigned = !!task.FK_acceptedDeveloper;
                       const isAcceptedByMe = task.FK_acceptedDeveloper === currentUser?.id;
                       const canAccept = canAcceptTask(task, currentUser?.id, currentUserProjectRoles);
+                      const canReject = canRejectTask(task, currentUser?.id);
                       const devName = formatUserName(task.acceptedDev);
                       const proposedDevName = formatUserName(task.proposedDev);
 
