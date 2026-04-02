@@ -393,17 +393,26 @@ const SprintPage = () => {
                                 <span className="sprint-modal-task__proposed">
                                   {proposedDevName ? `Predlagano: ${proposedDevName}` : 'Prosto za prevzem'}
                                 </span>
-                                {canAccept && (
-                                  isSprintActive ? (
-                                    <div className="sprint-modal-task__action-row">
-                                      <button className="btn btn-sm btn-success" disabled={!currentUser} onClick={async () => {
-                                        try { await handleAcceptTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
-                                        catch (err) { alert(`Napaka: ${err.message}`); }
-                                      }}>Sprejmi</button>
-                                    </div>
-                                  ) : (
-                                    <span className="sprint-modal-task__inactive">Sprint ni aktiven</span>
-                                  )
+                                {(canAccept || canReject) && (
+  isSprintActive ? (
+    <div className="sprint-modal-task__action-row d-flex gap-2">
+      {canAccept && (
+        <button className="btn btn-sm btn-success" disabled={!currentUser} onClick={async () => {
+          try { await handleAcceptTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+          catch (err) { alert(`Napaka: ${err.message}`); }
+        }}>Sprejmi</button>
+      )}
+      
+      {canReject && (
+        <button className="btn btn-sm btn-outline-danger" disabled={!currentUser} onClick={async () => {
+          try { await handleRejectTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+          catch (err) { alert(`Napaka: ${err.message}`); }
+        }}>Zavrni</button>
+      )}
+    </div>
+  ) : (
+    <span className="sprint-modal-task__inactive">Sprint ni aktiven</span>
+  )
                                 )}
                               </div>
                             )}
