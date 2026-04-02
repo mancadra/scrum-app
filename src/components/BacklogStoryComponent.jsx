@@ -58,8 +58,8 @@ const BacklogStoryComponent = ({
                     <button
                         type="button"
                         className="backlog-story-card__time-button"
-                        aria-label={`Nastavi časovno zahtevnost za ${story.name}`}
-                        title="Nastavi časovno zahtevnost"
+                        aria-label={`Nastavi zahtevnost za ${story.name}`}
+                        title="Nastavi zahtevnost (točke)"
                         onClick={(e) => {
                             e.stopPropagation();
                             onTimeComplexityClick?.(story);

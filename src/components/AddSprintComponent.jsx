@@ -38,7 +38,7 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
             <label>Hitrost</label>
             <input
               type="number"
-              placeholder="Vstavite hitrost sprinta (ure)"
+              placeholder="Vstavite hitrost sprinta (točke)"
               value={speed}
               onChange={(event) => setSpeed(event.target.value)}
             />

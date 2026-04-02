@@ -243,7 +243,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
           </section>
 
           <section className="project-backlog__section">
-            <h3>Nedodeljene (nerealizirane) Zgodbe</h3>
+            <h3>Nedokončane Zgodbe</h3>
             {renderStories(unassignedStories, 'Ni najdenih zgodb.')}
           </section>
         </>
@@ -262,7 +262,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         <div className="story-modal-overlay" onClick={() => setTimeComplexityStory(null)}>
           <div className="story-modal story-modal--compact" onClick={(e) => e.stopPropagation()}>
             <div className="story-modal__header">
-              <h2>Nastavi časovno zahtevnost</h2>
+              <h2>Nastavi zahtevnost</h2>
             </div>
 
             <div className="story-modal__content">

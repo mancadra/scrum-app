@@ -37,7 +37,7 @@ const TaskForm = ({
     // 2. Validacija časa
     const hours = parseFloat(formData.estimatedTime);
     if (isNaN(hours) || hours <= 0) {
-      setError("Vnesite veljavno oceno časa (npr. 2.5).");
+      setError("Vnesite veljavno oceno v točkah (npr. 2.5).");
       return;
     }
 
@@ -94,7 +94,7 @@ const TaskForm = ({
       <div className="form-row-custom d-flex gap-3">
         <div className="form-section flex-fill">
           <label className="form-label-custom">
-            <span className="icon">⏱️</span> Ocena (ure)
+            <span className="icon">⏱️</span> Zahtevnost (točke)
           </label>
           <input 
             type="number" 
