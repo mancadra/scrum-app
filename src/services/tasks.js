@@ -345,6 +345,25 @@ export async function createTask(userStoryId, { description, timecomplexity, FK_
     return task
 }
 
+export async function getTaskLoggedHours(taskId) {
+    const { data, error } = await supabase
+        .from('TimeTables')
+        .select('starttime, stoptime')
+        .eq('FK_taskId', taskId)
+        .not('starttime', 'is', null)
+
+    if (error) throw new Error(error.message)
+
+    const now = new Date()
+    const totalMs = (data ?? []).reduce((sum, entry) => {
+        const start = new Date(entry.starttime)
+        const stop = entry.stoptime ? new Date(entry.stoptime) : now
+        return sum + Math.max(0, stop - start)
+    }, 0)
+
+    return Math.round((totalMs / (1000 * 60 * 60)) * 100) / 100
+}
+
 export async function finishTask(taskId) {
     const { data, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) throw new Error(sessionError.message)

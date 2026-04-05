@@ -9,6 +9,7 @@ import {
   getProjectRolesForUser,
   getProjectDevelopers,
   getSprintNumber,
+  getTaskLoggedHours,
 } from '../services/tasks';
 import TaskForm from '../components/TaskForm';
 import { getStoriesForProject, addStoriesToSprint } from '../services/stories';
@@ -40,6 +41,7 @@ const SprintPage = () => {
   const [backlogStories, setBacklogStories] = useState([]);
   const [selectedStoryForTask, setSelectedStoryForTask] = useState(null);
   const [selectedStoryForDetails, setSelectedStoryForDetails] = useState(null);
+  const [finishConfirm, setFinishConfirm] = useState(null);
 
   const openStoryDetails = (story) => setSelectedStoryForDetails(story);
   const closeStoryDetails = () => setSelectedStoryForDetails(null);
@@ -290,6 +292,34 @@ const SprintPage = () => {
         </div>
       )}
 
+      {/* Potrditveni popup za zaključitev naloge z nezadostnimi urami */}
+      {finishConfirm && (
+        <div className="modal-overlay" style={{ zIndex: 10200 }} onClick={() => setFinishConfirm(null)}>
+          <div className="custom-modal-content" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-custom">
+              <h5 className="m-0 fw-bold">Zaključitev naloge</h5>
+              <button className="btn-close" onClick={() => setFinishConfirm(null)}></button>
+            </div>
+            <div className="modal-body-custom">
+              <p className="text-muted small mb-3">
+                Niste zabeležili vseh ocenjenih ur.<br />
+                Zabeleženo: <strong>{finishConfirm.loggedHours} h</strong> / Ocenjeno: <strong>{finishConfirm.task.timecomplexity} h</strong><br /><br />
+                Ali ste prepričani, da želite zaključiti nalogo?
+              </p>
+              <div className="d-flex gap-2 justify-content-end">
+                <button className="btn btn-sm btn-secondary" onClick={() => setFinishConfirm(null)}>Prekliči</button>
+                <button className="btn btn-sm btn-warning" onClick={async () => {
+                  const task = finishConfirm.task;
+                  setFinishConfirm(null);
+                  try { await handleFinishTask(task.id); fetchSprintBacklog(sprintId); }
+                  catch (err) { alert(`Napaka: ${err.message}`); }
+                }}>Zaključi vseeno</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Popup za dodajanje nalog */}
       {showAddTask && (
         <div className="modal-overlay" style={{ zIndex: 10001, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowAddTask(false)}>
@@ -385,8 +415,19 @@ const SprintPage = () => {
                               <span className="sprint-modal-badge sprint-modal-badge--done">Zaključeno</span>
                             ) : isAcceptedByMe ? (
                               <button className="btn btn-sm btn-warning" onClick={async () => {
-                                try { await handleFinishTask(task.id); fetchSprintBacklog(sprintId); }
-                                catch (err) { alert(`Napaka: ${err.message}`); }
+                                try {
+                                  const hours = await getTaskLoggedHours(task.id);
+                                  if (hours === 0) {
+                                    alert('Za zaključitev naloge morajo biti zabeležene ure dela.');
+                                    return;
+                                  }
+                                  if (task.timecomplexity && hours < task.timecomplexity) {
+                                    setFinishConfirm({ task, loggedHours: hours });
+                                    return;
+                                  }
+                                  await handleFinishTask(task.id);
+                                  fetchSprintBacklog(sprintId);
+                                } catch (err) { alert(`Napaka: ${err.message}`); }
                               }}>Zaključi</button>
                             ) : (
                               <div className="sprint-modal-task__action-col">
