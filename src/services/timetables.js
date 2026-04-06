@@ -109,6 +109,92 @@ export async function stopTimer(taskId) {
 }
 
 /**
+ * Returns all completed time entries for the logged-in user.
+ * Optionally filter by date range: { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }.
+ * `from` is inclusive start of day, `to` is inclusive end of day.
+ * Each entry includes task description, story name, and computed hours.
+ */
+export async function getMyTimeEntries({ from = null, to = null } = {}) {
+    const user = await getSessionUser();
+
+    let query = supabase
+        .from('TimeTables')
+        .select(`
+            id, starttime, stoptime,
+            Tasks ( id, description, remaininghours,
+                UserStories ( id, name )
+            )
+        `)
+        .eq('FK_userId', user.id)
+        .not('stoptime', 'is', null)
+        .order('starttime', { ascending: false });
+
+    if (from) {
+        const dayStart = new Date(from);
+        dayStart.setHours(0, 0, 0, 0);
+        query = query.gte('starttime', dayStart.toISOString());
+    }
+
+    if (to) {
+        const dayEnd = new Date(to);
+        dayEnd.setHours(23, 59, 59, 999);
+        query = query.lte('starttime', dayEnd.toISOString());
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    return (data ?? []).map(entry => ({
+        id:              entry.id,
+        starttime:       entry.starttime,
+        stoptime:        entry.stoptime,
+        hours:           (new Date(entry.stoptime) - new Date(entry.starttime)) / 3_600_000,
+        taskId:          entry.Tasks?.id ?? null,
+        taskDescription: entry.Tasks?.description ?? '',
+        remaininghours:  entry.Tasks?.remaininghours ?? null,
+        storyId:         entry.Tasks?.UserStories?.id ?? null,
+        storyName:       entry.Tasks?.UserStories?.name ?? '',
+    }));
+}
+
+/**
+ * Update the number of hours logged for a completed time entry.
+ * The starttime is preserved; stoptime is recalculated from the new hours value.
+ * - hours must be > 0 and ≤ 24.
+ * - Entry must belong to the current user and must be completed.
+ */
+export async function updateTimeEntry(entryId, hours) {
+    if (typeof hours !== 'number' || hours <= 0 || hours > 24) {
+        throw new Error('Število ur mora biti med 0 in 24.');
+    }
+
+    const user = await getSessionUser();
+
+    const { data: entry, error: fetchError } = await supabase
+        .from('TimeTables')
+        .select('id, FK_userId, starttime, stoptime')
+        .eq('id', entryId)
+        .maybeSingle();
+
+    if (fetchError) throw new Error(fetchError.message);
+    if (!entry) throw new Error('Vnos ni bil najden.');
+    if (entry.FK_userId !== user.id) throw new Error('Nimate dovoljenja za urejanje tega vnosa.');
+    if (!entry.stoptime) throw new Error('Aktivnega časovnika ni mogoče urejati.');
+
+    const newStoptime = new Date(new Date(entry.starttime).getTime() + hours * 3_600_000).toISOString();
+
+    const { data: updated, error: updateError } = await supabase
+        .from('TimeTables')
+        .update({ stoptime: newStoptime })
+        .eq('id', entryId)
+        .select()
+        .single();
+
+    if (updateError) throw new Error(updateError.message);
+    return updated;
+}
+
+/**
  * Returns the open TimeTables entry for a user+task, or null if none.
  */
 export async function getActiveTimer(taskId) {
@@ -162,4 +248,37 @@ export async function getMyActiveTimer() {
         projectName:     data.Tasks?.UserStories?.Projects?.name ?? '',
         starttime:       data.starttime,
     };
+}
+
+/**
+ * Set the estimated remaining hours needed to finish a task.
+ * - hours must be ≥ 0.
+ * - Only the developer who accepted the task may update this.
+ */
+export async function setRemainingHours(taskId, hours) {
+    if (typeof hours !== 'number' || hours < 0) {
+        throw new Error('Preostale ure morajo biti 0 ali več.');
+    }
+
+    const user = await getSessionUser();
+
+    const { data: task, error: taskError } = await supabase
+        .from('Tasks')
+        .select('id, FK_acceptedDeveloper')
+        .eq('id', taskId)
+        .maybeSingle();
+
+    if (taskError) throw new Error(taskError.message);
+    if (!task) throw new Error('Naloga ni bila najdena.');
+    if (task.FK_acceptedDeveloper !== user.id) throw new Error('Preostale ure lahko ureja samo razvijalec, ki je nalogo sprejel.');
+
+    const { data: updated, error: updateError } = await supabase
+        .from('Tasks')
+        .update({ remaininghours: hours })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+    if (updateError) throw new Error(updateError.message);
+    return updated;
 }
