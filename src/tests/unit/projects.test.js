@@ -22,6 +22,7 @@ function mockChain(overrides) {
         update:      vi.fn().mockReturnThis(),
         order:       vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
+        is:          vi.fn().mockReturnThis(),
         ilike:       vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
