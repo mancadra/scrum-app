@@ -5,6 +5,7 @@ import {
   createTask,
   acceptTask,
   finishTask,
+  reopenTask,
   rejectTask,
 } from '../services/tasks';
 
@@ -87,6 +88,16 @@ export const useTasks = (projectId) => {
     }
   };
 
+  const handleReopenTask = async (taskId) => {
+    try {
+      await reopenTask(taskId);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const handleUpdateStoryStatus = async (storyId, newStatus) => {
     try {
       const statusMap = {
@@ -120,6 +131,7 @@ export const useTasks = (projectId) => {
     handleAcceptTask,
     handleRejectTask,
     handleFinishTask,
+    handleReopenTask,
     handleUpdateStoryStatus,
   };
 };
