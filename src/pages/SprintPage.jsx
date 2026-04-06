@@ -31,7 +31,7 @@ const formatUserName = (user) => {
 
 const SprintPage = () => {
   const { projectId, sprintId } = useParams();
-  const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleRejectTask, handleFinishTask } = useTasks(projectId);
+  const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleRejectTask, handleFinishTask, handleReopenTask } = useTasks(projectId);
   const [currentUser, setCurrentUser] = useState(null);
   const [sprintNumber, setSprintNumber] = useState(null);
   const [projectDevelopers, setProjectDevelopers] = useState([]);
@@ -326,7 +326,7 @@ const SprintPage = () => {
           <div className="custom-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '100%', maxWidth: '500px' }}>
             <div className="modal-header-custom d-flex justify-content-between align-items-center mb-3">
               <h5 className="m-0 fw-bold">Nova naloga</h5>
-              <button className="btn-close" onClick={() => setShowAddTask(false)}></button>
+              <button className="modal-close-btn" onClick={() => setShowAddTask(false)}>✕</button>
             </div>
             <div className="modal-body-custom">
               <p className="text-muted small mb-3">Dodajanje naloge za: <strong>{selectedStoryForTask?.name}</strong></p>
@@ -412,7 +412,15 @@ const SprintPage = () => {
                           </div>
                           <div className="sprint-modal-task__action">
                             {isFinished ? (
-                              <span className="sprint-modal-badge sprint-modal-badge--done">Zaključeno</span>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="sprint-modal-badge sprint-modal-badge--done">Zaključeno</span>
+                                {isAcceptedByMe && isSprintActive && (
+                                  <button className="btn btn-sm btn-outline-secondary" onClick={async () => {
+                                    try { await handleReopenTask(task.id); fetchSprintBacklog(sprintId); }
+                                    catch (err) { alert(`Napaka: ${err.message}`); }
+                                  }}>Znova odpri</button>
+                                )}
+                              </div>
                             ) : isAcceptedByMe ? (
                               <button className="btn btn-sm btn-warning" onClick={async () => {
                                 try {

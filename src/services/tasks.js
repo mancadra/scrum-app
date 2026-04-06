@@ -404,6 +404,35 @@ export async function finishTask(taskId) {
     return updated
 }
 
+export async function reopenTask(taskId) {
+    const { data, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw new Error(sessionError.message)
+    const session = data?.session
+    const user = session?.user
+    if (!user) throw new Error('Niste prijavljeni.')
+
+    const { data: task, error: taskError } = await supabase
+        .from('Tasks')
+        .select('id, FK_acceptedDeveloper, finished')
+        .eq('id', taskId)
+        .maybeSingle()
+
+    if (taskError) throw new Error(taskError.message)
+    if (!task) throw new Error('Naloga ni bila najdena.')
+    if (!task.finished) throw new Error('Naloga ni zaključena.')
+    if (task.FK_acceptedDeveloper !== user.id) throw new Error('Znova lahko odprete samo nalogo, ki ste jo zaključili.')
+
+    const { data: updated, error: updateError } = await supabase
+        .from('Tasks')
+        .update({ finished: false })
+        .eq('id', taskId)
+        .select()
+        .single()
+
+    if (updateError) throw new Error(updateError.message)
+    return updated
+}
+
 export async function acceptTask(taskId) {
     const { data, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) throw new Error(sessionError.message)
