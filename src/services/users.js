@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { validatePassword } from './auth.js'
+import { supabase } from '../config/supabase.js'
 
 // Service role client — NEVER expose this on the frontend
 const supabaseAdmin = createClient(
@@ -116,4 +117,45 @@ export async function createUser(requestingUserId, { username, password, email, 
   }
 
   return { ...newUser, role }
+}
+
+// ─── Update own profile (any logged-in user) ─────────────────────────────────
+
+export async function updateOwnProfile({ username, firstName, lastName, email }) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) throw new Error('Niste prijavljeni.')
+
+  // Check username uniqueness if changing
+  if (username !== undefined) {
+    const { data: existing } = await supabase
+      .from('Users')
+      .select('id')
+      .ilike('username', username)
+      .neq('id', user.id)
+      .maybeSingle()
+
+    if (existing) throw new Error(`Uporabniško ime "${username}" je že zasedeno.`)
+  }
+
+  // Update public Users table
+  const profileUpdate = {}
+  if (username !== undefined)   profileUpdate.username = username
+  if (firstName !== undefined)  profileUpdate.name     = firstName
+  if (lastName !== undefined)   profileUpdate.surname  = lastName
+  if (email !== undefined)      profileUpdate.email    = email
+
+  if (Object.keys(profileUpdate).length > 0) {
+    const { error } = await supabase
+      .from('Users')
+      .update(profileUpdate)
+      .eq('id', user.id)
+
+    if (error) throw new Error(error.message)
+  }
+
+  // Sync email change into auth.users
+  if (email !== undefined) {
+    const { error: authUpdateError } = await supabase.auth.updateUser({ email })
+    if (authUpdateError) throw new Error(authUpdateError.message)
+  }
 }
