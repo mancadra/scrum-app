@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTimer } from '../context/TimerContext';
 import { supabase } from "../config/supabase";
 import { useTasks } from '../hooks/useTasks';
 import {
@@ -32,6 +33,11 @@ const formatUserName = (user) => {
 const SprintPage = () => {
   const { projectId, sprintId } = useParams();
   const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleRejectTask, handleFinishTask, handleReopenTask } = useTasks(projectId);
+  const { activeTimer, elapsedSeconds, handleStartTimer, handleStopTimer } = useTimer();
+  // Usage in task row:
+  //   const isMyTimerRunning = activeTimer?.taskId === task.id;
+  //   Start: await handleStartTimer(task.id); fetchSprintBacklog(sprintId);
+  //   Stop:  await handleStopTimer();         fetchSprintBacklog(sprintId);
   const [currentUser, setCurrentUser] = useState(null);
   const [sprintNumber, setSprintNumber] = useState(null);
   const [projectDevelopers, setProjectDevelopers] = useState([]);
