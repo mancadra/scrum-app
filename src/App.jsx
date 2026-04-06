@@ -14,7 +14,6 @@ import { getSprintsForProject } from "./services/sprints";
 import ProjectPageComponent from "./components/ProjectPageComponent.jsx";
 import MFASetup from "./components/MFASetup.jsx";
 import { TimerProvider } from "./context/TimerContext.jsx";
-import ActiveTimerBar from "./components/ActiveTimerBar.jsx";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -148,7 +147,6 @@ function App() {
                 lastLogin={currentUser?.profile?.lastLogin ?? null}
             />
         )}
-        {currentUser && <ActiveTimerBar />}
         {showMFASetup && <MFASetup onClose={() => setShowMFASetup(false)} />}
 
         <Routes>
