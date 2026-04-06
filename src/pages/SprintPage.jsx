@@ -189,8 +189,33 @@ const SprintPage = () => {
             </div>
           )}
         </div>
-        <div className="d-flex gap-2">
-          <button className="btn btn-outline-primary" onClick={() => setShowManageStories(true)}>Uredi vsebino</button>
+        <div className="backlog-sidebar bg-white rounded shadow-sm border" style={{ minWidth: '320px', maxWidth: '320px' }}>
+          <div className="bg-dark text-white p-3 border-bottom rounded-top">
+            <h5 className="m-0">Dodaj v sprint</h5>
+          </div>
+          <div className="sidebar-content" style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}>
+            <div className="list-group list-group-flush">
+              {backlogStories.length > 0 ? backlogStories.map(story => (
+                <div key={story.id} className="sidebar-story">
+                  <div className="sidebar-story-info">
+                    <h6 className="sidebar-story-title">{story.name}</h6>
+                    <span className={`sidebar-story-priority badge ${story.Priorities?.priority === 'Must have' ? 'bg-danger' : story.Priorities?.priority === 'Should have' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                      {story.Priorities?.priority ?? 'Ni prioritete'}
+                    </span>
+                    <span className="sidebar-story-complexity">Zahtevnost: {story.timeComplexity} točk</span>
+                  </div>
+                  <button 
+                    className="sidebar-add-btn" 
+                    onClick={() => handleAddStoryToSprint(story.id)}
+                  >
+                    + Dodaj v Sprint
+                  </button>
+                </div>
+              )) : (
+                <div className="text-center p-4 text-muted">Vse primerne zgodbe so že v sprintu.</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -266,37 +291,7 @@ const SprintPage = () => {
       </div>
 
       {/* Modal za dodajanje zgodb v sprint */}
-      {showManageStories && (
-        <div className="modal-backdrop show" style={{ zIndex: 1040 }}>
-          <div className="modal show d-block" style={{ zIndex: 1050 }}>
-            <div className="modal-dialog modal-lg modal-dialog-centered">
-              <div className="modal-content shadow-lg border-0">
-                <div className="modal-header bg-dark text-white">
-                  <h5 className="modal-title">Dodajanje zgodb v sprint</h5>
-                  <button className="btn-close btn-close-white" onClick={() => setShowManageStories(false)}></button>
-                </div>
-                <div className="modal-body">
-                  <div className="list-group">
-                    {backlogStories.length > 0 ? backlogStories.map(story => (
-                      <div key={story.id} className="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                          <h6 className="mb-0">{story.name}</h6>
-                          <span className="badge bg-secondary">Točke: {story.timeComplexity}</span>
-                        </div>
-                        <button className="btn btn-sm btn-success" onClick={() => handleAddStoryToSprint(story.id)}>
-                          Dodaj v Sprint
-                        </button>
-                      </div>
-                    )) : (
-                      <div className="text-center p-3 text-muted">Vse primerne zgodbe so že v sprintu.</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Potrditveni popup za zaključitev naloge z nezadostnimi urami */}
       {finishConfirm && (
