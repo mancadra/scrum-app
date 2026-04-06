@@ -8,6 +8,7 @@ import {
   reopenTask,
   rejectTask,
 } from '../services/tasks';
+import { startTimer, stopTimer } from '../services/timetables';
 
 export const useTasks = (projectId) => {
   const [sprintData, setSprintData] = useState(null);
@@ -98,6 +99,26 @@ export const useTasks = (projectId) => {
     }
   };
 
+  const handleStartTimer = async (taskId) => {
+    try {
+      await startTimer(taskId);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const handleStopTimer = async (taskId) => {
+    try {
+      await stopTimer(taskId);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const handleUpdateStoryStatus = async (storyId, newStatus) => {
     try {
       const statusMap = {
@@ -132,6 +153,8 @@ export const useTasks = (projectId) => {
     handleRejectTask,
     handleFinishTask,
     handleReopenTask,
+    handleStartTimer,
+    handleStopTimer,
     handleUpdateStoryStatus,
   };
 };

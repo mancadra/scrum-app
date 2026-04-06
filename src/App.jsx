@@ -13,6 +13,7 @@ import { getStoriesForProject } from "./services/stories";
 import { getSprintsForProject } from "./services/sprints";
 import ProjectPageComponent from "./components/ProjectPageComponent.jsx";
 import MFASetup from "./components/MFASetup.jsx";
+import { TimerProvider } from "./context/TimerContext.jsx";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -132,7 +133,7 @@ function App() {
   }
 
   return (
-      <>
+      <TimerProvider>
         {currentUser && (
             <NavbarComponent
                 projects={userProjects}
@@ -230,7 +231,7 @@ function App() {
               }
           />
         </Routes>
-      </>
+      </TimerProvider>
   );
 }
 
