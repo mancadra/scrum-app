@@ -1191,6 +1191,25 @@ describe('getProjectDevelopers', () => {
         expect(result).toHaveLength(1)
         expect(result[0].id).toBe('dev-uuid')
     })
+
+    it('filters out soft-deleted developers', async () => {
+        mockDoubleEqQuery([
+            {
+                FK_userId: 'deleted-uuid',
+                Users: { id: 'deleted-uuid', username: 'gone', name: 'Gone', surname: 'User', deleted_at: '2026-01-01T00:00:00Z' },
+                ProjectRoles: { projectRole: 'Developer' },
+            },
+            {
+                FK_userId: 'active-uuid',
+                Users: { id: 'active-uuid', username: 'active', name: 'Active', surname: 'Dev', deleted_at: null },
+                ProjectRoles: { projectRole: 'Developer' },
+            },
+        ])
+
+        const result = await getProjectDevelopers(10)
+        expect(result).toHaveLength(1)
+        expect(result[0].id).toBe('active-uuid')
+    })
 })
 
 // ---

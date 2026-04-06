@@ -130,13 +130,13 @@ export async function getProjectRolesForUser(projectId, userId) {
 export async function getProjectDevelopers(projectId) {
     const { data, error } = await supabase
         .from('ProjectUsers')
-        .select('FK_userId, Users(id, username, name, surname), ProjectRoles(projectRole)')
+        .select('FK_userId, Users(id, username, name, surname, deleted_at), ProjectRoles(projectRole)')
         .eq('FK_projectId', projectId)
         .eq('ProjectRoles.projectRole', 'Developer')
 
     if (error) throw new Error(error.message)
     return (data ?? [])
-        .filter(m => m.ProjectRoles?.projectRole === 'Developer' && m.Users)
+        .filter(m => m.ProjectRoles?.projectRole === 'Developer' && m.Users && !m.Users.deleted_at)
         .map(m => ({
             id: m.FK_userId,
             username: m.Users.username,
