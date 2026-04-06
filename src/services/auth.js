@@ -30,11 +30,12 @@ const TOP_100_PASSWORDS = new Set([
 export async function signIn(username, password) {
     const { data: userData, error: userError } = await supabase
       .from('Users')
-      .select('email')
+      .select('email, deleted_at')
       .eq('username', username)
       .single()
 
     if (userError || !userData) throw new Error('Napačno uporabniško ime ali geslo.')
+    if (userData.deleted_at) throw new Error('Napačno uporabniško ime ali geslo.')
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: userData.email,

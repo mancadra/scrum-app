@@ -4,6 +4,7 @@ export async function getUsers() {
     const { data, error } = await supabase
         .from('Users')
         .select('id, username, name, surname, email, UserRoles(Roles(name))')
+        .is('deleted_at', null)
         .order('username')
 
     if (error) throw new Error(error.message)
