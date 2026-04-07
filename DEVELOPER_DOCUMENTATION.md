@@ -62,23 +62,23 @@ scrum-app/
 │   │   ├── LoginPage.jsx / .css
 │   │   ├── AdminPage.jsx / .css
 │   │   ├── CreateProjectPage.jsx / .css
-│   │   ├── ProductBacklogPage.jsx
+│   │   ├── TOBEDELETEDProductBacklogPage.jsx
 │   │   └── SprintPage.jsx / .css
 │   ├── components/                  # Reusable UI components
 │   │   ├── NavbarComponent.jsx / .css
 │   │   ├── AddSprintComponent.jsx / .css
 │   │   ├── BacklogStoryComponent.jsx
 │   │   ├── BacklogSprintEntryComponent.jsx
-│   │   ├── ProductBacklog.jsx / .css
+│   │   ├── TOBEDELETEDProductBacklog.jsx / .css
 │   │   ├── ProjectPageComponent.jsx / .css
 │   │   ├── ProjectPageBacklogComponent.jsx / .css
 │   │   ├── ProjectPageSprintComponent.jsx / .css
-│   │   ├── TaskCard.jsx / .css
+│   │   ├── TOBEDELETEDTaskCard.jsx / .css
 │   │   ├── TaskForm.jsx / .css
 │   │   ├── UserStoryForm.jsx / .css
-│   │   ├── Storypoint.jsx / .css
-│   │   ├── FirstTimeLoginPage.jsx / .css
-│   │   └── DummySprintListComponent.jsx / .css
+│   │   ├── TOBEDELETEDStorypoint.jsx / .css
+│   │   ├── TOBEDELETEDFirstTimeLoginPage.jsx / .css
+│   │   └── TOBEDELETEDDummySprintListComponent.jsx / .css
 │   ├── tests/
 │   │   ├── unit/                    # Unit tests per service
 │   │   └── integration/             # Integration tests
@@ -297,7 +297,7 @@ Fetches tasks for the active sprint, grouped by status.
 | `LoginPage` | `/login` | Public |
 | `AdminPage` | `/admin` | Administrator only |
 | `CreateProjectPage` | `/create-project` | Administrator only |
-| `ProductBacklogPage` | `/project/:projectId/backlog` | Project members |
+| `TOBEDELETEDProductBacklogPage` | `/project/:projectId/backlog` | Project members |
 | `SprintPage` | `/project/:projectId/sprint/:sprintId` | Project members |
 | `ProjectPageComponent` | `/` | Authenticated |
 
@@ -306,14 +306,14 @@ Fetches tasks for the active sprint, grouped by status.
 | Component | Responsibility |
 |---|---|
 | `NavbarComponent` | Top navigation, project selector, logout |
-| `ProductBacklog` | Renders the three backlog categories (realized / assigned / unassigned) |
+| `TOBEDELETEDProductBacklog` | Renders the three backlog categories (realized / assigned / unassigned) |
 | `BacklogStoryComponent` | Single story card with inline time complexity input |
 | `UserStoryForm` | Create/edit story modal (name, description, priority, business value, acceptance tests) |
 | `AddSprintComponent` | Sprint creation/edit form with date and speed validation |
 | `ProjectPageSprintComponent` | Sprint list within a project |
-| `TaskCard` | Single task card showing status, assigned developer, accept/finish buttons |
+| `TOBEDELETEDTaskCard` | Single task card showing status, assigned developer, accept/finish buttons |
 | `TaskForm` | Create/edit task form |
-| `FirstTimeLoginPage` | Shown on first login to prompt password change |
+| `TOBEDELETEDFirstTimeLoginPage` | Shown on first login to prompt password change |
 
 ---
 

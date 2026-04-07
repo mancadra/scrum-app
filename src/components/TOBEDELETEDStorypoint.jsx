@@ -1,4 +1,6 @@
-function Storypoint({ storypoint, onAddTimeRequired, isAssigned }) {
+console.log('THE FILE Storypoint.jsx WAS RUN, WE EXPECT TO DELETE IT');
+
+function TOBEDELETEDStorypoint({ storypoint, onAddTimeRequired, isAssigned }) {
   const showAddTimeButton = !storypoint.realized && !isAssigned;
 
   return (
@@ -40,4 +42,4 @@ function Storypoint({ storypoint, onAddTimeRequired, isAssigned }) {
   );
 }
 
-export default Storypoint;
+export default TOBEDELETEDStorypoint;

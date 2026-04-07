@@ -4,7 +4,8 @@ import { useStories } from '../hooks/useStories';
 import UserStoryForm from '../components/UserStoryForm';
 
 
-const ProductBacklogPage = () => {
+
+const TOBEDELETEDProductBacklogPage = () => {
   const { projectId } = useParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { stories, addStory, loading, error } = useStories(projectId);
@@ -12,6 +13,7 @@ const ProductBacklogPage = () => {
   const goToSprint = () => {
     navigate(`/project/${projectId}/sprint`);
   };
+    console.log('THE FILE ProductBacklogPage WAS RUN, WE EXPECT TO DELETE IT');
 
   return (
     <div className="p-6">
@@ -56,4 +58,4 @@ const ProductBacklogPage = () => {
   );
 };
 
-export default ProductBacklogPage;
+export default TOBEDELETEDProductBacklogPage;
