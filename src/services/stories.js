@@ -229,3 +229,146 @@ export async function getStoriesForProject(projectId) {
                 : 'unassigned',                                                                               
     }))
 }
+export async function markStoryRealized(storyId) {
+  // 1. Check authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  // 2. Fetch the story
+  const { data: story, error: storyError } = await supabase
+    .from('UserStories')
+    .select('id, realized, FK_projectId')
+    .eq('id', storyId)
+    .maybeSingle()
+
+  if (storyError) throw new Error(storyError.message)
+  if (!story) throw new Error('User story not found.')
+
+  // 3. Check role — Product Owner only
+  const { data: membership, error: memberError } = await supabase
+    .from('ProjectUsers')
+    .select('ProjectRoles(projectRole)')
+    .eq('FK_projectId', story.FK_projectId)
+    .eq('FK_userId', user.id)
+    .maybeSingle()
+
+  if (memberError) throw new Error(memberError.message)
+  if (!membership) throw new Error('You are not a member of this project.')
+  if (membership.ProjectRoles?.projectRole !== 'Product Owner') {
+    throw new Error('Only Product Owners can mark stories as realized.')
+  }
+
+  // 4. Check already realized
+  if (story.realized === true) throw new Error('Story is already marked as realized.')
+
+  // 5. Check already rejected
+  if (story.realized === false) throw new Error('Story has already been rejected.')
+
+  // 6. Check story is in active sprint
+  const now = new Date().toISOString()
+  const { data: activeSprints, error: sprintError } = await supabase
+    .from('Sprints')
+    .select('id')
+    .eq('FK_projectId', story.FK_projectId)
+    .lte('startingDate', now)
+    .gte('endingDate', now)
+
+  if (sprintError) throw new Error(sprintError.message)
+  if (!activeSprints || activeSprints.length === 0) throw new Error('No active sprint found.')
+
+  const activeSprintIds = activeSprints.map(s => s.id)
+
+  const { data: sprintLink, error: linkError } = await supabase
+    .from('SprintUserStories')
+    .select('FK_userStoryId')
+    .eq('FK_userStoryId', storyId)
+    .in('FK_sprintId', activeSprintIds)
+    .maybeSingle()
+
+  if (linkError) throw new Error(linkError.message)
+  if (!sprintLink) throw new Error('Story is not part of the active sprint.')
+
+  // 7. Mark as realized
+  const { data, error: updateError } = await supabase
+    .from('UserStories')
+    .update({ realized: true })
+    .eq('id', storyId)
+    .select()
+    .single()
+
+  if (updateError) throw new Error(updateError.message)
+  return data
+}
+
+export async function markStoryRejected(storyId) {
+  // 1. Check authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  // 2. Fetch the story
+  const { data: story, error: storyError } = await supabase
+    .from('UserStories')
+    .select('id, realized, FK_projectId')
+    .eq('id', storyId)
+    .maybeSingle()
+
+  if (storyError) throw new Error(storyError.message)
+  if (!story) throw new Error('User story not found.')
+
+  // 3. Check role — Product Owner only
+  const { data: membership, error: memberError } = await supabase
+    .from('ProjectUsers')
+    .select('ProjectRoles(projectRole)')
+    .eq('FK_projectId', story.FK_projectId)
+    .eq('FK_userId', user.id)
+    .maybeSingle()
+
+  if (memberError) throw new Error(memberError.message)
+  if (!membership) throw new Error('You are not a member of this project.')
+  if (membership.ProjectRoles?.projectRole !== 'Product Owner') {
+    throw new Error('Only Product Owners can reject stories.')
+  }
+
+  // 4. Check already rejected
+  if (story.realized === false) throw new Error('Story has already been rejected.')
+
+  // 5. Check already realized
+  if (story.realized === true) throw new Error('Story is already marked as realized.')
+
+  // 6. Check story is in active sprint
+  const now = new Date().toISOString()
+  const { data: activeSprints, error: sprintError } = await supabase
+    .from('Sprints')
+    .select('id')
+    .eq('FK_projectId', story.FK_projectId)
+    .lte('startingDate', now)
+    .gte('endingDate', now)
+
+  if (sprintError) throw new Error(sprintError.message)
+  if (!activeSprints || activeSprints.length === 0) throw new Error('No active sprint found.')
+
+  const activeSprintIds = activeSprints.map(s => s.id)
+
+  const { data: sprintLink, error: linkError } = await supabase
+    .from('SprintUserStories')
+    .select('FK_userStoryId')
+    .eq('FK_userStoryId', storyId)
+    .in('FK_sprintId', activeSprintIds)
+    .maybeSingle()
+
+  if (linkError) throw new Error(linkError.message)
+  if (!sprintLink) throw new Error('Story is not part of the active sprint.')
+
+  // 7. Mark as rejected
+  const { data, error: updateError } = await supabase
+    .from('UserStories')
+    .update({ realized: false })
+    .eq('id', storyId)
+    .select()
+    .single()
+
+  if (updateError) throw new Error(updateError.message)
+  return data
+}
