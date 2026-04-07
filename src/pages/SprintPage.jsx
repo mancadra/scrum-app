@@ -52,6 +52,13 @@ const SprintPage = () => {
   const openStoryDetails = (story) => setSelectedStoryForDetails(story);
   const closeStoryDetails = () => setSelectedStoryForDetails(null);
 
+  const formatTime = (totalSeconds) => {
+    const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const secs = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  };
+
   const handleAddStoryToSprint = async (storyId) => {
     const activeSprintId = sprintId || sprintData?.sprint?.id;
     if (!activeSprintId) {
@@ -289,8 +296,6 @@ const SprintPage = () => {
           </div>
         ))}
       </div>
-
-      {/* Modal za dodajanje zgodb v sprint */}
       
 
       {/* Potrditveni popup za zaključitev naloge z nezadostnimi urami */}
@@ -423,6 +428,24 @@ const SprintPage = () => {
                                 )}
                               </div>
                             ) : isAcceptedByMe ? (
+                              <div className="d-flex align-items-center gap-2">
+                                {activeTimer?.taskId === task.id ? (
+                                <div className="d-flex align-items-center gap-2">
+                                  <span className="badge bg-primary py-2 px-3">
+                                      ⏱ {formatTime(elapsedSeconds)}
+                                  </span>
+                                  <button className="btn btn-sm btn-outline-danger" onClick={handleStopTimer}>Stop</button>
+                                </div>
+                              ) : (
+                                <button 
+                                  className="btn btn-sm btn-outline-primary" 
+                                  onClick={() => handleStartTimer(task.id)}
+                                  disabled={!!activeTimer} // Prepreči beleženje dveh nalog hkrati
+                                  title={activeTimer ? "Ena naloga že teče!" : ""}
+                                >
+                                  ▶ Začni beležiti
+                                </button>
+                                )}
                               <button className="btn btn-sm btn-warning" onClick={async () => {
                                 try {
                                   const hours = await getTaskLoggedHours(task.id);
@@ -438,6 +461,7 @@ const SprintPage = () => {
                                   fetchSprintBacklog(sprintId);
                                 } catch (err) { alert(`Napaka: ${err.message}`); }
                               }}>Zaključi</button>
+                              </div>
                             ) : (
                               <div className="sprint-modal-task__action-col">
                                 <span className="sprint-modal-task__proposed">
