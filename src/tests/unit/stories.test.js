@@ -19,6 +19,8 @@ function mockChain(overrides) {
         insert:      vi.fn().mockReturnThis(),
         delete:      vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
+        lte:         vi.fn().mockReturnThis(),
+        update:      vi.fn().mockReturnThis(),
         in:          vi.fn().mockReturnThis(),
         or:          vi.fn().mockReturnThis(),
         ilike:       vi.fn().mockReturnThis(),
@@ -551,4 +553,195 @@ describe('addStoriesToSprint', () => {
 
     await expect(addStoriesToSprint(sprintId, storyIds)).rejects.toThrow('Nekatere zgodbe so že dodeljene aktivnemu sprintu')
   })
+})
+import { markStoryRealized } from '../../services/stories'
+
+describe('markStoryRealized()', () => {
+
+  const storyId = 1
+  const userId = 'user-uuid'
+  const projectId = 'project-uuid'
+
+  function mockProductOwner() {
+    return mockChain({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { ProjectRoles: { projectRole: 'Product Owner' } },
+        error: null,
+      }),
+    })
+  }
+
+  function mockStory(realized) {
+    return mockChain({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: storyId, realized, FK_projectId: projectId },
+        error: null,
+      }),
+    })
+  }
+
+  beforeEach(() => vi.clearAllMocks())
+
+  it('successfully marks a story as realized', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    const sprintChain = mockChain({ gte: vi.fn().mockResolvedValue({ data: [{ id: 'sprint-uuid' }], error: null }) })
+    const linkChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userStoryId: storyId }, error: null }) })
+    const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: { id: storyId, realized: true }, error: null }) })
+
+    supabase.from
+      .mockReturnValueOnce(mockStory(null))
+      .mockReturnValueOnce(mockProductOwner())
+      .mockReturnValueOnce(sprintChain)
+      .mockReturnValueOnce(linkChain)
+      .mockReturnValueOnce(updateChain)
+
+    const result = await markStoryRealized(storyId)
+    expect(result).toMatchObject({ realized: true })
+  })
+
+  it('throws if not authenticated', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+    await expect(markStoryRealized(storyId)).rejects.toThrow('Not authenticated.')
+  })
+
+  it('throws if story is already realized', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    supabase.from
+      .mockReturnValueOnce(mockStory(true))
+      .mockReturnValueOnce(mockProductOwner())
+
+    await expect(markStoryRealized(storyId)).rejects.toThrow('Story is already marked as realized.')
+  })
+
+  it('throws if story has been rejected', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    supabase.from
+      .mockReturnValueOnce(mockStory(false))
+      .mockReturnValueOnce(mockProductOwner())
+
+    await expect(markStoryRealized(storyId)).rejects.toThrow('Story has already been rejected.')
+  })
+
+  it('throws if story is not in active sprint', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    const sprintChain = mockChain({ gte: vi.fn().mockResolvedValue({ data: [], error: null }) })
+
+    supabase.from
+      .mockReturnValueOnce(mockStory(null))
+      .mockReturnValueOnce(mockProductOwner())
+      .mockReturnValueOnce(sprintChain)
+
+    await expect(markStoryRealized(storyId)).rejects.toThrow('No active sprint found.')
+  })
+
+  it('throws if user is not a Product Owner', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    supabase.from
+      .mockReturnValueOnce(mockStory(null))
+      .mockReturnValueOnce(mockChain({
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { ProjectRoles: { projectRole: 'Developer' } },
+          error: null,
+        }),
+      }))
+
+    await expect(markStoryRealized(storyId)).rejects.toThrow('Only Product Owners can mark stories as realized.')
+  })
+
+})
+
+import { markStoryRejected } from '../../services/stories'
+
+describe('markStoryRejected()', () => {
+
+  const storyId = 1
+  const userId = 'user-uuid'
+  const projectId = 'project-uuid'
+
+  function mockProductOwner() {
+    return mockChain({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { ProjectRoles: { projectRole: 'Product Owner' } },
+        error: null,
+      }),
+    })
+  }
+
+  function mockStory(realized) {
+    return mockChain({
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: storyId, realized, FK_projectId: projectId },
+        error: null,
+      }),
+    })
+  }
+
+  beforeEach(() => vi.clearAllMocks())
+
+  it('successfully rejects a story', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    const sprintChain = mockChain({ gte: vi.fn().mockResolvedValue({ data: [{ id: 'sprint-uuid' }], error: null }) })
+    const linkChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userStoryId: storyId }, error: null }) })
+    const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: { id: storyId, realized: false }, error: null }) })
+
+    supabase.from
+      .mockReturnValueOnce(mockStory(null))
+      .mockReturnValueOnce(mockProductOwner())
+      .mockReturnValueOnce(sprintChain)
+      .mockReturnValueOnce(linkChain)
+      .mockReturnValueOnce(updateChain)
+
+    const result = await markStoryRejected(storyId)
+    expect(result).toMatchObject({ realized: false })
+  })
+
+  it('throws if not authenticated', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+    await expect(markStoryRejected(storyId)).rejects.toThrow('Not authenticated.')
+  })
+
+  it('throws if story is already rejected', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    supabase.from
+      .mockReturnValueOnce(mockStory(false))
+      .mockReturnValueOnce(mockProductOwner())
+
+    await expect(markStoryRejected(storyId)).rejects.toThrow('Story has already been rejected.')
+  })
+
+  it('throws if story is already realized', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    supabase.from
+      .mockReturnValueOnce(mockStory(true))
+      .mockReturnValueOnce(mockProductOwner())
+
+    await expect(markStoryRejected(storyId)).rejects.toThrow('Story is already marked as realized.')
+  })
+
+  it('throws if story is not in active sprint', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    const sprintChain = mockChain({ gte: vi.fn().mockResolvedValue({ data: [], error: null }) })
+
+    supabase.from
+      .mockReturnValueOnce(mockStory(null))
+      .mockReturnValueOnce(mockProductOwner())
+      .mockReturnValueOnce(sprintChain)
+
+    await expect(markStoryRejected(storyId)).rejects.toThrow('No active sprint found.')
+  })
+
+  it('throws if user is not a Product Owner', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    supabase.from
+      .mockReturnValueOnce(mockStory(null))
+      .mockReturnValueOnce(mockChain({
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { ProjectRoles: { projectRole: 'Developer' } },
+          error: null,
+        }),
+      }))
+
+    await expect(markStoryRejected(storyId)).rejects.toThrow('Only Product Owners can reject stories.')
+  })
+
 })
