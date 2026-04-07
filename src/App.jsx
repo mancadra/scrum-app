@@ -25,6 +25,7 @@ function App() {
   const [selectedProjectSprints, setSelectedProjectSprints] = useState([]);
   const [selectedProjectUsers, setSelectedProjectUsers] = useState([]);
   const [showMFASetup, setShowMFASetup] = useState(false);
+
   const navigate = useNavigate();
 
   async function loadProjects(user) {
