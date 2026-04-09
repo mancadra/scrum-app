@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import useAuth from '../hooks/useAuth';
 import { getTaskLoggedHours } from '../services/tasks';
-import './TaskCard.css';
+import './TOBEDELETEDTaskCard.css';
 
-const TaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, handleFinishTask, handleReopenTask, onUpdate }) => {
+console.log('THE FILE TaskCard.jsx WAS RUN, WE EXPECT TO DELETE IT');
+
+const TOBEDELETEDTaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, handleFinishTask, handleReopenTask, onUpdate }) => {
   const { user } = useAuth();
   const [acceptError, setAcceptError] = useState('');
   const [finishError, setFinishError] = useState('');
@@ -156,4 +158,4 @@ const TaskCard = ({ task, isActiveSprint, canAcceptTasks, handleAcceptTask, hand
   );
 };
 
-export default TaskCard;
+export default TOBEDELETEDTaskCard;

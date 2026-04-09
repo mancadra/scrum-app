@@ -35,6 +35,22 @@ export const useTasks = (projectId) => {
     if (currentSprintId) fetchSprintBacklog(currentSprintId);
   }, [currentSprintId, fetchSprintBacklog]);
 
+  const updateTaskInState = useCallback((taskId, updates) => {
+    setSprintData(prev => {
+      if (!prev) return prev;
+      const newStories = prev.stories.map(story => {
+        const newTasks = {};
+        Object.keys(story.tasks).forEach(status => {
+          newTasks[status] = story.tasks[status].map(task =>
+            task.id === taskId ? { ...task, ...updates } : task
+          );
+        });
+        return { ...story, tasks: newTasks };
+      });
+      return { ...prev, stories: newStories };
+    });
+  }, []);
+
   const handleCreateTask = async (userStoryId, taskFields) => {
     try {
       await createTask(userStoryId, taskFields);
@@ -71,8 +87,14 @@ export const useTasks = (projectId) => {
 
   const handleRejectTask = async (taskId) => {
     try {
-      await rejectTask(taskId);
-      refresh();
+      const updatedTask = await rejectTask(taskId);
+      const updates = {
+        FK_acceptedDeveloper: updatedTask.FK_acceptedDeveloper,
+        FK_proposedDeveloper: updatedTask.FK_proposedDeveloper,
+      };
+      if (!updatedTask.FK_acceptedDeveloper) updates.acceptedDev = null;
+      if (!updatedTask.FK_proposedDeveloper) updates.proposedDev = null;
+      updateTaskInState(taskId, updates);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -82,7 +104,7 @@ export const useTasks = (projectId) => {
   const handleFinishTask = async (taskId) => {
     try {
       await finishTask(taskId);
-      refresh();
+      updateTaskInState(taskId, { finished: true });
     } catch (err) {
       setError(err.message);
       throw err;
@@ -92,7 +114,7 @@ export const useTasks = (projectId) => {
   const handleReopenTask = async (taskId) => {
     try {
       await reopenTask(taskId);
-      refresh();
+      updateTaskInState(taskId, { finished: false });
     } catch (err) {
       setError(err.message);
       throw err;

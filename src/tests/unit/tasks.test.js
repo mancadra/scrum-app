@@ -970,7 +970,9 @@ describe('categorizeStoryForKanban', () => {
 // ---
 
 const PROPOSED_DEV_ID = 'proposed-dev-uuid'
+const ACCEPTED_DEV_ID = 'accepted-dev-uuid'
 const mockProposedTask = { id: 30, FK_userStoryId: 1, FK_proposedDeveloper: PROPOSED_DEV_ID, FK_acceptedDeveloper: null, finished: false }
+const mockAcceptedTask = { id: 31, FK_userStoryId: 1, FK_proposedDeveloper: null, FK_acceptedDeveloper: ACCEPTED_DEV_ID, finished: false }
 
 function mockRejectSetup(userId = PROPOSED_DEV_ID, { task = mockProposedTask, sprintLinks = activeSprintLinks } = {}) {
     mockAuth(userId)
@@ -1013,22 +1015,22 @@ describe('rejectTask', () => {
         await expect(rejectTask(30)).rejects.toThrow('Ni mogoče zavrniti zaključene naloge.')
     })
 
-    it('throws if task is already accepted', async () => {
+    it('throws if task is accepted by another developer and not proposed to user', async () => {
         mockAuth(PROPOSED_DEV_ID)
         supabase.from.mockReturnValueOnce(
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ...mockProposedTask, FK_acceptedDeveloper: 'other-uuid' }, error: null }) })
         )
 
-        await expect(rejectTask(30)).rejects.toThrow('Ni mogoče zavrniti že sprejete naloge.')
+        await expect(rejectTask(30)).rejects.toThrow('Odpovete se lahko samo nalogi, ki ste jo sprejeli ali vam je bila predlagana.')
     })
 
-    it('throws if user is not the proposed developer', async () => {
+    it('throws if user is unrelated to the task', async () => {
         mockAuth('other-uuid')
         supabase.from.mockReturnValueOnce(
             mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: mockProposedTask, error: null }) })
         )
 
-        await expect(rejectTask(30)).rejects.toThrow('Zavrnite lahko samo naloge, predlagane vam.')
+        await expect(rejectTask(30)).rejects.toThrow('Odpovete se lahko samo nalogi, ki ste jo sprejeli ali vam je bila predlagana.')
     })
 
     it('throws if sprint links query fails', async () => {
@@ -1052,7 +1054,7 @@ describe('rejectTask', () => {
         await expect(rejectTask(30)).rejects.toThrow('Naloga ne pripada aktivnemu sprintu.')
     })
 
-    it('throws if update fails', async () => {
+    it('throws if update fails (proposed path)', async () => {
         mockRejectSetup()
         supabase.from.mockReturnValueOnce(
             mockChain({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) })
@@ -1061,7 +1063,7 @@ describe('rejectTask', () => {
         await expect(rejectTask(30)).rejects.toThrow('update failed')
     })
 
-    it('clears FK_proposedDeveloper on success', async () => {
+    it('clears FK_proposedDeveloper when declining a proposal', async () => {
         const updated = { ...mockProposedTask, FK_proposedDeveloper: null }
         mockRejectSetup()
         const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
@@ -1072,7 +1074,7 @@ describe('rejectTask', () => {
         expect(updateChain.update).toHaveBeenCalledWith({ FK_proposedDeveloper: null })
     })
 
-    it('returns the updated task', async () => {
+    it('returns updated task when declining a proposal', async () => {
         const updated = { ...mockProposedTask, FK_proposedDeveloper: null }
         mockRejectSetup()
         supabase.from.mockReturnValueOnce(
@@ -1082,6 +1084,52 @@ describe('rejectTask', () => {
         const result = await rejectTask(30)
 
         expect(result.FK_proposedDeveloper).toBeNull()
+    })
+
+    // --- giving up an already-accepted task ---
+
+    it('throws if timetable update fails when giving up accepted task', async () => {
+        mockRejectSetup(ACCEPTED_DEV_ID, { task: mockAcceptedTask })
+        supabase.from.mockReturnValueOnce(
+            mockChain({ is: vi.fn().mockResolvedValue({ error: { message: 'timetable update failed' } }) })
+        )
+
+        await expect(rejectTask(31)).rejects.toThrow('timetable update failed')
+    })
+
+    it('throws if task update fails when giving up accepted task', async () => {
+        mockRejectSetup(ACCEPTED_DEV_ID, { task: mockAcceptedTask })
+        mockTimetableUpdate()
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: null, error: { message: 'update failed' } }) })
+        )
+
+        await expect(rejectTask(31)).rejects.toThrow('update failed')
+    })
+
+    it('clears FK_acceptedDeveloper when giving up accepted task', async () => {
+        const updated = { ...mockAcceptedTask, FK_acceptedDeveloper: null }
+        mockRejectSetup(ACCEPTED_DEV_ID, { task: mockAcceptedTask })
+        mockTimetableUpdate()
+        const updateChain = mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        supabase.from.mockReturnValueOnce(updateChain)
+
+        await rejectTask(31)
+
+        expect(updateChain.update).toHaveBeenCalledWith({ FK_acceptedDeveloper: null })
+    })
+
+    it('returns updated task when giving up accepted task', async () => {
+        const updated = { ...mockAcceptedTask, FK_acceptedDeveloper: null }
+        mockRejectSetup(ACCEPTED_DEV_ID, { task: mockAcceptedTask })
+        mockTimetableUpdate()
+        supabase.from.mockReturnValueOnce(
+            mockChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
+        )
+
+        const result = await rejectTask(31)
+
+        expect(result.FK_acceptedDeveloper).toBeNull()
     })
 })
 

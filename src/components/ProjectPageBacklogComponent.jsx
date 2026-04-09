@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import UserStoryForm from './UserStoryForm';
 import BacklogStoryComponent from './BacklogStoryComponent';
 import BacklogStoryDetailsComponent from './BacklogStoryDetailsComponent';
-import { createUserStory, setTimeComplexity } from '../services/stories';
+import { createUserStory, setTimeComplexity, editUserStory, deleteUserStory } from '../services/stories';
 import { getCurrentUser } from '../services/auth';
 import {
   getRealizedStories,
@@ -25,6 +25,9 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
   const [unassignedStories, setUnassignedStories] = useState([]);
   const [canAddStory, setCanAddStory] = useState(false);
   const [canEditTimeComplexity, setCanEditTimeComplexity] = useState(false);
+  const [canManageStories, setCanManageStories] = useState(false);
+  const [editingStory, setEditingStory] = useState(null);
+  const [storyToDelete, setStoryToDelete] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +36,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
       if (!project?.id) {
         setCanAddStory(false);
         setCanEditTimeComplexity(false);
+        setCanManageStories(false);
         return;
       }
 
@@ -44,16 +48,19 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         const roles = userMemberships.map(m => m.ProjectRoles?.projectRole);
 
         const nextCanAddStory = roles.includes('Scrum Master') || roles.includes('Product Owner');
+        const nextCanManageStories = roles.includes('Scrum Master') || roles.includes('Product Owner');
         const nextCanEditTimeComplexity = roles.includes('Scrum Master');
 
         if (!cancelled) {
           setCanAddStory(nextCanAddStory);
           setCanEditTimeComplexity(nextCanEditTimeComplexity);
+          setCanManageStories(nextCanManageStories);
         }
       } catch {
         if (!cancelled) {
           setCanAddStory(false);
           setCanEditTimeComplexity(false);
+          setCanManageStories(false);
         }
       }
     };
@@ -114,6 +121,17 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     setUnassignedStories(unassignedData ?? []);
   };
 
+  const validateStoryModifiable = (story) => {
+    if (!canManageStories) return "Nimate pravic za urejanje/brisanje zgodb.";
+    if (story.realized) return "Zgodba je že realizirana in je ni mogoče spreminjati ali brisati.";
+    
+    // Preverimo, če je zgodba v seznamu "assigned" (dodeljena sprintu) ali ima eksplicitno nastavljen sprintId
+    const isAssigned = assignedStories.some(s => s.id === story.id) || story.sprintId != null;
+    if (isAssigned) return "Zgodba je že dodeljena Sprintu in je ni mogoče spreminjati ali brisati.";
+    
+    return null;
+  };
+
   const handleCreateStory = async (storyData) => {
     setLoading(true);
     setError('');
@@ -133,6 +151,48 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUpdateStory = async (storyData) => {
+    setLoading(true);
+    setError('');
+    try {
+      await editUserStory(editingStory.id, storyData);
+      await refreshStories();
+      setEditingStory(null);
+    } catch (err) {
+      setError(err.message || 'Napaka pri posodabljanju zgodbe.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!storyToDelete) return;
+    setLoading(true);
+    setError('');
+    try {
+      await deleteUserStory(storyToDelete.id);
+      await refreshStories();
+      setStoryToDelete(null);
+    } catch (err) {
+      setError(err.message || 'Napaka pri brisanju zgodbe.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const initiateEdit = (story) => {
+    const validationError = validateStoryModifiable(story);
+    if (validationError) { alert(validationError); return; }
+    setEditingStory(story);
+  };
+
+  const initiateDelete = (story) => {
+    const validationError = validateStoryModifiable(story);
+    if (validationError) { alert(validationError); return; }
+    setStoryToDelete(story);
   };
 
   const handleOpenTimeComplexityModal = (story) => {
@@ -190,7 +250,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     return priorityMap[Number(rawPriority)] ?? rawPriority ?? '—';
   };
 
-  const renderStories = (stories, emptyMessage) => {
+  const renderStories = (stories, emptyMessage, isUnassigned = false) => {
     if (!stories || stories.length === 0) {
       return <div className="project-panel__empty">{emptyMessage}</div>;
     }
@@ -205,6 +265,8 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
             onClick={setSelectedStory}
             onTimeComplexityClick={handleOpenTimeComplexityModal}
             canEditTimeComplexity={canEditTimeComplexity}
+            onEdit={isUnassigned && canManageStories ? () => initiateEdit(story) : null}
+            onDelete={isUnassigned && canManageStories ? () => initiateDelete(story) : null}
           />
         ))}
       </div>
@@ -226,7 +288,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         )}
       </div>
 
-      {error && <div className="project-panel__error">{error}</div>}
+      {!isFormOpen && !editingStory && error && <div className="error-message">{error}</div>}
 
       {pageLoading ? (
         <div className="project-panel__empty">Nalaganje zahtev...</div>
@@ -234,17 +296,17 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         <>
           <section className="project-backlog__section">
             <h3>Realizirane Zgodbe</h3>
-            {renderStories(realizedStories, 'Ni najdenih zgodb.')}
+            {renderStories(realizedStories, 'Ni najdenih zgodb.', false)}
           </section>
 
           <section className="project-backlog__section">
             <h3>Dodeljene (nerealizirane) Zgodbe</h3>
-            {renderStories(assignedStories, 'Ni najdenih zgodb.')}
+            {renderStories(assignedStories, 'Ni najdenih zgodb.', false)}
           </section>
 
           <section className="project-backlog__section">
             <h3>Nedokončane Zgodbe</h3>
-            {renderStories(unassignedStories, 'Ni najdenih zgodb.')}
+            {renderStories(unassignedStories, 'Ni najdenih zgodb.', true)}
           </section>
         </>
       )}
@@ -312,6 +374,46 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
           onStoryCreated={() => setIsFormOpen(false)}
           onClose={() => setIsFormOpen(false)}
         />
+      )}
+
+      {editingStory && (
+        <UserStoryForm
+          projectId={project.id}
+          initialData={editingStory} // Predpostavka: UserStoryForm zna prebrati initialData
+          addStory={handleUpdateStory}
+          loading={loading}
+          error={error}
+          onClose={() => { setEditingStory(null); setError(''); }}
+        />
+      )}
+      {storyToDelete && (
+        <div className="story-modal-overlay" onClick={() => setStoryToDelete(null)}>
+          <div className="story-modal story-modal--compact" onClick={(e) => e.stopPropagation()}>
+            <div className="story-modal__header">
+              <h2>Brisanje zgodbe</h2>
+            </div>
+            <div className="story-modal__content">
+              <p>Ali ste prepričani, da želite izbrisati zgodbo <strong>{storyToDelete.name}</strong>?</p>
+              <div className="story-modal__actions mt-4">
+                <button 
+                  type="button" 
+                  className="btn btn-danger" 
+                  onClick={handleConfirmDelete} 
+                  disabled={loading}
+                >
+                  {loading ? 'Brisanje...' : 'Izbriši'}
+                </button>
+                <button 
+                  type="button" 
+                  className="story-modal__secondary-button btn btn-secondary ms-2" 
+                  onClick={() => setStoryToDelete(null)}
+                >
+                  Prekliči
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

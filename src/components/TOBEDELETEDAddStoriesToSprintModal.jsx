@@ -1,4 +1,7 @@
-const AddStoriesToSprintModal = ({ projectId, currentSprintId, onUpdated }) => {
+
+console.log('THE FILE AddStoriesToSprintModal.jsx WAS RUN, WE EXPECT TO DELETE IT');
+
+const TOBEDELETEDAddStoriesToSprintModal = ({ projectId, currentSprintId, onUpdated }) => {
   const [availableStories, setAvailableStories] = useState([]);
   
   // Naloži zgodbe projekta, ki so ocenjene in niso v sprintu

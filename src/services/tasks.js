@@ -105,8 +105,10 @@ export function canAcceptTask(task, currentUserId, userProjectRoles) {
 }
 
 export function canRejectTask(task, currentUserId) {
-    if (!task || task.finished || !!task.FK_acceptedDeveloper) return false
-    return task.FK_proposedDeveloper === currentUserId
+    if (!task || task.finished) return false
+    if (task.FK_acceptedDeveloper === currentUserId) return true
+    if (task.FK_proposedDeveloper === currentUserId && !task.FK_acceptedDeveloper) return true
+    return false
 }
 
 export function categorizeStoryForKanban(story) {
@@ -518,8 +520,13 @@ export async function rejectTask(taskId) {
     if (taskError) throw new Error(taskError.message)
     if (!task) throw new Error('Naloga ni bila najdena.')
     if (task.finished) throw new Error('Ni mogoče zavrniti zaključene naloge.')
-    if (task.FK_acceptedDeveloper) throw new Error('Ni mogoče zavrniti že sprejete naloge.')
-    if (task.FK_proposedDeveloper !== user.id) throw new Error('Zavrnite lahko samo naloge, predlagane vam.')
+
+    const isAcceptedByMe = task.FK_acceptedDeveloper === user.id
+    const isProposedToMe = task.FK_proposedDeveloper === user.id && !task.FK_acceptedDeveloper
+
+    if (!isAcceptedByMe && !isProposedToMe) {
+        throw new Error('Odpovete se lahko samo nalogi, ki ste jo sprejeli ali vam je bila predlagana.')
+    }
 
     const { data: sprintLinks, error: sprintError } = await supabase
         .from('SprintUserStories')
@@ -537,13 +544,35 @@ export async function rejectTask(taskId) {
 
     if (!isInActiveSprint) throw new Error('Naloga ne pripada aktivnemu sprintu.')
 
-    const { data: updated, error: updateError } = await supabase
-        .from('Tasks')
-        .update({ FK_proposedDeveloper: null })
-        .eq('id', taskId)
-        .select()
-        .single()
+    if (isAcceptedByMe) {
+        // Close any open timer before giving up the task
+        const { error: ttError } = await supabase
+            .from('TimeTables')
+            .update({ stoptime: now.toISOString() })
+            .eq('FK_taskId', taskId)
+            .eq('FK_userId', user.id)
+            .is('stoptime', null)
 
-    if (updateError) throw new Error(updateError.message)
-    return updated
+        if (ttError) throw new Error(ttError.message)
+
+        const { data: updated, error: updateError } = await supabase
+            .from('Tasks')
+            .update({ FK_acceptedDeveloper: null })
+            .eq('id', taskId)
+            .select()
+            .single()
+
+        if (updateError) throw new Error(updateError.message)
+        return updated
+    } else {
+        const { data: updated, error: updateError } = await supabase
+            .from('Tasks')
+            .update({ FK_proposedDeveloper: null })
+            .eq('id', taskId)
+            .select()
+            .single()
+
+        if (updateError) throw new Error(updateError.message)
+        return updated
+    }
 }

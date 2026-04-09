@@ -13,7 +13,7 @@ import {
   getTaskLoggedHours,
 } from '../services/tasks';
 import TaskForm from '../components/TaskForm';
-import { getStoriesForProject, addStoriesToSprint } from '../services/stories';
+import { getStoriesForProject, addStoriesToSprint, markStoryRealized, markStoryRejected } from '../services/stories';
 import './SprintPage.css';
 import '../components/BacklogStoryComponent.css';
 import '../components/BacklogStoryDetailsComponent.css';
@@ -32,7 +32,18 @@ const formatUserName = (user) => {
 
 const SprintPage = () => {
   const { projectId, sprintId } = useParams();
-  const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleRejectTask, handleFinishTask, handleReopenTask } = useTasks(projectId);
+  const {
+    sprintData,
+    setSprintData,
+    loading,
+    fetchSprintBacklog,
+    handleUpdateStoryStatus,
+    handleCreateTask,
+    handleAcceptTask,
+    handleRejectTask,
+    handleFinishTask,
+    handleReopenTask,
+  } = useTasks(projectId);
   const { activeTimer, elapsedSeconds, handleStartTimer, handleStopTimer } = useTimer();
   // Usage in task row:
   //   const isMyTimerRunning = activeTimer?.taskId === task.id;
@@ -51,6 +62,13 @@ const SprintPage = () => {
 
   const openStoryDetails = (story) => setSelectedStoryForDetails(story);
   const closeStoryDetails = () => setSelectedStoryForDetails(null);
+
+  const formatTime = (totalSeconds) => {
+    const hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const secs = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  };
 
   const handleAddStoryToSprint = async (storyId) => {
     const activeSprintId = sprintId || sprintData?.sprint?.id;
@@ -177,6 +195,8 @@ const SprintPage = () => {
   const modalAllTasks = Object.values(activeStoryForModal?.tasks || {}).flat();
   const modalFinishedCount = modalAllTasks.filter(t => t.finished).length;
 
+  const isProductOwner = currentUserProjectRoles.includes('Product Owner');
+
   return (
     <div className="dashboard-container p-4">
       <div className="header-section d-flex justify-content-between align-items-center mb-4">
@@ -231,6 +251,8 @@ const SprintPage = () => {
                 const totalTasks = allTasks.length;
                 const priority = story.Priorities?.priority ?? null;
                 const priorityClass = priority === 'Must have' ? 'priority-high' : priority === 'Should have' ? 'priority-medium' : 'priority-low';
+                const canMarkRealized = status === 'testing' && isProductOwner && !story.realized;
+                const canRejectStory = status !== 'finished' && isProductOwner && !story.realized;
 
                 return (
                   <div
@@ -238,7 +260,7 @@ const SprintPage = () => {
                     draggable
                     onDragStart={(e) => handleDragStart(e, story.id)}
                     onClick={() => openStoryDetails(story)}
-                    className={`user-story-kanban-card mb-3 ${priorityClass}`}
+                    className={`user-story-kanban-card mb-3 ${priorityClass} ${story.realized ? 'user-story-kanban-card--realized' : ''}`}
                   >
                     <div className="card-main-content">
                       <div className="card-header-row">
@@ -267,6 +289,42 @@ const SprintPage = () => {
                         </div>
                       </div>
 
+                      {canMarkRealized && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-success mt-2"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await markStoryRealized(story.id);
+                              await fetchSprintBacklog(sprintId);
+                            } catch (err) {
+                              alert(`Napaka: ${err.message}`);
+                            }
+                          }}
+                        >
+                          Označi kot realizirano
+                        </button>
+                      )}
+
+                      {canRejectStory && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger mt-2"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await markStoryRejected(story.id);
+                              await fetchSprintBacklog(sprintId);
+                            } catch (err) {
+                              alert(`Napaka: ${err.message}`);
+                            }
+                          }}
+                        >
+                          Označi kot zavrnjeno
+                        </button>
+                      )}
+
                       {totalTasks > 0 && (
                         <div className="card-progress-row">
                           <div className="card-progress-label">
@@ -289,8 +347,6 @@ const SprintPage = () => {
           </div>
         ))}
       </div>
-
-      {/* Modal za dodajanje zgodb v sprint */}
       
 
       {/* Potrditveni popup za zaključitev naloge z nezadostnimi urami */}
@@ -312,7 +368,7 @@ const SprintPage = () => {
                 <button className="btn btn-sm btn-warning" onClick={async () => {
                   const task = finishConfirm.task;
                   setFinishConfirm(null);
-                  try { await handleFinishTask(task.id); fetchSprintBacklog(sprintId); }
+                  try { await handleFinishTask(task.id); }
                   catch (err) { alert(`Napaka: ${err.message}`); }
                 }}>Zaključi vseeno</button>
               </div>
@@ -417,12 +473,30 @@ const SprintPage = () => {
                                 <span className="sprint-modal-badge sprint-modal-badge--done">Zaključeno</span>
                                 {isAcceptedByMe && isSprintActive && (
                                   <button className="btn btn-sm btn-outline-secondary" onClick={async () => {
-                                    try { await handleReopenTask(task.id); fetchSprintBacklog(sprintId); }
+                                    try { await handleReopenTask(task.id); }
                                     catch (err) { alert(`Napaka: ${err.message}`); }
                                   }}>Znova odpri</button>
                                 )}
                               </div>
                             ) : isAcceptedByMe ? (
+                              <div className="d-flex align-items-center gap-2">
+                                {activeTimer?.taskId === task.id ? (
+                                <div className="d-flex align-items-center gap-2">
+                                  <span className="badge bg-primary py-2 px-3">
+                                      ⏱ {formatTime(elapsedSeconds)}
+                                  </span>
+                                  <button className="btn btn-sm btn-outline-danger" onClick={handleStopTimer}>Stop</button>
+                                </div>
+                              ) : (
+                                <button 
+                                  className="btn btn-sm btn-outline-primary" 
+                                  onClick={() => handleStartTimer(task.id)}
+                                  disabled={!!activeTimer} // Prepreči beleženje dveh nalog hkrati
+                                  title={activeTimer ? "Ena naloga že teče!" : ""}
+                                >
+                                  ▶ Začni beležiti
+                                </button>
+                                )}
                               <button className="btn btn-sm btn-warning" onClick={async () => {
                                 try {
                                   const hours = await getTaskLoggedHours(task.id);
@@ -435,9 +509,15 @@ const SprintPage = () => {
                                     return;
                                   }
                                   await handleFinishTask(task.id);
-                                  fetchSprintBacklog(sprintId);
                                 } catch (err) { alert(`Napaka: ${err.message}`); }
                               }}>Zaključi</button>
+                              {isSprintActive && (
+                                <button className="btn btn-sm btn-outline-danger" onClick={async () => {
+                                  try { await handleRejectTask(task.id, currentUser.id); }
+                                  catch (err) { alert(`Napaka: ${err.message}`); }
+                                }}>Odpovej</button>
+                              )}
+                              </div>
                             ) : (
                               <div className="sprint-modal-task__action-col">
                                 <span className="sprint-modal-task__proposed">
@@ -448,14 +528,14 @@ const SprintPage = () => {
     <div className="sprint-modal-task__action-row d-flex gap-2">
       {canAccept && (
         <button className="btn btn-sm btn-success" disabled={!currentUser} onClick={async () => {
-          try { await handleAcceptTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+          try { await handleAcceptTask(task.id, currentUser.id); }
           catch (err) { alert(`Napaka: ${err.message}`); }
         }}>Sprejmi</button>
       )}
       
       {canReject && (
         <button className="btn btn-sm btn-outline-danger" disabled={!currentUser} onClick={async () => {
-          try { await handleRejectTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+          try { await handleRejectTask(task.id, currentUser.id); }
           catch (err) { alert(`Napaka: ${err.message}`); }
         }}>Zavrni</button>
       )}

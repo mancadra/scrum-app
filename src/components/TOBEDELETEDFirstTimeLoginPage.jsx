@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import './FirstTimeLoginPage.css';
-
-export default function FirstTimeLoginPage() {
+import './TOBEDELETEDFirstTimeLoginPage.css';
+console.log('THE FILE FirstTimeLoginPage.jsx WAS RUN, WE EXPECT TO DELETE IT');
+export default function TOBEDELETEDFirstTimeLoginPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
