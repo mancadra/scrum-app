@@ -5,6 +5,7 @@
 }
 
 .backlog-story-card__body {
+    position: relative;
     width: 100%;
     min-width: 0;
     height: 100%;

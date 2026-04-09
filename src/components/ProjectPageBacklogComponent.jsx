@@ -288,7 +288,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
         )}
       </div>
 
-      {error && <div className="project-panel__error">{error}</div>}
+      {!isFormOpen && !editingStory && error && <div className="error-message">{error}</div>}
 
       {pageLoading ? (
         <div className="project-panel__empty">Nalaganje zahtev...</div>
@@ -382,6 +382,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
           initialData={editingStory} // Predpostavka: UserStoryForm zna prebrati initialData
           addStory={handleUpdateStory}
           loading={loading}
+          error={error}
           onClose={() => { setEditingStory(null); setError(''); }}
         />
       )}
