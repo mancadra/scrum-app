@@ -317,7 +317,7 @@ const SprintPage = () => {
                 <button className="btn btn-sm btn-warning" onClick={async () => {
                   const task = finishConfirm.task;
                   setFinishConfirm(null);
-                  try { await handleFinishTask(task.id); fetchSprintBacklog(sprintId); }
+                  try { await handleFinishTask(task.id); }
                   catch (err) { alert(`Napaka: ${err.message}`); }
                 }}>Zaključi vseeno</button>
               </div>
@@ -422,7 +422,7 @@ const SprintPage = () => {
                                 <span className="sprint-modal-badge sprint-modal-badge--done">Zaključeno</span>
                                 {isAcceptedByMe && isSprintActive && (
                                   <button className="btn btn-sm btn-outline-secondary" onClick={async () => {
-                                    try { await handleReopenTask(task.id); fetchSprintBacklog(sprintId); }
+                                    try { await handleReopenTask(task.id); }
                                     catch (err) { alert(`Napaka: ${err.message}`); }
                                   }}>Znova odpri</button>
                                 )}
@@ -458,9 +458,14 @@ const SprintPage = () => {
                                     return;
                                   }
                                   await handleFinishTask(task.id);
-                                  fetchSprintBacklog(sprintId);
                                 } catch (err) { alert(`Napaka: ${err.message}`); }
                               }}>Zaključi</button>
+                              {isSprintActive && (
+                                <button className="btn btn-sm btn-outline-danger" onClick={async () => {
+                                  try { await handleRejectTask(task.id, currentUser.id); }
+                                  catch (err) { alert(`Napaka: ${err.message}`); }
+                                }}>Odpovej</button>
+                              )}
                               </div>
                             ) : (
                               <div className="sprint-modal-task__action-col">
@@ -472,14 +477,14 @@ const SprintPage = () => {
     <div className="sprint-modal-task__action-row d-flex gap-2">
       {canAccept && (
         <button className="btn btn-sm btn-success" disabled={!currentUser} onClick={async () => {
-          try { await handleAcceptTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+          try { await handleAcceptTask(task.id, currentUser.id); }
           catch (err) { alert(`Napaka: ${err.message}`); }
         }}>Sprejmi</button>
       )}
       
       {canReject && (
         <button className="btn btn-sm btn-outline-danger" disabled={!currentUser} onClick={async () => {
-          try { await handleRejectTask(task.id, currentUser.id); fetchSprintBacklog(sprintId); }
+          try { await handleRejectTask(task.id, currentUser.id); }
           catch (err) { alert(`Napaka: ${err.message}`); }
         }}>Zavrni</button>
       )}
