@@ -30,7 +30,7 @@ const useAuth = () => {
     ur => ur.Roles?.name === 'Developer'
   ) ?? false;
 
-  // Izvozimo objekte, ki jih TaskCard in App potrebujejo
+  // Izvozimo objekte, ki jih TOBEDELETEDTaskCard in App potrebujejo
   return {
     user,
     isAdmin,

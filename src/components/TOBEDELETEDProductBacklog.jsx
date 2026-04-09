@@ -1,10 +1,12 @@
-import Storypoint from "./Storypoint";
-import "./ProductBacklog.css";
+import TOBEDELETEDStorypoint from "./TOBEDELETEDStorypoint.jsx";
+import "./TOBEDELETEDProductBacklog.css";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getRealizedStories, getAssignedStories, getUnassignedStories } from "../services/productBacklog";
 
-function ProductBacklog() {
+console.log('THE FILE ProductBacklog.jsx WAS RUN, WE EXPECT TO DELETE IT');
+
+function TOBEDELETEDProductBacklog() {
   const { projectId } = useParams()
   const [realized, setRealized] = useState([])
   const [assigned, setAssigned] = useState([])
@@ -68,7 +70,7 @@ function ProductBacklog() {
     return (
       <div className="storypoint-grid">
         {items.map((storypoint) => (
-          <Storypoint
+          <TOBEDELETEDStorypoint
             key={storypoint.id}
             storypoint={storypoint}
             isAssigned={isAssigned}
@@ -133,4 +135,4 @@ function ProductBacklog() {
   )
 }
 
-export default ProductBacklog
+export default TOBEDELETEDProductBacklog

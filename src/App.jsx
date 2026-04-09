@@ -3,7 +3,7 @@ import CreateProjectPage from './pages/CreateProjectPage'
 import AdminPage from './pages/AdminPage'
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import AddUserStoryPage from "./pages/ProductBacklogPage";
+import AddUserStoryPage from "./pages/TOBEDELETEDProductBacklogPage.jsx"; /*THIS LINE CAN PROBABLY BE DELETED*/
 import LoginPage from "./pages/LoginPage";
 import NavbarComponent from "./components/NavbarComponent.jsx";
 import SprintPage from "./pages/SprintPage.jsx";
@@ -25,6 +25,7 @@ function App() {
   const [selectedProjectSprints, setSelectedProjectSprints] = useState([]);
   const [selectedProjectUsers, setSelectedProjectUsers] = useState([]);
   const [showMFASetup, setShowMFASetup] = useState(false);
+
   const navigate = useNavigate();
 
   async function loadProjects(user) {
@@ -207,7 +208,7 @@ function App() {
           <Route
               path="/project/:projectId/backlog"
               element={!currentUser ? <Navigate to="/login" replace /> : <AddUserStoryPage />}
-          />
+          /> {/*THIS ROUTE CAN PROBABLY BE DELETED*/}
 
           <Route
               path="/"

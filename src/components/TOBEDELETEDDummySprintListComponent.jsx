@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import AddSprintComponent from "./AddSprintComponent";
-import "./DummySprintListComponent.css";
+import "./TOBEDELETEDDummySprintListComponent.css";
+
+console.log('THE FILE DummySprintListComponent.jsx WAS RUN, WE EXPECT TO DELETE IT');
 
 export default function SprintPage() {
   const [showAddSprintModal, setShowAddSprintModal] = useState(false);
