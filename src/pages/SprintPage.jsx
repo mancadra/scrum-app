@@ -13,7 +13,7 @@ import {
   getTaskLoggedHours,
 } from '../services/tasks';
 import TaskForm from '../components/TaskForm';
-import { getStoriesForProject, addStoriesToSprint } from '../services/stories';
+import { getStoriesForProject, addStoriesToSprint, markStoryRealized, markStoryRejected } from '../services/stories';
 import './SprintPage.css';
 import '../components/BacklogStoryComponent.css';
 import '../components/BacklogStoryDetailsComponent.css';
@@ -32,7 +32,18 @@ const formatUserName = (user) => {
 
 const SprintPage = () => {
   const { projectId, sprintId } = useParams();
-  const { sprintData, setSprintData, loading, fetchSprintBacklog, handleUpdateStoryStatus, handleCreateTask, handleAcceptTask, handleRejectTask, handleFinishTask, handleReopenTask } = useTasks(projectId);
+  const {
+    sprintData,
+    setSprintData,
+    loading,
+    fetchSprintBacklog,
+    handleUpdateStoryStatus,
+    handleCreateTask,
+    handleAcceptTask,
+    handleRejectTask,
+    handleFinishTask,
+    handleReopenTask,
+  } = useTasks(projectId);
   const { activeTimer, elapsedSeconds, handleStartTimer, handleStopTimer } = useTimer();
   // Usage in task row:
   //   const isMyTimerRunning = activeTimer?.taskId === task.id;
@@ -184,6 +195,8 @@ const SprintPage = () => {
   const modalAllTasks = Object.values(activeStoryForModal?.tasks || {}).flat();
   const modalFinishedCount = modalAllTasks.filter(t => t.finished).length;
 
+  const isProductOwner = currentUserProjectRoles.includes('Product Owner');
+
   return (
     <div className="dashboard-container p-4">
       <div className="header-section d-flex justify-content-between align-items-center mb-4">
@@ -238,6 +251,8 @@ const SprintPage = () => {
                 const totalTasks = allTasks.length;
                 const priority = story.Priorities?.priority ?? null;
                 const priorityClass = priority === 'Must have' ? 'priority-high' : priority === 'Should have' ? 'priority-medium' : 'priority-low';
+                const canMarkRealized = status === 'testing' && isProductOwner && !story.realized;
+                const canRejectStory = status !== 'finished' && isProductOwner && !story.realized;
 
                 return (
                   <div
@@ -245,7 +260,7 @@ const SprintPage = () => {
                     draggable
                     onDragStart={(e) => handleDragStart(e, story.id)}
                     onClick={() => openStoryDetails(story)}
-                    className={`user-story-kanban-card mb-3 ${priorityClass}`}
+                    className={`user-story-kanban-card mb-3 ${priorityClass} ${story.realized ? 'user-story-kanban-card--realized' : ''}`}
                   >
                     <div className="card-main-content">
                       <div className="card-header-row">
@@ -273,6 +288,42 @@ const SprintPage = () => {
                           <strong>Poslovna vrednost:</strong> {story.businessValue ?? '—'}
                         </div>
                       </div>
+
+                      {canMarkRealized && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-success mt-2"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await markStoryRealized(story.id);
+                              await fetchSprintBacklog(sprintId);
+                            } catch (err) {
+                              alert(`Napaka: ${err.message}`);
+                            }
+                          }}
+                        >
+                          Označi kot realizirano
+                        </button>
+                      )}
+
+                      {canRejectStory && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger mt-2"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await markStoryRejected(story.id);
+                              await fetchSprintBacklog(sprintId);
+                            } catch (err) {
+                              alert(`Napaka: ${err.message}`);
+                            }
+                          }}
+                        >
+                          Označi kot zavrnjeno
+                        </button>
+                      )}
 
                       {totalTasks > 0 && (
                         <div className="card-progress-row">
