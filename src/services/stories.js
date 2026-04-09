@@ -452,11 +452,21 @@ export async function deleteUserStory(storyId) {
 
   await checkStoryEditable(storyId, user.id)
 
-  const { error } = await supabase
+  // 1. NAJPREJ IZBRIŠI POVEZANE TESTE
+  const { error: testError } = await supabase
+    .from('AcceptanceTests')
+    .delete()
+    .eq('FK_userStoryId', storyId)
+
+  if (testError) throw new Error('Napaka pri brisanju testov: ' + testError.message)
+
+  // 2. NATO IZBRIŠI ZGODBO
+  const { error: storyError } = await supabase
     .from('UserStories')
     .delete()
     .eq('id', storyId)
 
-  if (error) throw new Error(error.message)
+  if (storyError) throw new Error('Napaka pri brisanju zgodbe: ' + storyError.message)
+
   return true
 }
