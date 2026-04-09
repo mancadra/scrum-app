@@ -7,6 +7,8 @@ const BacklogStoryComponent = ({
                                    onClick,
                                    onTimeComplexityClick,
                                    canEditTimeComplexity,
+                                   onEdit,
+                                    onDelete,
                                }) => {
     if (!story) return null;
 
@@ -31,10 +33,39 @@ const BacklogStoryComponent = ({
                     }
                 }}
             >
+                <div className="backlog-story-card__actions">
+              {onEdit && (
+                <button
+                  type="button"
+                  className="backlog-action-btn edit"
+                  title="Uredi zgodbo"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(story);
+                  }}
+                >
+                  ✏️
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  className="backlog-action-btn delete"
+                  title="Izbriši zgodbo"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(story);
+                  }}
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
                 <div className="backlog-story-card__header">
                     <h3 className="backlog-story-card__title">{story.name}</h3>
                     {priority && <span className={priorityClassName}>{priority}</span>}
-                </div>
+                
+          </div>
 
                 <div className="backlog-story-card__meta">
                     {story.timeComplexity != null && story.timeComplexity !== '' && (
