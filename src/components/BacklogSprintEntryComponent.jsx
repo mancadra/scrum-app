@@ -35,7 +35,7 @@ const BacklogSprintEntryComponent = ({ sprint, sprintNumber, onClick }) => {
                 <span>{formatDate(sprint.endingDate)}</span>
             </div>
             <div className="sprint-card__row">
-                <span className="sprint-card__label">Hitrost:</span>
+                <span className="sprint-card__label">Časovna zahtevnost:</span>
                 <span>{sprint.startingSpeed}</span>
             </div>
         </button>
