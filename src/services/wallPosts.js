@@ -14,10 +14,10 @@ async function assertProjectMember(projectId, userId) {
         .select('FK_userId')
         .eq('FK_projectId', projectId)
         .eq('FK_userId', userId)
-        .maybeSingle();
+        .limit(1);
 
     if (error) throw new Error(error.message);
-    if (!data) throw new Error('Niste član tega projekta.');
+    if (!data || data.length === 0) throw new Error('Niste član tega projekta.');
 }
 
 /**
@@ -28,15 +28,30 @@ export async function getWallPosts(projectId) {
     const user = await getSessionUser();
     await assertProjectMember(projectId, user.id);
 
-    const { data, error } = await supabase
+    const { data: posts, error } = await supabase
         .from('WallPosts')
-        .select('id, content, created_at, responseTo, Users(id, username, name, surname)')
+        .select('id, content, created_at, responseTo, FK_userId')
         .eq('FK_projectId', projectId)
         .is('responseTo', null)
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data ?? [];
+    if (!posts || posts.length === 0) return [];
+
+    const userIds = [...new Set(posts.map(p => p.FK_userId).filter(Boolean))];
+    const { data: users, error: usersError } = await supabase
+        .from('Users')
+        .select('id, username, name, surname')
+        .in('id', userIds);
+
+    if (usersError) throw new Error(usersError.message);
+
+    const usersMap = Object.fromEntries((users ?? []).map(u => [u.id, u]));
+
+    return posts.map(post => ({
+        ...post,
+        Users: usersMap[post.FK_userId] ?? null,
+    }));
 }
 
 /**
@@ -50,12 +65,19 @@ export async function createWallPost(projectId, content) {
     const user = await getSessionUser();
     await assertProjectMember(projectId, user.id);
 
-    const { data, error } = await supabase
+    const { data: post, error } = await supabase
         .from('WallPosts')
         .insert({ FK_projectId: projectId, FK_userId: user.id, content: content.trim(), responseTo: null })
-        .select('id, content, created_at, responseTo, Users(id, username, name, surname)')
+        .select('id, content, created_at, responseTo, FK_userId')
         .single();
 
     if (error) throw new Error(error.message);
-    return data;
+
+    const { data: userData } = await supabase
+        .from('Users')
+        .select('id, username, name, surname')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    return { ...post, Users: userData ?? null };
 }
