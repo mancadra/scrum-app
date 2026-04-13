@@ -108,3 +108,146 @@ export async function createProject(name, description, users) {
 
     return project
 }
+
+async function checkProjectAdmin(projectId, userId) {
+  // Check system-level admin OR project-level Scrum Master
+  const { data: roleData, error: roleError } = await supabase
+    .from('UserRoles')
+    .select('Roles(name)')
+    .eq('FK_userId', userId)
+
+  if (roleError) throw new Error(roleError.message)
+
+  const isAdmin = roleData?.some(r => r.Roles?.name === 'Admin')
+
+  if (!isAdmin) {
+    const { data: membership, error: memberError } = await supabase
+      .from('ProjectUsers')
+      .select('ProjectRoles(projectRole)')
+      .eq('FK_projectId', projectId)
+      .eq('FK_userId', userId)
+      .maybeSingle()
+
+    if (memberError) throw new Error(memberError.message)
+    if (!membership) throw new Error('You are not a member of this project.')
+
+    const role = membership.ProjectRoles?.projectRole
+    if (role !== 'Scrum Master') throw new Error('Only Admins and Scrum Masters can manage project members.')
+  }
+}
+
+export async function updateProjectName(projectId, name) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  await checkProjectAdmin(projectId, user.id)
+
+  // Check duplicate name
+  const { data: existing, error: dupError } = await supabase
+    .from('Projects')
+    .select('id')
+    .ilike('name', name)
+    .neq('id', projectId)
+    .maybeSingle()
+
+  if (dupError) throw new Error(dupError.message)
+  if (existing) throw new Error(`A project named "${name}" already exists.`)
+
+  const { data, error } = await supabase
+    .from('Projects')
+    .update({ name })
+    .eq('id', projectId)
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function addProjectMember(projectId, userId, projectRoleId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  await checkProjectAdmin(projectId, user.id)
+
+  // Check not already a member with this role
+  const { data: existing, error: existError } = await supabase
+    .from('ProjectUsers')
+    .select('FK_userId')
+    .eq('FK_projectId', projectId)
+    .eq('FK_userId', userId)
+    .eq('FK_projectRoleId', projectRoleId)
+    .maybeSingle()
+
+  if (existError) throw new Error(existError.message)
+  if (existing) throw new Error('User is already a member of this project with this role.')
+
+  const { data, error } = await supabase
+    .from('ProjectUsers')
+    .insert({ FK_projectId: projectId, FK_userId: userId, FK_projectRoleId: projectRoleId })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateProjectMemberRole(projectId, userId, newProjectRoleId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  await checkProjectAdmin(projectId, user.id)
+
+  // Check member exists
+  const { data: existing, error: existError } = await supabase
+    .from('ProjectUsers')
+    .select('FK_userId')
+    .eq('FK_projectId', projectId)
+    .eq('FK_userId', userId)
+    .maybeSingle()
+
+  if (existError) throw new Error(existError.message)
+  if (!existing) throw new Error('User is not a member of this project.')
+
+  const { data, error } = await supabase
+    .from('ProjectUsers')
+    .update({ FK_projectRoleId: newProjectRoleId })
+    .eq('FK_projectId', projectId)
+    .eq('FK_userId', userId)
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function removeProjectMember(projectId, userId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  await checkProjectAdmin(projectId, user.id)
+
+  // Check member exists
+  const { data: existing, error: existError } = await supabase
+    .from('ProjectUsers')
+    .select('FK_userId')
+    .eq('FK_projectId', projectId)
+    .eq('FK_userId', userId)
+    .maybeSingle()
+
+  if (existError) throw new Error(existError.message)
+  if (!existing) throw new Error('User is not a member of this project.')
+
+  const { error } = await supabase
+    .from('ProjectUsers')
+    .delete()
+    .eq('FK_projectId', projectId)
+    .eq('FK_userId', userId)
+
+  if (error) throw new Error(error.message)
+  return true
+}
