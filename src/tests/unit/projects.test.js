@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getUsers, getProjectRoles, getProjectUsers, getProjects, createProject } from '../../services/projects'
+import { getUsers, getProjectRoles, getProjectUsers, getProjects, createProject, updateProjectName, addProjectMember, updateProjectMemberRole, removeProjectMember } from '../../services/projects'
 import { supabase } from '../../config/supabase'
 
 vi.mock('../../config/supabase', () => ({
@@ -13,16 +13,23 @@ beforeEach(() => {
     vi.clearAllMocks()
 })
 
-// --- helpers to build mock chains ---
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function mockChain(overrides) {
     const chain = {
         select:      vi.fn().mockReturnThis(),
         insert:      vi.fn().mockReturnThis(),
         update:      vi.fn().mockReturnThis(),
+        delete:      vi.fn().mockReturnThis(),
         order:       vi.fn().mockReturnThis(),
         eq:          vi.fn().mockReturnThis(),
+        neq:         vi.fn().mockReturnThis(),
         is:          vi.fn().mockReturnThis(),
+        in:          vi.fn().mockReturnThis(),
+        not:         vi.fn().mockReturnThis(),
+        lte:         vi.fn().mockReturnThis(),
+        gte:         vi.fn().mockReturnThis(),
+        or:          vi.fn().mockReturnThis(),
         ilike:       vi.fn().mockReturnThis(),
         single:      vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockReturnThis(),
@@ -35,7 +42,43 @@ function mockNoDuplicate() {
     return mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
 }
 
-// ---
+function mockAuth(userId = 'admin-uuid') {
+    supabase.auth.getSession.mockResolvedValue({
+        data: { session: { user: { id: userId } } },
+    })
+}
+
+function mockAdminUser(userId = 'admin-uuid') {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
+    return mockChain({ eq: vi.fn().mockResolvedValue({ data: [{ Roles: { name: 'Admin' } }], error: null }) })
+}
+
+function mockAdminRole() {
+    return mockChain({
+        eq: vi.fn().mockResolvedValue({
+            data: [{ Roles: { name: 'Admin' } }],
+            error: null,
+        }),
+    })
+}
+
+function mockDeleteChain() {
+    let eqCallCount = 0
+    const chain = mockChain({
+        eq: vi.fn().mockImplementation(() => {
+            eqCallCount++
+            if (eqCallCount >= 2) return Promise.resolve({ error: null })
+            return chain
+        }),
+    })
+    return chain
+}
+
+const projectId = 1
+const userId = 'user-uuid'
+const roleId = 2
+
+// ─── getUsers ─────────────────────────────────────────────────────────────────
 
 describe('getUsers', () => {
     it('returns list of users', async () => {
@@ -62,7 +105,7 @@ describe('getUsers', () => {
     })
 })
 
-// ---
+// ─── getProjectRoles ──────────────────────────────────────────────────────────
 
 describe('getProjectRoles', () => {
     it('returns list of project roles', async () => {
@@ -90,7 +133,7 @@ describe('getProjectRoles', () => {
     })
 })
 
-// ---
+// ─── getProjectUsers ──────────────────────────────────────────────────────────
 
 describe('getProjectUsers', () => {
     it('returns members of a project with user and role details', async () => {
@@ -137,7 +180,7 @@ describe('getProjectUsers', () => {
     })
 })
 
-// ---
+// ─── getProjects ──────────────────────────────────────────────────────────────
 
 describe('getProjects', () => {
     it('returns projects with their members and roles', async () => {
@@ -174,14 +217,7 @@ describe('getProjects', () => {
     })
 })
 
-// --- helpers for createProject admin check ---
-
-function mockAdminUser(userId = 'admin-uuid') {
-    supabase.auth.getSession.mockResolvedValue({ data: { session: { user: { id: userId } } } })
-    return mockChain({ eq: vi.fn().mockResolvedValue({ data: [{ Roles: { name: 'Admin' } }], error: null }) })
-}
-
-// ---
+// ─── createProject ────────────────────────────────────────────────────────────
 
 describe('createProject', () => {
     it('throws if the user is not authenticated', async () => {
@@ -223,20 +259,14 @@ describe('createProject', () => {
         expect(supabase.from).toHaveBeenCalledWith('UserRoles')
         expect(supabase.from).toHaveBeenCalledWith('Projects')
         expect(result).toEqual(mockProject)
-        // ProjectUsers insert should NOT be called when users array is empty
         expect(supabase.from).toHaveBeenCalledTimes(3)
     })
 
     it('creates a project and inserts all users with their roles', async () => {
         const mockProject = { id: 42, name: 'Team Project', description: '' }
-
         const adminChain = mockAdminUser()
-        const projectChain = mockChain({
-            single: vi.fn().mockResolvedValue({ data: mockProject, error: null }),
-        })
-        const usersChain = mockChain({
-            insert: vi.fn().mockResolvedValue({ error: null }),
-        })
+        const projectChain = mockChain({ single: vi.fn().mockResolvedValue({ data: mockProject, error: null }) })
+        const usersChain = mockChain({ insert: vi.fn().mockResolvedValue({ error: null }) })
 
         supabase.from
             .mockReturnValueOnce(adminChain)
@@ -260,9 +290,8 @@ describe('createProject', () => {
 
     it('throws on duplicate project name', async () => {
         const adminChain = mockAdminUser()
-        const dupChain = mockChain({
-            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
-        })
+        const dupChain = mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }) })
+
         supabase.from
             .mockReturnValueOnce(adminChain)
             .mockReturnValueOnce(dupChain)
@@ -272,16 +301,11 @@ describe('createProject', () => {
         )
     })
 
-    it('throws if user insertion fails and does not silently swallow the error', async () => {
+    it('throws if user insertion fails', async () => {
         const mockProject = { id: 5, name: 'Broken Project', description: '' }
-
         const adminChain = mockAdminUser()
-        const projectChain = mockChain({
-            single: vi.fn().mockResolvedValue({ data: mockProject, error: null }),
-        })
-        const usersChain = mockChain({
-            insert: vi.fn().mockResolvedValue({ error: { message: 'foreign key constraint violation' } }),
-        })
+        const projectChain = mockChain({ single: vi.fn().mockResolvedValue({ data: mockProject, error: null }) })
+        const usersChain = mockChain({ insert: vi.fn().mockResolvedValue({ error: { message: 'foreign key constraint violation' } }) })
 
         supabase.from
             .mockReturnValueOnce(adminChain)
@@ -296,14 +320,9 @@ describe('createProject', () => {
 
     it('uses the project id returned by supabase when building ProjectUsers rows', async () => {
         const mockProject = { id: 99, name: 'ID Check', description: '' }
-
         const adminChain = mockAdminUser()
-        const projectChain = mockChain({
-            single: vi.fn().mockResolvedValue({ data: mockProject, error: null }),
-        })
-        const usersChain = mockChain({
-            insert: vi.fn().mockResolvedValue({ error: null }),
-        })
+        const projectChain = mockChain({ single: vi.fn().mockResolvedValue({ data: mockProject, error: null }) })
+        const usersChain = mockChain({ insert: vi.fn().mockResolvedValue({ error: null }) })
 
         supabase.from
             .mockReturnValueOnce(adminChain)
@@ -319,4 +338,137 @@ describe('createProject', () => {
             ])
         )
     })
+})
+
+// ─── updateProjectName ────────────────────────────────────────────────────────
+
+describe('updateProjectName()', () => {
+
+    it('successfully updates project name', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce(mockChain({ single: vi.fn().mockResolvedValue({ data: { id: projectId, name: 'New Name' }, error: null }) }))
+
+        const result = await updateProjectName(projectId, 'New Name')
+        expect(result).toMatchObject({ name: 'New Name' })
+    })
+
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+        await expect(updateProjectName(projectId, 'New Name')).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if duplicate project name', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 99 }, error: null }) }))
+
+        await expect(updateProjectName(projectId, 'Existing')).rejects.toThrow('already exists')
+    })
+
+    it('throws if user is not admin or scrum master', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockChain({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }))
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { ProjectRoles: { projectRole: 'Developer' } }, error: null }) }))
+
+        await expect(updateProjectName(projectId, 'New Name')).rejects.toThrow('Only Admins and Scrum Masters')
+    })
+
+})
+
+// ─── addProjectMember ─────────────────────────────────────────────────────────
+
+describe('addProjectMember()', () => {
+
+    it('successfully adds a member', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce(mockChain({ single: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
+
+        const result = await addProjectMember(projectId, userId, roleId)
+        expect(result).toMatchObject({ FK_userId: userId })
+    })
+
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+        await expect(addProjectMember(projectId, userId, roleId)).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if user is already a member with this role', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
+
+        await expect(addProjectMember(projectId, userId, roleId)).rejects.toThrow('already a member')
+    })
+
+})
+
+// ─── updateProjectMemberRole ──────────────────────────────────────────────────
+
+describe('updateProjectMemberRole()', () => {
+
+    it('successfully updates member role', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
+            .mockReturnValueOnce(mockChain({ single: vi.fn().mockResolvedValue({ data: { FK_userId: userId, FK_projectRoleId: 3 }, error: null }) }))
+
+        const result = await updateProjectMemberRole(projectId, userId, 3)
+        expect(result).toMatchObject({ FK_projectRoleId: 3 })
+    })
+
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+        await expect(updateProjectMemberRole(projectId, userId, 3)).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if user is not a member', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+
+        await expect(updateProjectMemberRole(projectId, userId, 3)).rejects.toThrow('not a member')
+    })
+
+})
+
+// ─── removeProjectMember ──────────────────────────────────────────────────────
+
+describe('removeProjectMember()', () => {
+
+    it('successfully removes a member', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
+            .mockReturnValueOnce(mockDeleteChain())
+
+        const result = await removeProjectMember(projectId, userId)
+        expect(result).toBe(true)
+    })
+
+    it('throws if not authenticated', async () => {
+        supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+        await expect(removeProjectMember(projectId, userId)).rejects.toThrow('Not authenticated.')
+    })
+
+    it('throws if user is not a member', async () => {
+        mockAuth()
+        supabase.from
+            .mockReturnValueOnce(mockAdminRole())
+            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+
+        await expect(removeProjectMember(projectId, userId)).rejects.toThrow('not a member')
+    })
+
 })

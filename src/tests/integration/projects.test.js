@@ -3,8 +3,8 @@ import { signIn } from '../../services/auth'
 import { getUsers, getProjectRoles, getProjectUsers, getProjects, createProject, getUsersProjects } from '../../services/projects'
 import { supabase } from '../../config/supabase'
 
-const TEST_USERNAME = 'testuser01'
-const TEST_PASSWORD = 'testpassword123!'
+const TEST_USERNAME = 'admin'
+const TEST_PASSWORD = 'newtestpassword123!'
 
 // track created project ids so we can clean up after tests
 const createdProjectIds = []
