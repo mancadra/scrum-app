@@ -110,13 +110,33 @@ Deno.serve(async (req) => {
   // Check for duplicate username
   const { data: existingUser } = await supabaseAdmin
     .from('Users')
-    .select('id')
+    .select('id, deleted_at')
     .eq('username', username)
     .maybeSingle()
 
   if (existingUser) {
+    const message = existingUser.deleted_at
+      ? `Uporabniško ime "${username}" pripada izbrisanemu uporabniku in ga ni mogoče ponovno uporabiti.`
+      : `Uporabniško ime "${username}" je že zasedeno.`
     return new Response(
-      JSON.stringify({ error: `Username "${username}" is already taken.` }),
+      JSON.stringify({ error: message }),
+      { status: 409, headers: corsHeaders }
+    )
+  }
+
+  // Check for duplicate email
+  const { data: existingEmail } = await supabaseAdmin
+    .from('Users')
+    .select('id, deleted_at')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existingEmail) {
+    const message = existingEmail.deleted_at
+      ? `E-poštni naslov "${email}" pripada izbrisanemu uporabniku in ga ni mogoče ponovno uporabiti.`
+      : `E-poštni naslov "${email}" je že zaseden.`
+    return new Response(
+      JSON.stringify({ error: message }),
       { status: 409, headers: corsHeaders }
     )
   }

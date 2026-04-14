@@ -68,11 +68,14 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("delete-user", { 
-        body: { targetUserId: user.id } 
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { targetUserId: user.id }
       });
 
-      if (error) throw error;
+      if (error) {
+        const body = await error.context?.json?.().catch(() => null);
+        throw new Error(body?.error || error.message);
+      }
       setMessage("Uporabnik uspešno izbrisan.");
       setMessageType("success");
       loadUsers();
@@ -126,8 +129,11 @@ export default function AdminPage() {
     }
 
       const { error } = await supabase.functions.invoke(endpoint, { body: payload });
-      
-      if (error) throw error;
+
+      if (error) {
+        const body = await error.context?.json?.().catch(() => null);
+        throw new Error(body?.error || error.message);
+      }
 
       setMessage(editingUser ? "Uporabnik posodobljen." : "Uporabnik dodan.");
       setMessageType("success");

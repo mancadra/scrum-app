@@ -101,14 +101,37 @@ Deno.serve(async (req) => {
   if (username && username !== targetUser.username) {
     const { data: existing } = await supabaseAdmin
       .from('Users')
-      .select('id')
+      .select('id, deleted_at')
       .ilike('username', username)
       .neq('id', targetUserId)
       .maybeSingle()
 
     if (existing) {
+      const message = existing.deleted_at
+        ? `Uporabniško ime "${username}" pripada izbrisanemu uporabniku in ga ni mogoče ponovno uporabiti.`
+        : `Uporabniško ime "${username}" je že zasedeno.`
       return new Response(
-        JSON.stringify({ error: `Uporabniško ime "${username}" je že zasedeno.` }),
+        JSON.stringify({ error: message }),
+        { status: 409, headers: corsHeaders }
+      )
+    }
+  }
+
+  // Check email uniqueness if changing it
+  if (email && email !== targetUser.email) {
+    const { data: existingEmail } = await supabaseAdmin
+      .from('Users')
+      .select('id, deleted_at')
+      .eq('email', email)
+      .neq('id', targetUserId)
+      .maybeSingle()
+
+    if (existingEmail) {
+      const message = existingEmail.deleted_at
+        ? `E-poštni naslov "${email}" pripada izbrisanemu uporabniku in ga ni mogoče ponovno uporabiti.`
+        : `E-poštni naslov "${email}" je že zaseden.`
+      return new Response(
+        JSON.stringify({ error: message }),
         { status: 409, headers: corsHeaders }
       )
     }
