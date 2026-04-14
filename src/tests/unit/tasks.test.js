@@ -18,7 +18,9 @@ function mockChain(overrides) {
         select:      vi.fn().mockReturnThis(),
         insert:      vi.fn().mockReturnThis(),
         update:      vi.fn().mockReturnThis(),
+        delete:      vi.fn().mockReturnThis(), // ← add this
         eq:          vi.fn().mockReturnThis(),
+        neq:         vi.fn().mockReturnThis(), // ← add this
         lte:         vi.fn().mockReturnThis(),
         gte:         vi.fn().mockReturnThis(),
         in:          vi.fn().mockReturnThis(),
@@ -1309,4 +1311,244 @@ describe('getSprintNumber', () => {
         const result = await getSprintNumber(10, '3')
         expect(result).toBe(1)
     })
+})
+
+// ─── editTask / deleteTask ────────────────────────────────────────────────────
+
+import { editTask, deleteTask } from '../../services/tasks'
+
+const mockTaskData = {
+  id: 'task-uuid',
+  description: 'Old description',
+  timecomplexity: 3,
+  FK_userStoryId: 'story-uuid',
+  FK_proposedDeveloper: null,
+  FK_acceptedDeveloper: null,
+  finished: false,
+}
+
+const mockStoryData = { id: 'story-uuid', FK_projectId: 'project-uuid' }
+
+function mockTaskFetchEdit(task = mockTaskData) {
+  supabase.from.mockReturnValueOnce(
+    mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: task, error: null }) })
+  )
+}
+
+function mockStoryFetch(story = mockStoryData) {
+  supabase.from.mockReturnValueOnce(
+    mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: story, error: null }) })
+  )
+}
+
+function mockMembershipEdit(role = 'Scrum Master') {
+  const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+  c.eq
+    .mockReturnValueOnce(c)
+    .mockResolvedValueOnce({ data: [{ ProjectRoles: { projectRole: role } }], error: null })
+  supabase.from.mockReturnValueOnce(c)
+}
+
+function mockNoDuplicateEdit() {
+  supabase.from.mockReturnValueOnce(
+    mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+  )
+}
+
+function mockUpdateEdit(data) {
+  supabase.from.mockReturnValueOnce(
+    mockChain({ single: vi.fn().mockResolvedValue({ data, error: null }) })
+  )
+}
+
+function mockDeleteEdit() {
+  supabase.from.mockReturnValueOnce(
+    mockChain({ eq: vi.fn().mockResolvedValue({ error: null }) })
+  )
+}
+
+// ─── editTask ─────────────────────────────────────────────────────────────────
+
+describe('editTask', () => {
+
+  it('throws if not authenticated', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+
+    await expect(editTask('task-uuid', { description: 'New' })).rejects.toThrow('Niste prijavljeni.')
+  })
+
+  it('throws if task not found', async () => {
+    mockAuth()
+    supabase.from.mockReturnValueOnce(
+      mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+    )
+
+    await expect(editTask('task-uuid', { description: 'New' })).rejects.toThrow('Naloga ni bila najdena.')
+  })
+
+  it('throws if user is not Scrum Master or Developer', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Product Owner')
+
+    await expect(editTask('task-uuid', { description: 'New' }))
+      .rejects.toThrow('Samo skrbniki metodologije in razvijalci lahko urejajo naloge.')
+  })
+
+  it('throws if duplicate description exists', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    supabase.from.mockReturnValueOnce(
+      mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'other-task' }, error: null }) })
+    )
+
+    await expect(editTask('task-uuid', { description: 'Duplicate' }))
+      .rejects.toThrow('Naloga s tem opisom za to uporabniško zgodbo že obstaja.')
+  })
+
+  it('throws if timecomplexity is negative', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    mockNoDuplicateEdit()
+
+    await expect(editTask('task-uuid', { description: 'New', timecomplexity: -1 }))
+      .rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
+  })
+
+  it('throws if timecomplexity is zero', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    mockNoDuplicateEdit()
+
+    await expect(editTask('task-uuid', { description: 'New', timecomplexity: 0 }))
+      .rejects.toThrow('Časovna zahtevnost mora biti pozitivno število.')
+  })
+
+  it('throws if proposed developer is not a project member', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    mockNoDuplicateEdit()
+    const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({ data: [], error: null })
+    supabase.from.mockReturnValueOnce(c)
+
+    await expect(editTask('task-uuid', { description: 'New', FK_proposedDeveloper: 'unknown-uuid' }))
+      .rejects.toThrow('Predlagani razvijalec ni član tega projekta.')
+  })
+
+  it('throws if proposed developer does not have Developer role', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    mockNoDuplicateEdit()
+    const c = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    c.eq.mockReturnValueOnce(c).mockResolvedValueOnce({
+      data: [{ ProjectRoles: { projectRole: 'Scrum Master' } }],
+      error: null,
+    })
+    supabase.from.mockReturnValueOnce(c)
+
+    await expect(editTask('task-uuid', { description: 'New', FK_proposedDeveloper: 'sm-uuid' }))
+      .rejects.toThrow('Predlagani razvijalec mora imeti vlogo razvijalca.')
+  })
+
+  it('successfully edits a task as Scrum Master', async () => {
+    const updated = { ...mockTaskData, description: 'New description', timecomplexity: 5 }
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    mockNoDuplicateEdit()
+    mockUpdateEdit(updated)
+
+    const result = await editTask('task-uuid', { description: 'New description', timecomplexity: 5 })
+    expect(result).toMatchObject({ description: 'New description', timecomplexity: 5 })
+  })
+
+  it('successfully edits a task as Developer', async () => {
+    const updated = { ...mockTaskData, description: 'New description' }
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Developer')
+    mockNoDuplicateEdit()
+    mockUpdateEdit(updated)
+
+    const result = await editTask('task-uuid', { description: 'New description' })
+    expect(result).toMatchObject({ description: 'New description' })
+  })
+
+})
+
+// ─── deleteTask ───────────────────────────────────────────────────────────────
+
+describe('deleteTask', () => {
+
+  it('throws if not authenticated', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
+
+    await expect(deleteTask('task-uuid')).rejects.toThrow('Niste prijavljeni.')
+  })
+
+  it('throws if task not found', async () => {
+    mockAuth()
+    supabase.from.mockReturnValueOnce(
+      mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) })
+    )
+
+    await expect(deleteTask('task-uuid')).rejects.toThrow('Naloga ni bila najdena.')
+  })
+
+  it('throws if user is not Scrum Master or Developer', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Product Owner')
+
+    await expect(deleteTask('task-uuid'))
+      .rejects.toThrow('Samo skrbniki metodologije in razvijalci lahko urejajo naloge.')
+  })
+
+  it('throws if task has already been accepted by a developer', async () => {
+    mockAuth()
+    mockTaskFetchEdit({ ...mockTaskData, FK_acceptedDeveloper: 'dev-uuid' })
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+
+    await expect(deleteTask('task-uuid'))
+      .rejects.toThrow('Naloge, ki jo je razvijalec že sprejel, ni mogoče izbrisati.')
+  })
+
+  it('successfully deletes a task', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Scrum Master')
+    mockDeleteEdit()
+
+    const result = await deleteTask('task-uuid')
+    expect(result).toBe(true)
+  })
+
+  it('successfully deletes a task as Developer', async () => {
+    mockAuth()
+    mockTaskFetchEdit()
+    mockStoryFetch()
+    mockMembershipEdit('Developer')
+    mockDeleteEdit()
+
+    const result = await deleteTask('task-uuid')
+    expect(result).toBe(true)
+  })
+
 })

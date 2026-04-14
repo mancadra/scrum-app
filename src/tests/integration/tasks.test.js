@@ -3,8 +3,8 @@ import { signIn } from '../../services/auth'
 import { createTask, acceptTask, finishTask } from '../../services/tasks'
 import { supabase } from '../../config/supabase'
 
-const TEST_USERNAME = 'testuser01'
-const TEST_PASSWORD = 'testpassword123!'
+const TEST_USERNAME = 'admin'
+const TEST_PASSWORD = 'newtestpassword123!'
 
 let TEST_PROJECT_ID
 let TEST_USER_ID
