@@ -576,3 +576,128 @@ export async function rejectTask(taskId) {
         return updated
     }
 }
+
+async function checkTaskEditable(taskId, userId) {
+  // Fetch task
+  const { data: task, error: taskError } = await supabase
+    .from('Tasks')
+    .select('id, description, timecomplexity, FK_userStoryId, FK_proposedDeveloper, FK_acceptedDeveloper, finished')
+    .eq('id', taskId)
+    .maybeSingle()
+
+  if (taskError) throw new Error(taskError.message)
+  if (!task) throw new Error('Naloga ni bila najdena.')
+
+  // Fetch story to get projectId
+  const { data: story, error: storyError } = await supabase
+    .from('UserStories')
+    .select('id, FK_projectId')
+    .eq('id', task.FK_userStoryId)
+    .maybeSingle()
+
+  if (storyError) throw new Error(storyError.message)
+  if (!story) throw new Error('Uporabniška zgodba ni bila najdena.')
+
+  // Check role
+  const { data: memberships, error: memberError } = await supabase
+    .from('ProjectUsers')
+    .select('ProjectRoles(projectRole)')
+    .eq('FK_projectId', story.FK_projectId)
+    .eq('FK_userId', userId)
+
+  if (memberError) throw new Error(memberError.message)
+  if (!memberships || memberships.length === 0) throw new Error('Niste član tega projekta.')
+
+  const roles = memberships.map(m => m.ProjectRoles?.projectRole)
+  if (!roles.includes('Scrum Master') && !roles.includes('Developer')) {
+    throw new Error('Samo skrbniki metodologije in razvijalci lahko urejajo naloge.')
+  }
+
+  return { task, story }
+}
+
+export async function editTask(taskId, { description, timecomplexity, FK_proposedDeveloper }) {
+  const { data, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw new Error(sessionError.message)
+  const user = data?.session?.user
+  if (!user) throw new Error('Niste prijavljeni.')
+
+  const { task, story } = await checkTaskEditable(taskId, user.id)
+
+  // Validate description
+  if (description !== undefined) {
+    const normalizedDescription = typeof description === 'string' ? description.trim() : ''
+    if (!normalizedDescription) throw new Error('Opis je obvezen.')
+
+    // Check duplicate description (excluding this task)
+    const { data: existing, error: dupError } = await supabase
+      .from('Tasks')
+      .select('id')
+      .eq('FK_userStoryId', task.FK_userStoryId)
+      .ilike('description', normalizedDescription)
+      .neq('id', taskId)
+      .maybeSingle()
+
+    if (dupError) throw new Error(dupError.message)
+    if (existing) throw new Error('Naloga s tem opisom za to uporabniško zgodbo že obstaja.')
+  }
+
+  // Validate timecomplexity
+  if (timecomplexity !== undefined) {
+    if (typeof timecomplexity !== 'number' || isNaN(timecomplexity) || timecomplexity <= 0) {
+      throw new Error('Časovna zahtevnost mora biti pozitivno število.')
+    }
+  }
+
+  // Validate proposed developer
+  if (FK_proposedDeveloper !== undefined && FK_proposedDeveloper !== null) {
+    const { data: devMemberships, error: devError } = await supabase
+      .from('ProjectUsers')
+      .select('ProjectRoles(projectRole)')
+      .eq('FK_projectId', story.FK_projectId)
+      .eq('FK_userId', FK_proposedDeveloper)
+
+    if (devError) throw new Error(devError.message)
+    if (!devMemberships || devMemberships.length === 0) throw new Error('Predlagani razvijalec ni član tega projekta.')
+
+    const devRoles = devMemberships.map(m => m.ProjectRoles?.projectRole)
+    if (!devRoles.includes('Developer')) throw new Error('Predlagani razvijalec mora imeti vlogo razvijalca.')
+  }
+
+  const updates = {}
+  if (description !== undefined) updates.description = description.trim()
+  if (timecomplexity !== undefined) updates.timecomplexity = timecomplexity
+  if (FK_proposedDeveloper !== undefined) updates.FK_proposedDeveloper = FK_proposedDeveloper
+
+  const { data: updated, error: updateError } = await supabase
+    .from('Tasks')
+    .update(updates)
+    .eq('id', taskId)
+    .select()
+    .single()
+
+  if (updateError) throw new Error(updateError.message)
+  return updated
+}
+
+export async function deleteTask(taskId) {
+  const { data, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw new Error(sessionError.message)
+  const user = data?.session?.user
+  if (!user) throw new Error('Niste prijavljeni.')
+
+  const { task } = await checkTaskEditable(taskId, user.id)
+
+  // Warn if task has been accepted (optional check marked with *)
+  if (task.FK_acceptedDeveloper) {
+    throw new Error('Naloge, ki jo je razvijalec že sprejel, ni mogoče izbrisati.')
+  }
+
+  const { error } = await supabase
+    .from('Tasks')
+    .delete()
+    .eq('id', taskId)
+
+  if (error) throw new Error(error.message)
+  return true
+}
