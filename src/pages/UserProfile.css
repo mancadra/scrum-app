@@ -1,8 +1,43 @@
+/* Poskrbi, da korenski elementi omogočajo polno višino */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+.background-wrapper {
+  /* Ključni del za ozadje do konca */
+  min-height: 100vh; 
+  width: 100%;
+  
+  /* Tvoj gradient iz slike */
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+  background-attachment: fixed; /* Ozadje se ne premika ob skrolanju */
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 50px; /* Malo prostora na dnu */
+}
+
 .user-profile-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  color: #333;
+  width: 100%;
+  max-width: 1000px;
+  margin-top: 40px;
+  padding: 0 20px;
+}
+
+/* Stil za vnose ur v tabeli */
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.input-with-unit input {
+  width: 60px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 
 .page-title {
