@@ -130,6 +130,16 @@ function NavbarComponent({
         {isUserMenuOpen && (
           <div className="navbar-dropdown">
             <button
+                type="button"
+                className="navbar-dropdown-item"
+                onClick={() => { 
+                  setIsUserMenuOpen(false); 
+                  navigate('/user-profile'); // Pot, ki si jo določil v App.jsx
+                }}
+              >
+                Moj Profil / Delo
+              </button>
+            <button
               type="button"
               className="navbar-dropdown-item"
               onClick={() => { setIsUserMenuOpen(false); onMFASettings?.(); }}

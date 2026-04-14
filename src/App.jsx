@@ -14,6 +14,7 @@ import { getSprintsForProject } from "./services/sprints";
 import ProjectPageComponent from "./components/ProjectPageComponent.jsx";
 import MFASetup from "./components/MFASetup.jsx";
 import { TimerProvider } from "./context/TimerContext.jsx";
+import UserProfile from "./pages/UserProfile.jsx";
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -173,6 +174,22 @@ function App() {
                 )
               }
           />
+          <Route
+  path="/user-profile"
+  element={
+    !currentUser ? (
+      <Navigate to="/login" replace />
+    ) : (
+      <UserProfile 
+        currentUser={currentUser} 
+        onProfileUpdated={async () => {
+          const updatedUser = await getCurrentUser();
+          setCurrentUser(updatedUser);
+        }} 
+      />
+    )
+  }
+/>
 
           <Route
               path="/admin"
