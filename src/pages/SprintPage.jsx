@@ -70,10 +70,22 @@ const SprintPage = () => {
     return `${hrs}:${mins}:${secs}`;
   };
 
+  const totalSprintPoints = (sprintData?.stories ?? []).reduce(
+    (sum, s) => sum + (s.timeComplexity ?? 0), 0
+  );
+  const velocity = sprintData?.sprint?.startingSpeed ?? 0;
+  const pointsExceeded = totalSprintPoints > velocity;
+
   const handleAddStoryToSprint = async (storyId) => {
     const activeSprintId = sprintId || sprintData?.sprint?.id;
     if (!activeSprintId) {
       alert("Napaka: ID sprinta ni najden.");
+      return;
+    }
+    const story = backlogStories.find(s => s.id === storyId);
+    const storyPoints = story?.timeComplexity ?? 0;
+    if (totalSprintPoints + storyPoints > velocity) {
+      alert(`Dodajanje te zgodbe bi prekoračilo hitrost sprinta (${velocity} točk). Trenutno dodeljeno: ${totalSprintPoints} točk, zgodba zahteva: ${storyPoints} točk.`);
       return;
     }
     try {
@@ -206,32 +218,73 @@ const SprintPage = () => {
             <div className="sprint-header__dates">
               <div><span className="sprint-header__date-label">Začetek:</span> {new Date(sprintData.sprint.startingDate).toLocaleDateString('sl-SI')}</div>
               <div><span className="sprint-header__date-label">Konec:</span> {new Date(sprintData.sprint.endingDate).toLocaleDateString('sl-SI')}</div>
+              <div>
+                <span className="sprint-header__date-label">Točke / Hitrost:</span>{' '}
+                <span style={pointsExceeded ? { color: '#dc2626', fontWeight: 700 } : {}}>
+                  {totalSprintPoints}
+                </span>
+                {' / '}
+                {velocity}
+                {pointsExceeded && (
+                  <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: '0.5rem' }}>
+                    (presežek: +{totalSprintPoints - velocity})
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
         <div className="backlog-sidebar bg-white rounded shadow-sm border" style={{ minWidth: '320px', maxWidth: '320px' }}>
           <div className="bg-dark text-white p-3 border-bottom rounded-top">
-            <h5 className="m-0">Dodaj v sprint</h5>
+            <h5 className="m-0 mb-2">Dodaj v sprint</h5>
+            <div style={{ fontSize: '0.82rem' }}>
+              <span>Točke: </span>
+              <span style={pointsExceeded ? { color: '#fca5a5', fontWeight: 700 } : { color: '#86efac', fontWeight: 700 }}>
+                {totalSprintPoints}
+              </span>
+              <span> / {velocity}</span>
+              {pointsExceeded && (
+                <span style={{ color: '#fca5a5', fontWeight: 700 }}> (+{totalSprintPoints - velocity} presežek)</span>
+              )}
+            </div>
+            <div className="progress mt-1" style={{ height: '6px' }}>
+              <div
+                className={`progress-bar ${pointsExceeded ? 'bg-danger' : 'bg-success'}`}
+                style={{ width: `${Math.min((totalSprintPoints / (velocity || 1)) * 100, 100)}%` }}
+              />
+            </div>
           </div>
           <div className="sidebar-content" style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}>
             <div className="list-group list-group-flush">
-              {backlogStories.length > 0 ? backlogStories.map(story => (
-                <div key={story.id} className="sidebar-story">
-                  <div className="sidebar-story-info">
-                    <h6 className="sidebar-story-title">{story.name}</h6>
-                    <span className={`sidebar-story-priority badge ${story.Priorities?.priority === 'Must have' ? 'bg-danger' : story.Priorities?.priority === 'Should have' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
-                      {story.Priorities?.priority ?? 'Ni prioritete'}
-                    </span>
-                    <span className="sidebar-story-complexity">Zahtevnost: {story.timeComplexity} točk</span>
+              {backlogStories.length > 0 ? backlogStories.map(story => {
+                const wouldExceed = totalSprintPoints + (story.timeComplexity ?? 0) > velocity;
+                return (
+                  <div key={story.id} className="sidebar-story">
+                    <div className="sidebar-story-info">
+                      <h6 className="sidebar-story-title">{story.name}</h6>
+                      <span className={`sidebar-story-priority badge ${story.Priorities?.priority === 'Must have' ? 'bg-danger' : story.Priorities?.priority === 'Should have' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                        {story.Priorities?.priority ?? 'Ni prioritete'}
+                      </span>
+                      <span className="sidebar-story-complexity">Zahtevnost: {story.timeComplexity} točk</span>
+                    </div>
+                    <div className={`sidebar-btn-wrapper${wouldExceed ? ' sidebar-btn-wrapper--disabled' : ''}`}>
+                      <button
+                        className="sidebar-add-btn"
+                        onClick={() => handleAddStoryToSprint(story.id)}
+                        disabled={wouldExceed}
+                      >
+                        + Dodaj v Sprint
+                      </button>
+                      {wouldExceed && (
+                        <span className="sidebar-btn-tooltip">
+                          Prekoračitev hitrosti sprinta ({velocity} točk).<br />
+                          Skupaj: {totalSprintPoints} + {story.timeComplexity} = {totalSprintPoints + (story.timeComplexity ?? 0)} točk.
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <button 
-                    className="sidebar-add-btn" 
-                    onClick={() => handleAddStoryToSprint(story.id)}
-                  >
-                    + Dodaj v Sprint
-                  </button>
-                </div>
-              )) : (
+                );
+              }) : (
                 <div className="text-center p-4 text-muted">Vse primerne zgodbe so že v sprintu.</div>
               )}
             </div>

@@ -71,12 +71,12 @@ export async function getAssignedStories(projectId) {
 
   const assignedStoryIds = sprintLinks.map(l => l.FK_userStoryId)
 
-  // Fetch the actual stories that are not realized
+  // Fetch the actual stories that are not realized (null = in progress, false = rejected)
   const { data, error } = await supabase
     .from('UserStories')
     .select('id, name, description, businessValue, timeComplexity, FK_priorityId, accepted')
     .eq('FK_projectId', projectId)
-    .eq('realized', false)
+    .or('realized.is.null,realized.eq.false')
     .in('id', assignedStoryIds)
 
   if (error) throw new Error(error.message)
@@ -100,12 +100,12 @@ export async function getUnassignedStories(projectId) {
 
   const assignedStoryIds = allLinks?.map(l => l.FK_userStoryId) ?? []
 
-  // Fetch all unrealized stories not linked to any sprint
+  // Fetch all unrealized stories not linked to any sprint (null = in progress, false = rejected)
   let query = supabase
     .from('UserStories')
     .select('id, name, description, businessValue, timeComplexity, FK_priorityId, accepted')
     .eq('FK_projectId', projectId)
-    .eq('realized', false)
+    .or('realized.is.null,realized.eq.false')
 
   if (assignedStoryIds.length > 0) {
     query = query.not('id', 'in', `(${assignedStoryIds.join(',')})`)
