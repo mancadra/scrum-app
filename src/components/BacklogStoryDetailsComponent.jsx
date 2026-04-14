@@ -1,7 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../config/supabase';
+import { getStoryComments, addStoryComment } from '../services/stories';
 import './BacklogStoryDetailsComponent.css';
 
-const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getStoryPriority }) => {
+const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getStoryPriority, projectId }) => {
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [canComment, setCanComment] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState('');
+
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
@@ -13,11 +21,59 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!story?.id) return;
+
+    getStoryComments(story.id)
+      .then(setComments)
+      .catch(() => setComments([]));
+  }, [story?.id]);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const checkRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: membership } = await supabase
+        .from('ProjectUsers')
+        .select('ProjectRoles(projectRole)')
+        .eq('FK_projectId', projectId)
+        .eq('FK_userId', user.id)
+        .maybeSingle();
+
+      setCanComment(membership?.ProjectRoles?.projectRole === 'Developer');
+    };
+
+    checkRole();
+  }, [projectId]);
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    setCommentError('');
+    setSubmitting(true);
+    try {
+      const comment = await addStoryComment(story.id, newComment);
+      setComments(prev => [...prev, comment]);
+      setNewComment('');
+    } catch (err) {
+      setCommentError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!story) {
     return null;
   }
 
   const acceptanceTests = getAcceptanceTests?.(story) ?? [];
+
+  const formatCommentUser = (user) => {
+    if (!user) return 'Neznan';
+    return user.name && user.surname ? `${user.name} ${user.surname}` : user.username;
+  };
 
   return (
     <div className="backlog-story-details__overlay" onClick={() => onClose?.()}>
@@ -96,6 +152,49 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
               </ul>
             ) : (
               <p>Ni testov.</p>
+            )}
+          </section>
+
+          <section className="backlog-story-details__section">
+            <h3>Opombe</h3>
+
+            {comments.length > 0 ? (
+              <ul className="story-comments__list">
+                {comments.map(c => (
+                  <li key={c.id} className="story-comments__item">
+                    <div className="story-comments__meta">
+                      <span className="story-comments__author">{formatCommentUser(c.user)}</span>
+                      <span className="story-comments__date">
+                        {new Date(c.createdAt).toLocaleString('sl-SI')}
+                      </span>
+                    </div>
+                    <p className="story-comments__content">{c.content}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Ni opomb.</p>
+            )}
+
+            {canComment && (
+              <form className="story-comments__form" onSubmit={handleAddComment}>
+                <textarea
+                  className="story-comments__textarea"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Dodajte opombo..."
+                  rows={3}
+                  disabled={submitting}
+                />
+                {commentError && <p className="story-comments__error">{commentError}</p>}
+                <button
+                  type="submit"
+                  className="story-comments__submit"
+                  disabled={submitting || !newComment.trim()}
+                >
+                  {submitting ? 'Shranjevanje…' : 'Dodaj opombo'}
+                </button>
+              </form>
             )}
           </section>
         </div>

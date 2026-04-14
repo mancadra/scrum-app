@@ -14,7 +14,7 @@ import {
 } from '../services/tasks';
 import TaskForm from '../components/TaskForm';
 import BurndownChartComponent from '../components/BurndownChartComponent';
-import { getStoriesForProject, addStoriesToSprint, markStoryRealized, markStoryRejected } from '../services/stories';
+import { getStoriesForProject, addStoriesToSprint, markStoryRealized, markStoryRejected, getStoryComments, addStoryComment } from '../services/stories';
 import './SprintPage.css';
 import '../components/BacklogStoryComponent.css';
 import '../components/BacklogStoryDetailsComponent.css';
@@ -61,8 +61,21 @@ const SprintPage = () => {
   const [selectedStoryForDetails, setSelectedStoryForDetails] = useState(null);
   const [finishConfirm, setFinishConfirm] = useState(null);
   const [activeTab, setActiveTab] = useState('board'); // 'board' | 'burndown'
+  const [storyComments, setStoryComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState('');
+  const [canComment, setCanComment] = useState(false);
 
-  const openStoryDetails = (story) => setSelectedStoryForDetails(story);
+  const openStoryDetails = (story) => {
+    setSelectedStoryForDetails(story);
+    setStoryComments([]);
+    setNewComment('');
+    setCommentError('');
+    if (story?.id) {
+      getStoryComments(story.id).then(setStoryComments).catch(() => setStoryComments([]));
+    }
+  };
   const closeStoryDetails = () => setSelectedStoryForDetails(null);
 
   const formatTime = (totalSeconds) => {
@@ -236,6 +249,7 @@ const SprintPage = () => {
   const modalFinishedCount = modalAllTasks.filter(t => t.finished).length;
 
   const isProductOwner = currentUserProjectRoles.includes('Product Owner');
+  const isDeveloper = currentUserProjectRoles.includes('Developer');
 
   return (
     <div className="dashboard-container p-4">
@@ -648,6 +662,69 @@ const SprintPage = () => {
                       );
                     })}
                   </div>
+                )}
+              </section>
+
+              <section className="backlog-story-details__section">
+                <h3>Opombe</h3>
+
+                {storyComments.length > 0 ? (
+                  <ul className="story-comments__list">
+                    {storyComments.map(c => (
+                      <li key={c.id} className="story-comments__item">
+                        <div className="story-comments__meta">
+                          <span className="story-comments__author">
+                            {c.user?.name && c.user?.surname
+                              ? `${c.user.name} ${c.user.surname}`
+                              : c.user?.username ?? 'Neznan'}
+                          </span>
+                          <span className="story-comments__date">
+                            {new Date(c.createdAt).toLocaleString('sl-SI')}
+                          </span>
+                        </div>
+                        <p className="story-comments__content">{c.content}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Ni opomb.</p>
+                )}
+
+                {isDeveloper && (
+                  <form
+                    className="story-comments__form"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setCommentError('');
+                      setCommentSubmitting(true);
+                      try {
+                        const comment = await addStoryComment(activeStoryForModal.id, newComment);
+                        setStoryComments(prev => [...prev, comment]);
+                        setNewComment('');
+                      } catch (err) {
+                        setCommentError(err.message);
+                      } finally {
+                        setCommentSubmitting(false);
+                      }
+                    }}
+                  >
+                    <textarea
+                      className="story-comments__textarea"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Dodajte opombo..."
+                      rows={3}
+                      disabled={commentSubmitting}
+                    />
+                    {commentError && <p className="story-comments__error">{commentError}</p>}
+                    <button
+                      type="submit"
+                      className="story-comments__submit"
+                      disabled={commentSubmitting || !newComment.trim()}
+                    >
+                      {commentSubmitting ? 'Shranjevanje…' : 'Dodaj opombo'}
+                    </button>
+                  </form>
                 )}
               </section>
             </div>
