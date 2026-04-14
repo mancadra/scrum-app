@@ -1,0 +1,193 @@
+.user-profile-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #333;
+}
+
+.page-title {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #edf2f7;
+}
+
+/* Tab Navigacija */
+.profile-tabs {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid #edf2f7;
+  margin-bottom: 25px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #718096;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: #2b6cb0;
+}
+
+.tab-btn.active {
+  color: #2b6cb0;
+  border-bottom-color: #2b6cb0;
+}
+
+/* Obrazci in Kartice */
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-card {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.profile-card h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.25rem;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 10px;
+}
+
+.form-group-row {
+  display: flex;
+  gap: 15px;
+}
+
+.form-group-row .form-group {
+  flex: 1;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Gumbi */
+.btn-primary, .btn-secondary {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.btn-primary {
+  background-color: #3182ce;
+  color: white;
+}
+
+.btn-primary:hover { background-color: #2b6cb0; }
+
+.btn-secondary {
+  background-color: #edf2f7;
+  color: #2d3748;
+}
+
+.btn-secondary:hover { background-color: #e2e8f0; }
+
+/* Timesheet / Tabela */
+.timesheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  color: #f0fff4;
+}
+
+.date-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-selector input {
+  padding: 8px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+
+.timesheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.timesheet-table th, .timesheet-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.timesheet-table th {
+  background-color: #f7fafc;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.time-input {
+  width: 80px;
+  padding: 6px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  text-align: right;
+}
+
+.timesheet-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.text-center { text-align: center; }
+
+/* Sporočila o napakah/uspehu */
+.message-banner {
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.message-banner.success {
+  background-color: #f0fff4;
+  color: #276749;
+  border: 1px solid #c6f6d5;
+}
+
+.message-banner.error {
+  background-color: #fff5f5;
+  color: #c53030;
+  border: 1px solid #fed7d7;
+}

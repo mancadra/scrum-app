@@ -69,7 +69,7 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("delete-user", { 
-        body: { userId: user.id } 
+        body: { targetUserId: user.id } 
       });
 
       if (error) throw error;
@@ -107,9 +107,25 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const endpoint = editingUser ? "update-user" : "create-user";
-      const payload = editingUser ? { ...formData, userId: editingUser.id } : formData;
+      let payload;
+    if (editingUser) {
+      payload = {
+        targetUserId: editingUser.id,
+        username: formData.username,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role
+      };
+      // Geslo pošljemo samo, če je vpisano
+      if (formData.password) {
+        payload.password = formData.password;
+      }
+    } else {
+      payload = formData;
+    }
 
-      const { data, error } = await supabase.functions.invoke(endpoint, { body: payload });
+      const { error } = await supabase.functions.invoke(endpoint, { body: payload });
       
       if (error) throw error;
 
