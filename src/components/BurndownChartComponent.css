@@ -1,0 +1,103 @@
+.burndown-wrapper {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-top: 0;
+}
+
+.burndown-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.burndown-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.burndown-total {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.burndown-status {
+    color: #6b7280;
+    font-size: 0.9rem;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+.burndown-status--error {
+    color: #dc2626;
+}
+
+/* SVG chart */
+.burndown-chart-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+}
+
+.burndown-svg {
+    display: block;
+    width: 100%;
+    max-width: 760px;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* Table */
+.burndown-table-wrapper {
+    overflow-x: auto;
+}
+
+.burndown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.burndown-table th,
+.burndown-table td {
+    padding: 0.45rem 0.75rem;
+    text-align: right;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.burndown-table th:first-child,
+.burndown-table td:first-child {
+    text-align: left;
+}
+
+.burndown-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+}
+
+.burndown-table td {
+    color: #374151;
+}
+
+.burndown-table__remaining {
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+.burndown-table__ideal {
+    color: #9ca3af;
+}
+
+.burndown-table__row--done td {
+    color: #16a34a;
+}
+
+.burndown-table__row--done .burndown-table__remaining {
+    color: #16a34a;
+}

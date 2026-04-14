@@ -1,3 +1,35 @@
+/* ── Tab bar ─────────────────────────────────────────────────────────────── */
+.sprint-tab-bar {
+  display: flex;
+  gap: 0;
+  background: #e5e7eb;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.sprint-tab-btn {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #4b5563;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sprint-tab-btn:hover {
+  background: #d1d5db;
+}
+
+.sprint-tab-btn--active {
+  background: #fff;
+  color: #1d4ed8;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
 /* Glavni kontejner z tvojim Sidebarom */
 .dashboard-container {
   display: flex;

@@ -13,6 +13,7 @@ import {
   getTaskLoggedHours,
 } from '../services/tasks';
 import TaskForm from '../components/TaskForm';
+import BurndownChartComponent from '../components/BurndownChartComponent';
 import { getStoriesForProject, addStoriesToSprint, markStoryRealized, markStoryRejected } from '../services/stories';
 import './SprintPage.css';
 import '../components/BacklogStoryComponent.css';
@@ -59,6 +60,7 @@ const SprintPage = () => {
   const [selectedStoryForTask, setSelectedStoryForTask] = useState(null);
   const [selectedStoryForDetails, setSelectedStoryForDetails] = useState(null);
   const [finishConfirm, setFinishConfirm] = useState(null);
+  const [activeTab, setActiveTab] = useState('board'); // 'board' | 'burndown'
 
   const openStoryDetails = (story) => setSelectedStoryForDetails(story);
   const closeStoryDetails = () => setSelectedStoryForDetails(null);
@@ -204,6 +206,32 @@ const SprintPage = () => {
 
   if (loading) return <div className="p-5 text-center">Nalagam Sprint tablo...</div>;
 
+  // ── Burndown-only view ──────────────────────────────────────────────────────
+  if (activeTab === 'burndown') {
+    return (
+      <div className="dashboard-container p-4">
+        <div className="d-flex align-items-center gap-3 mb-4">
+          <h2 className="mb-0">{sprintNumber != null ? `Sprint #${sprintNumber}` : 'Sprint Board'}</h2>
+          <div className="sprint-tab-bar">
+            <button
+              className={`sprint-tab-btn${activeTab === 'board' ? ' sprint-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('board')}
+            >
+              Tabla
+            </button>
+            <button
+              className={`sprint-tab-btn${activeTab === 'burndown' ? ' sprint-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('burndown')}
+            >
+              Burndown Chart
+            </button>
+          </div>
+        </div>
+        <BurndownChartComponent sprintId={parseInt(sprintId)} sprintNumber={sprintNumber} />
+      </div>
+    );
+  }
+
   const modalAllTasks = Object.values(activeStoryForModal?.tasks || {}).flat();
   const modalFinishedCount = modalAllTasks.filter(t => t.finished).length;
 
@@ -213,7 +241,23 @@ const SprintPage = () => {
     <div className="dashboard-container p-4">
       <div className="header-section d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="mb-0">{sprintNumber != null ? `Sprint #${sprintNumber}` : 'Sprint Board'}</h2>
+          <div className="d-flex align-items-center gap-3 mb-1">
+            <h2 className="mb-0">{sprintNumber != null ? `Sprint #${sprintNumber}` : 'Sprint Board'}</h2>
+            <div className="sprint-tab-bar">
+              <button
+                className={`sprint-tab-btn${activeTab === 'board' ? ' sprint-tab-btn--active' : ''}`}
+                onClick={() => setActiveTab('board')}
+              >
+                Tabla
+              </button>
+              <button
+                className={`sprint-tab-btn${activeTab === 'burndown' ? ' sprint-tab-btn--active' : ''}`}
+                onClick={() => setActiveTab('burndown')}
+              >
+                Burndown Chart
+              </button>
+            </div>
+          </div>
           {sprintData?.sprint && (
             <div className="sprint-header__dates">
               <div><span className="sprint-header__date-label">Začetek:</span> {new Date(sprintData.sprint.startingDate).toLocaleDateString('sl-SI')}</div>
