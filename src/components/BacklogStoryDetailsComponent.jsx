@@ -36,14 +36,14 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: membership } = await supabase
+      const { data: memberRows } = await supabase
         .from('ProjectUsers')
         .select('ProjectRoles(projectRole)')
         .eq('FK_projectId', projectId)
-        .eq('FK_userId', user.id)
-        .maybeSingle();
+        .eq('FK_userId', user.id);
 
-      setCanComment(membership?.ProjectRoles?.projectRole === 'Developer');
+      const roles = (memberRows ?? []).map(m => m.ProjectRoles?.projectRole);
+      setCanComment(roles.includes('Developer'));
     };
 
     checkRole();

@@ -450,7 +450,7 @@ export async function getStoryComments(storyId) {
         .from('UserStoryComments')
         .select('id, content, createdAt, FK_userId')
         .eq('FK_userStoryId', storyId)
-        .order('createdAt', { ascending: true })
+        .order('id', { ascending: true })
 
     if (error) throw new Error(error.message)
     if (!rows || rows.length === 0) return []
@@ -474,27 +474,27 @@ export async function addStoryComment(storyId, content) {
 
     if (!content || !content.trim()) throw new Error('Vsebina opombe ne sme biti prazna.')
 
-    const { data: story, error: storyError } = await supabase
+    const { data: storyRows, error: storyError } = await supabase
         .from('UserStories')
         .select('id, FK_projectId')
         .eq('id', storyId)
-        .maybeSingle()
+        .limit(1)
 
     if (storyError) throw new Error(storyError.message)
+    const story = storyRows?.[0]
     if (!story) throw new Error('Uporabniška zgodba ni bila najdena.')
 
-    const { data: membership, error: memberError } = await supabase
+    const { data: memberRows, error: memberError } = await supabase
         .from('ProjectUsers')
-        .select('ProjectRoles(projectRole)')
+        .select('FK_projectRoleId, ProjectRoles(projectRole)')
         .eq('FK_projectId', story.FK_projectId)
         .eq('FK_userId', user.id)
-        .maybeSingle()
 
     if (memberError) throw new Error(memberError.message)
-    if (!membership) throw new Error('Niste član tega projekta.')
+    if (!memberRows || memberRows.length === 0) throw new Error('Niste član tega projekta.')
 
-    const role = membership.ProjectRoles?.projectRole
-    if (role !== 'Developer') {
+    const roles = memberRows.map(m => m.ProjectRoles?.projectRole)
+    if (!roles.includes('Developer')) {
         throw new Error('Samo člani razvojne skupine lahko dodajajo opombe k zgodbam.')
     }
 
@@ -504,23 +504,23 @@ export async function addStoryComment(storyId, content) {
 
     if (insertError) throw new Error(insertError.message)
 
-    const { data: rows, error: fetchError } = await supabase
+    const { data: commentRows, error: fetchError } = await supabase
         .from('UserStoryComments')
         .select('id, content, createdAt, FK_userId')
         .eq('FK_userStoryId', storyId)
         .eq('FK_userId', user.id)
-        .order('createdAt', { ascending: false })
+        .order('id', { ascending: false })
         .limit(1)
 
     if (fetchError) throw new Error(fetchError.message)
 
-    const { data: userData } = await supabase
+    const { data: userRows } = await supabase
         .from('Users')
         .select('id, username, name, surname')
         .eq('id', user.id)
-        .maybeSingle()
+        .limit(1)
 
-    return { ...(rows?.[0] ?? {}), user: userData ?? null }
+    return { ...(commentRows?.[0] ?? {}), user: userRows?.[0] ?? null }
 }
 
 export async function deleteUserStory(storyId) {
