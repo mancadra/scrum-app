@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ProjectPageBacklogComponent from './ProjectPageBacklogComponent';
 import ProjectPageSprintComponent from './ProjectPageSprintComponent';
+import ProjectPageWallComponent from './ProjectPageWallComponent';
 import ProjectPageSettingsModalComponent from './ProjectPageSettingsModalComponent';
 import { getCurrentUser } from '../services/auth';
 import { getProjectRolesForUser } from '../services/tasks';
@@ -17,6 +18,7 @@ const ProjectPageComponent = ({
 }) => {
   const [canManageProject, setCanManageProject] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showWall, setShowWall] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,31 +54,47 @@ const ProjectPageComponent = ({
 
   return (
     <div className="project-page">
-      <div className="project-page__columns">
-        <ProjectPageBacklogComponent
+      {showWall ? (
+        <ProjectPageWallComponent
           project={project}
-          projectUsers={projectUsers}
-          stories={stories}
-          onStoryCreated={onStoryCreated}
         />
-        <ProjectPageSprintComponent
-          project={project}
-          projectUsers={projectUsers}
-          sprints={sprints}
-          onSprintCreated={onSprintCreated}
-        />
-      </div>
-
-      {canManageProject && (
-        <div className="project-page__footer">
-          <button
-            type="button"
-            className="project-panel__button project-page__settings-button"
-            onClick={() => setShowSettings(true)}
-          >
-            NASTAVITVE PROJEKTA
-          </button>
+      ) : (
+        <div className="project-page__columns">
+          <ProjectPageBacklogComponent
+            project={project}
+            projectUsers={projectUsers}
+            stories={stories}
+            onStoryCreated={onStoryCreated}
+          />
+          <ProjectPageSprintComponent
+            project={project}
+            projectUsers={projectUsers}
+            sprints={sprints}
+            onSprintCreated={onSprintCreated}
+          />
         </div>
+      )}
+
+      {(canManageProject || true) && (
+          <div className="project-page__footer">
+            <button
+                type="button"
+                className="project-panel__button project-page__footer-button project-page__wall-toggle-button"
+                onClick={() => setShowWall((prev) => !prev)}
+            >
+              {showWall ? 'POKAŽI PROJEKT' : 'POKAŽI ZID'}
+            </button>
+
+            {canManageProject && (
+                <button
+                    type="button"
+                    className="project-panel__button project-page__footer-button project-page__settings-button"
+                    onClick={() => setShowSettings(true)}
+                >
+                  NASTAVITVE PROJEKTA
+                </button>
+            )}
+          </div>
       )}
 
       {showSettings && (

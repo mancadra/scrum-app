@@ -18,6 +18,11 @@
     margin: 0;
 }
 
+.project-page__toolbar {
+    display: flex;
+    justify-content: flex-end;
+}
+
 .project-page__columns {
     display: grid;
     grid-template-columns: 3fr 1fr;
@@ -27,6 +32,27 @@
 
 .project-page__columns > * {
     min-width: 0;
+}
+
+.project-page__footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.project-page__footer-button {
+    padding: 6px 12px;
+    min-height: 32px;
+    font-size: 0.88rem;
+    width: auto;
+    line-height: 1;
+}
+
+.project-page__wall-toggle-button {
+    min-width: 120px;
 }
 
 @media (max-width: 900px) {
