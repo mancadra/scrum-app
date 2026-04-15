@@ -112,7 +112,7 @@ export function canRejectTask(task, currentUserId) {
 }
 
 export function categorizeStoryForKanban(story) {
-    if (story.realized) return 'finished'
+    if (story.done) return 'finished'
     if (story.testing) return 'testing'
     if (story.accepted || story.hasTimeLogs) return 'active'
     return 'unassigned'

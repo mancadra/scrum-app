@@ -131,15 +131,17 @@ const SprintPage = () => {
       const updatedStories = prevData.stories.map(story => {
         if (story.id === storyId) {
           let accepted = story.accepted;
-          let realized = story.realized;
+          let done = story.done;
+          console.log(done);
+          
           let testing = story.testing;
 
-          if (newStatus === 'unassigned')    { accepted = false; realized = false; testing = false; }
-          else if (newStatus === 'active')   { accepted = true;  realized = false; testing = false; }
-          else if (newStatus === 'testing')  { accepted = true;  realized = false; testing = true;  }
-          else if (newStatus === 'finished') { accepted = true;  realized = true;  testing = true;  }
+          if (newStatus === 'unassigned')    { accepted = false; done = false; testing = false; }
+          else if (newStatus === 'active')   { accepted = true;  done = false; testing = false; }
+          else if (newStatus === 'testing')  { accepted = true;  done = false; testing = true;  }
+          else if (newStatus === 'finished') { accepted = true;  done = true;  testing = true;  }
 
-          return { ...story, accepted, realized, testing };
+          return { ...story, accepted, done, testing };
         }
         return story;
       });
@@ -169,7 +171,7 @@ const SprintPage = () => {
       const allStories = await getStoriesForProject(projectId);
       const eligible = allStories.filter(s => {
         const isEstimated = (s.timeComplexity && s.timeComplexity > 0);
-        const isNotDone = !s.realized;
+        const isNotDone = !s.done;
         const notInCurrentSprint = s.sprintId !== parseInt(sprintId);
         return isEstimated && isNotDone && notInCurrentSprint;
       });

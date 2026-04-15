@@ -144,10 +144,10 @@ export const useTasks = (projectId) => {
   const handleUpdateStoryStatus = async (storyId, newStatus) => {
     try {
       const statusMap = {
-        unassigned: { accepted: false, realized: false, testing: false },
-        active:     { accepted: true,  realized: false, testing: false },
-        testing:    { accepted: true,  realized: false, testing: true  },
-        finished:   { accepted: true,  realized: true,  testing: true  },
+        unassigned: { accepted: false, done: false, testing: false },
+        active:     { accepted: true,  done: false, testing: false },
+        testing:    { accepted: true,  done: false, testing: true  },
+        finished:   { accepted: true,  done: true,  testing: true  },
       };
       const updateData = statusMap[newStatus] ?? {};
 
