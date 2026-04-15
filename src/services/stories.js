@@ -445,6 +445,84 @@ export async function editUserStory(storyId, { name, description, acceptanceTest
   return data
 }
 
+export async function getStoryComments(storyId) {
+    const { data: rows, error } = await supabase
+        .from('UserStoryComments')
+        .select('id, content, createdAt, FK_userId')
+        .eq('FK_userStoryId', storyId)
+        .order('id', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    if (!rows || rows.length === 0) return []
+
+    const userIds = [...new Set(rows.map(r => r.FK_userId).filter(Boolean))]
+    const { data: users, error: usersError } = await supabase
+        .from('Users')
+        .select('id, username, name, surname')
+        .in('id', userIds)
+
+    if (usersError) throw new Error(usersError.message)
+    const usersMap = Object.fromEntries((users ?? []).map(u => [u.id, u]))
+
+    return rows.map(r => ({ ...r, user: usersMap[r.FK_userId] ?? null }))
+}
+
+export async function addStoryComment(storyId, content) {
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) throw new Error('Niste prijavljeni.')
+
+    if (!content || !content.trim()) throw new Error('Vsebina opombe ne sme biti prazna.')
+
+    const { data: storyRows, error: storyError } = await supabase
+        .from('UserStories')
+        .select('id, FK_projectId')
+        .eq('id', storyId)
+        .limit(1)
+
+    if (storyError) throw new Error(storyError.message)
+    const story = storyRows?.[0]
+    if (!story) throw new Error('Uporabniška zgodba ni bila najdena.')
+
+    const { data: memberRows, error: memberError } = await supabase
+        .from('ProjectUsers')
+        .select('FK_projectRoleId, ProjectRoles(projectRole)')
+        .eq('FK_projectId', story.FK_projectId)
+        .eq('FK_userId', user.id)
+
+    if (memberError) throw new Error(memberError.message)
+    if (!memberRows || memberRows.length === 0) throw new Error('Niste član tega projekta.')
+
+    const roles = memberRows.map(m => m.ProjectRoles?.projectRole)
+    if (!roles.includes('Developer')) {
+        throw new Error('Samo člani razvojne skupine lahko dodajajo opombe k zgodbam.')
+    }
+
+    const { error: insertError } = await supabase
+        .from('UserStoryComments')
+        .insert({ FK_userStoryId: storyId, FK_userId: user.id, content: content.trim() })
+
+    if (insertError) throw new Error(insertError.message)
+
+    const { data: commentRows, error: fetchError } = await supabase
+        .from('UserStoryComments')
+        .select('id, content, createdAt, FK_userId')
+        .eq('FK_userStoryId', storyId)
+        .eq('FK_userId', user.id)
+        .order('id', { ascending: false })
+        .limit(1)
+
+    if (fetchError) throw new Error(fetchError.message)
+
+    const { data: userRows } = await supabase
+        .from('Users')
+        .select('id, username, name, surname')
+        .eq('id', user.id)
+        .limit(1)
+
+    return { ...(commentRows?.[0] ?? {}), user: userRows?.[0] ?? null }
+}
+
 export async function deleteUserStory(storyId) {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user

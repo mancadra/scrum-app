@@ -317,6 +317,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
           onClose={() => setSelectedStory(null)}
           getAcceptanceTests={getAcceptanceTests}
           getStoryPriority={getStoryPriority}
+          projectId={project?.id}
         />
       )}
 
