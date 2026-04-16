@@ -100,6 +100,7 @@ const ProjectPageComponent = ({
       {showSettings && (
         <ProjectPageSettingsModalComponent
           project={project}
+          projectUsers={projectUsers}
           onClose={() => setShowSettings(false)}
           onSaved={async () => {
             setShowSettings(false);

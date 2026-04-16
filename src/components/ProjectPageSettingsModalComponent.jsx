@@ -1,242 +1,308 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getUsers, getProjectRoles} from '../services/projects';
+import {
+  addProjectMember,
+  getProjectRoles,
+  getUsers,
+  removeProjectMember,
+  updateProjectMemberRole,
+  updateProjectName,
+} from '../services/projects';
 import './ProjectPageSettingsModalComponent.css';
 
-const PROJECT_ROLE_LABELS = {
-  'Product Owner': 'Produktni vodja',
-  'Scrum Master': 'Skrbnik metodologije',
-  Developer: 'Razvijalec',
+const buildMemberRoleMap = (projectUsers) => {
+  const map = {};
+  for (const member of projectUsers) {
+    map[member.FK_userId] = String(member.FK_projectRoleId);
+  }
+  return map;
 };
 
-const EXCLUSIVE_ROLES = ['Product Owner', 'Scrum Master'];
-
-export default function ProjectPageSettingsModalComponent({ project, onClose, onSaved }) {
-  const [allUsers, setAllUsers] = useState([]);
-  const [projectRoles, setProjectRoles] = useState([]);
-  const [memberships, setMemberships] = useState([]);
+const ProjectPageSettingsModalComponent = ({ project, projectUsers = [], onClose, onSaved }) => {
+  const [projectName, setProjectName] = useState(project?.name || '');
+  const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRoleId, setSelectedRoleId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [loadingError, setLoadingError] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [savingMember, setSavingMember] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
+
+  const memberRoles = useMemo(() => buildMemberRoleMap(projectUsers), [projectUsers]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadData() {
+    const loadData = async () => {
+      if (!project?.id) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      setError('');
+      setLoadingError('');
+      setActionMessage('');
+      setProjectName(project.name || '');
 
       try {
-        const [users, roles, projectMemberships] = await Promise.all([
-          getUsers(),
-          getProjectRoles(),
-          //TODO: manjka service getProjectMemberships(project.id),
-        ]);
+        const [loadedUsers, loadedRoles] = await Promise.all([getUsers(), getProjectRoles()]);
 
         if (cancelled) return;
 
-        setAllUsers(users ?? []);
-        setProjectRoles(roles ?? []);
-        setMemberships(
-          (projectMemberships ?? []).map((membership) => ({
-            userId: membership.FK_userId,
-            username: membership.Users?.username ?? '',
-            name: membership.Users?.name ?? '',
-            surname: membership.Users?.surname ?? '',
-            roleIds: [membership.FK_projectRoleId],
-          }))
-        );
+        setUsers(loadedUsers);
+        setRoles(loadedRoles);
+
+        const developerRole =
+            loadedRoles.find((role) => role.projectRole === 'Developer') || loadedRoles[0];
+
+        setSelectedRoleId(developerRole ? String(developerRole.id) : '');
+        setSelectedUserId('');
       } catch (err) {
         if (!cancelled) {
-          setError(err.message || 'Napaka pri nalaganju nastavitev projekta.');
+          setLoadingError(err?.message || 'Napaka pri nalaganju nastavitev projekta.');
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
+    };
 
     loadData();
 
     return () => {
       cancelled = true;
     };
-  }, [project.id]);
+  }, [project?.id, project?.name]);
+
+  const memberRows = useMemo(() => {
+    return projectUsers.map((member) => {
+      const user = users.find((u) => u.id === member.FK_userId);
+      const role = roles.find((r) => String(r.id) === String(member.FK_projectRoleId));
+
+      return {
+        ...member,
+        user,
+        role,
+      };
+    });
+  }, [projectUsers, roles, users]);
 
   const availableUsers = useMemo(() => {
-    const usedIds = new Set(memberships.map((m) => m.userId));
-    return allUsers.filter((user) => !usedIds.has(user.id));
-  }, [allUsers, memberships]);
+    const memberIds = new Set(projectUsers.map((member) => member.FK_userId));
+    return users.filter((user) => !memberIds.has(user.id));
+  }, [projectUsers, users]);
 
-  const addUser = () => {
-    if (!selectedUserId) return;
+  const handleRenameProject = async (event) => {
+    event.preventDefault();
+    if (!project?.id) return;
 
-    const user = allUsers.find((u) => u.id === selectedUserId);
-    if (!user) return;
-
-    const developerRole = projectRoles.find((r) => r.projectRole === 'Developer');
-
-    setMemberships((prev) => [
-      ...prev,
-      {
-        userId: user.id,
-        username: user.username,
-        name: user.name,
-        surname: user.surname,
-        roleIds: developerRole ? [developerRole.id] : [],
-      },
-    ]);
-
-    setSelectedUserId('');
-  };
-
-  const toggleRole = (userId, roleId) => {
-    setMemberships((prev) =>
-      prev.map((member) => {
-        if (member.userId !== userId) return member;
-
-        const hasRole = member.roleIds.includes(roleId);
-        return {
-          ...member,
-          roleIds: hasRole
-            ? member.roleIds.filter((id) => id !== roleId)
-            : [...member.roleIds, roleId],
-        };
-      })
-    );
-  };
-
-  const removeUser = (userId) => {
-    setMemberships((prev) => prev.filter((member) => member.userId !== userId));
-  };
-
-  const saveChanges = async () => {
-    const userWithoutRoles = memberships.find((member) => member.roleIds.length === 0);
-    if (userWithoutRoles) {
-      setError(`Uporabnik "${userWithoutRoles.username}" nima dodeljene nobene vloge.`);
+    const trimmedName = projectName.trim();
+    if (!trimmedName) {
+      setLoadingError('Ime projekta je obvezno.');
       return;
     }
 
-    const payload = memberships.map((member) => ({
-      userId: member.userId,
-      roleIds: member.roleIds,
-    }));
+    setSavingName(true);
+    setLoadingError('');
+    setActionMessage('');
 
-    setSaving(true);
-    setError('');
-
-/*    try {
-      await //TODO: Manjka serviceupdateProjectMemberships(project.id, payload);
+    try {
+      await updateProjectName(project.id, trimmedName);
+      setActionMessage('Ime projekta je bilo posodobljeno.');
       if (onSaved) await onSaved();
     } catch (err) {
-      setError(err.message || 'Napaka pri shranjevanju.');
+      setLoadingError(err?.message || 'Napaka pri shranjevanju imena projekta.');
     } finally {
-      setSaving(false);
-    }*/
+      setSavingName(false);
+    }
   };
 
+  const handleAddMember = async () => {
+    if (!project?.id || !selectedUserId || !selectedRoleId) return;
+
+    setSavingMember(true);
+    setLoadingError('');
+    setActionMessage('');
+
+    try {
+      await addProjectMember(project.id, selectedUserId, Number(selectedRoleId));
+      setActionMessage('Član je bil dodan v projekt.');
+      setSelectedUserId('');
+      if (onSaved) await onSaved();
+    } catch (err) {
+      setLoadingError(err?.message || 'Napaka pri dodajanju člana.');
+    } finally {
+      setSavingMember(false);
+    }
+  };
+
+  const handleRoleChange = async (userId, nextRoleId) => {
+    if (!project?.id) return;
+
+    const previousRoleId = memberRoles[userId];
+    setSavingMember(true);
+    setLoadingError('');
+    setActionMessage('');
+
+    try {
+      await updateProjectMemberRole(project.id, userId, Number(nextRoleId));
+      setActionMessage('Vloga člana je bila posodobljena.');
+      if (onSaved) await onSaved();
+    } catch (err) {
+      setLoadingError(err?.message || 'Napaka pri spreminjanju vloge.');
+    } finally {
+      setSavingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!project?.id) return;
+
+    const confirmed = window.confirm('Ali res želite odstraniti tega člana iz projekta?');
+    if (!confirmed) return;
+
+    setRemovingMemberId(userId);
+    setLoadingError('');
+    setActionMessage('');
+
+    try {
+      await removeProjectMember(project.id, userId);
+      setActionMessage('Član je bil odstranjen iz projekta.');
+      if (onSaved) await onSaved();
+    } catch (err) {
+      setLoadingError(err?.message || 'Napaka pri odstranjevanju člana.');
+    } finally {
+      setRemovingMemberId('');
+    }
+  };
+
+  if (!project) return null;
+
   return (
-    <div className="project-settings-modal__overlay" onClick={onClose}>
-      <div className="project-settings-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="project-settings-modal__header">
-          <h2>Nastavitve projekta</h2>
-          <button type="button" className="project-settings-modal__close" onClick={onClose}>
-            ×
-          </button>
-        </div>
+      <div className="project-settings-modal" role="dialog" aria-modal="true" aria-labelledby="project-settings-title">
+        <div className="project-settings-modal__backdrop" onClick={onClose} />
+        <div className="project-settings-modal__panel">
+          <div className="project-settings-modal__header">
+            <h2 id="project-settings-title">Nastavitve projekta</h2>
+            <button type="button" className="project-settings-modal__close" onClick={onClose} aria-label="Zapri">
+              ×
+            </button>
+          </div>
 
-        {loading ? (
-          <div className="project-settings-modal__empty">Nalaganje...</div>
-        ) : (
-          <>
-            {error && <div className="project-settings-modal__error">{error}</div>}
+          {loading ? (
+              <p className="project-settings-modal__message">Nalagam nastavitve...</p>
+          ) : (
+              <>
+                {loadingError && <div className="project-settings-modal__alert project-settings-modal__alert--error">{loadingError}</div>}
+                {actionMessage && <div className="project-settings-modal__alert project-settings-modal__alert--success">{actionMessage}</div>}
 
-            <div className="project-settings-modal__add-row">
-              <select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="project-settings-modal__select"
-              >
-                <option value="">Izberi uporabnika</option>
-                {availableUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.username} {user.name ? `(${user.name} ${user.surname ?? ''})` : ''}
-                  </option>
-                ))}
-              </select>
+                <form className="project-settings-modal__section" onSubmit={handleRenameProject}>
+                  <h3>Ime projekta</h3>
+                  <label className="project-settings-modal__field">
+                    <span>Ime</span>
+                    <input
+                        type="text"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="Vnesite ime projekta"
+                    />
+                  </label>
 
-              <button
-                type="button"
-                className="project-panel__button"
-                onClick={addUser}
-                disabled={!selectedUserId}
-              >
-                Dodaj uporabnika
-              </button>
-            </div>
-
-            <div className="project-settings-modal__list">
-              {memberships.length === 0 ? (
-                <div className="project-settings-modal__empty">Ni dodanih uporabnikov.</div>
-              ) : (
-                memberships.map((member) => (
-                  <div key={member.userId} className="project-settings-modal__row">
-                    <div className="project-settings-modal__user">
-                      <strong>{member.username}</strong>
-                      {member.name ? ` (${member.name} ${member.surname ?? ''})` : ''}
-                    </div>
-
-                    <div className="project-settings-modal__roles">
-                      {projectRoles.map((role) => {
-                        const isExclusive = EXCLUSIVE_ROLES.includes(role.projectRole);
-                        const takenByOther =
-                          isExclusive &&
-                          !member.roleIds.includes(role.id) &&
-                          memberships.some(
-                            (m) => m.userId !== member.userId && m.roleIds.includes(role.id)
-                          );
-
-                        return (
-                          <label
-                            key={role.id}
-                            className={`project-settings-modal__role${takenByOther ? ' disabled' : ''}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={member.roleIds.includes(role.id)}
-                              onChange={() => toggleRole(member.userId, role.id)}
-                              disabled={takenByOther}
-                            />
-                            {PROJECT_ROLE_LABELS[role.projectRole] ?? role.projectRole}
-                          </label>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="project-settings-modal__remove"
-                      onClick={() => removeUser(member.userId)}
-                    >
-                      Odstrani
+                  <div className="project-settings-modal__actions">
+                    <button type="submit" className="project-panel__button" disabled={savingName}>
+                      {savingName ? 'Shranjevanje...' : 'Shrani ime'}
                     </button>
                   </div>
-                ))
-              )}
-            </div>
+                </form>
 
-            <div className="project-settings-modal__footer">
-              <button
-                type="button"
-                className="project-panel__button"
-                onClick={saveChanges}
-                disabled={saving}
-              >
-                {saving ? 'Shranjevanje...' : 'Shrani spremembe'}
-              </button>
-            </div>
-          </>
-        )}
+                <div className="project-settings-modal__section">
+                  <h3>Dodaj člana</h3>
+                  <div className="project-settings-modal__grid">
+                    <label className="project-settings-modal__field">
+                      <span>Uporabnik</span>
+                      <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)}>
+                        <option value="">Izberi uporabnika</option>
+                        {availableUsers.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.username}
+                            </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="project-settings-modal__field">
+                      <span>Vloga</span>
+                      <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)}>
+                        {roles.map((role) => (
+                            <option key={role.id} value={role.id}>
+                              {role.projectRole}
+                            </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="project-settings-modal__actions">
+                    <button
+                        type="button"
+                        className="project-panel__button"
+                        onClick={handleAddMember}
+                        disabled={savingMember || !selectedUserId || !selectedRoleId}
+                    >
+                      Dodaj člana
+                    </button>
+                  </div>
+                </div>
+
+                <div className="project-settings-modal__section">
+                  <h3>Člani projekta</h3>
+
+                  {memberRows.length === 0 ? (
+                      <p className="project-settings-modal__message">V projektu še ni članov.</p>
+                  ) : (
+                      <div className="project-settings-modal__members">
+                        {memberRows.map((member) => (
+                            <div key={`${member.FK_userId}-${member.FK_projectRoleId}`} className="project-settings-modal__member">
+                              <div className="project-settings-modal__member-info">
+                                <strong>{member.user?.username || 'Neznan uporabnik'}</strong>
+                                <span>
+                          {member.user?.name || ''} {member.user?.surname || ''}
+                        </span>
+                              </div>
+
+                              <div className="project-settings-modal__member-controls">
+                                <select
+                                    value={memberRoles[member.FK_userId] || String(member.FK_projectRoleId)}
+                                    onChange={(e) => handleRoleChange(member.FK_userId, e.target.value)}
+                                    disabled={savingMember}
+                                >
+                                  {roles.map((role) => (
+                                      <option key={role.id} value={role.id}>
+                                        {role.projectRole}
+                                      </option>
+                                  ))}
+                                </select>
+
+                                <button
+                                    type="button"
+                                    className="project-settings-modal__danger-button"
+                                    onClick={() => handleRemoveMember(member.FK_userId)}
+                                    disabled={removingMemberId === member.FK_userId || savingMember}
+                                >
+                                  {removingMemberId === member.FK_userId ? 'Odstranjujem...' : 'Odstrani'}
+                                </button>
+                              </div>
+                            </div>
+                        ))}
+                      </div>
+                  )}
+                </div>
+              </>
+          )}
+        </div>
       </div>
-    </div>
   );
-}
+};
+
+export default ProjectPageSettingsModalComponent;
