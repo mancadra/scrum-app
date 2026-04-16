@@ -1,0 +1,198 @@
+.sprint-settings-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+}
+
+.sprint-settings-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(2px);
+}
+
+.sprint-settings-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(920px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    background: #111827;
+    color: #e5e7eb;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    padding: 20px;
+}
+
+.sprint-settings-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.sprint-settings-modal__header h2,
+.sprint-settings-modal__section h3 {
+    margin: 0;
+}
+
+.sprint-settings-modal__close {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #cbd5e1;
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.sprint-settings-modal__section {
+    display: grid;
+    gap: 12px;
+    padding: 16px 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.sprint-settings-modal__field {
+    display: grid;
+    gap: 6px;
+}
+
+.sprint-settings-modal__field span {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+}
+
+.sprint-settings-modal__field input {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    box-sizing: border-box;
+}
+
+.sprint-settings-modal__field input[type="date"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+    padding-right: 2.5rem;
+}
+
+.sprint-settings-modal__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.sprint-settings-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sprint-settings-modal__secondary-button,
+.sprint-settings-modal__danger-button {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.sprint-settings-modal__secondary-button {
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.sprint-settings-modal__danger-button {
+    border: 1px solid #991b1b;
+    background: #7f1d1d;
+    color: #fff;
+}
+
+.sprint-settings-modal__danger-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.sprint-settings-modal__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-top: 1px solid #334155;
+}
+
+.sprint-settings-modal__label {
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.sprint-settings-modal__note {
+    margin: 8px 0 0;
+    color: #94a3b8;
+    font-size: 0.95rem;
+}
+
+.sprint-settings-modal__danger-zone {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 0 4px;
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.sprint-settings-modal__message {
+    color: #cbd5e1;
+}
+
+.sprint-settings-modal__alert {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+.sprint-settings-modal__alert--error {
+    background: rgba(127, 29, 29, 0.45);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    color: #fecaca;
+}
+
+.sprint-settings-modal__alert--success {
+    background: rgba(20, 83, 45, 0.45);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: #bbf7d0;
+}
+
+@media (max-width: 720px) {
+    .sprint-settings-modal__panel {
+        padding: 16px;
+    }
+
+    .sprint-settings-modal__grid,
+    .sprint-settings-modal__danger-zone,
+    .sprint-settings-modal__row {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sprint-settings-modal__actions {
+        justify-content: stretch;
+    }
+
+    .sprint-settings-modal__actions > button,
+    .sprint-settings-modal__danger-button,
+    .sprint-settings-modal__secondary-button {
+        width: 100%;
+    }
+}

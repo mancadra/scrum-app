@@ -158,12 +158,21 @@
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .form-group input:focus {
     outline: none;
     border-color: #1890ff;
     box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Keep native date controls aligned inside the field */
+.form-group input[type="date"] {
+    appearance: auto;
+    -webkit-appearance: auto;
+    padding-right: 2.5rem;
 }
 
 .submit-btn {

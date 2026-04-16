@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddSprintComponent from './AddSprintComponent';
 import BacklogSprintEntryComponent from './BacklogSprintEntryComponent';
+import ProjectPageSprintSettingsModalComponent from './ProjectPageSprintSettingsModalComponent';
 import { createSprint } from '../services/sprints';
 import { getCurrentUser } from '../services/auth';
 import './ProjectPageSprintComponent.css';
@@ -11,6 +12,8 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [canAddSprint, setCanAddSprint] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState('');
+  const [selectedSprint, setSelectedSprint] = useState(null);
 
   const navigate = useNavigate();
 
@@ -20,22 +23,24 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
     const loadPermissions = async () => {
       if (!project?.id) {
         setCanAddSprint(false);
+        setCurrentUserId('');
         return;
       }
 
       try {
         const currentUser = await getCurrentUser();
-        const currentUserId = currentUser?.id;
-
-        const userMemberships = projectUsers.filter(m => m.FK_userId === currentUserId);
-        const roles = userMemberships.map(m => m.ProjectRoles?.projectRole);
+        const currentUserIdValue = currentUser?.id;
+        const userMemberships = projectUsers.filter((m) => m.FK_userId === currentUserIdValue);
+        const roles = userMemberships.map((m) => m.ProjectRoles?.projectRole);
 
         if (!cancelled) {
+          setCurrentUserId(currentUserIdValue || '');
           setCanAddSprint(roles.includes('Scrum Master'));
         }
       } catch {
         if (!cancelled) {
           setCanAddSprint(false);
+          setCurrentUserId('');
         }
       }
     };
@@ -46,6 +51,15 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
       cancelled = true;
     };
   }, [project?.id, projectUsers]);
+
+  const canOpenSprintSettings = useMemo(() => {
+    return (sprint) => {
+      if (!canAddSprint || !sprint?.startingDate) return false;
+      const startDate = new Date(sprint.startingDate);
+      if (Number.isNaN(startDate.getTime())) return false;
+      return new Date() < startDate;
+    };
+  }, [canAddSprint]);
 
   if (!project) {
     return <div className="project-panel">Ni izbranega projekta.</div>;
@@ -77,7 +91,7 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
   };
 
   const handleSprintClick = (sprintId) => {
-    navigate(`/project/${project.id}/sprint/${sprintId}`)
+    navigate(`/project/${project.id}/sprint/${sprintId}`);
   };
 
   return (
@@ -107,6 +121,8 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
                           sprint={sprint}
                           sprintNumber={index + 1}
                           onClick={() => handleSprintClick(sprint.id)}
+                          canOpenSettings={canOpenSprintSettings(sprint)}
+                          onSettingsClick={() => setSelectedSprint({ sprint, sprintNumber: index + 1 })}
                       />
                   ))
           ) : (
@@ -120,6 +136,26 @@ const ProjectPageSprintComponent = ({ project, projectUsers = [], sprints = [], 
                 onAddSprint={handleCreateSprint}
                 loading={loading}
                 error={error}
+            />
+        )}
+
+        {selectedSprint && (
+            <ProjectPageSprintSettingsModalComponent
+                sprint={selectedSprint.sprint}
+                sprintNumber={selectedSprint.sprintNumber}
+                onClose={() => setSelectedSprint(null)}
+                onSaved={async () => {
+                    setSelectedSprint(null);
+                    if (onSprintCreated) {
+                        await onSprintCreated();
+                    }
+                }}
+                onDeleted={async () => {
+                    setSelectedSprint(null);
+                    if (onSprintCreated) {
+                        await onSprintCreated();
+                    }
+                }}
             />
         )}
       </div>
