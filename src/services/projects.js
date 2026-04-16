@@ -231,22 +231,29 @@ export async function removeProjectMember(projectId, userId) {
 
   await checkProjectAdmin(projectId, user.id)
 
-  // Check member exists
-  const { data: existing, error: existError } = await supabase
+  const { error } = await supabase
     .from('ProjectUsers')
-    .select('FK_userId')
+    .delete()
     .eq('FK_projectId', projectId)
     .eq('FK_userId', userId)
-    .maybeSingle()
 
-  if (existError) throw new Error(existError.message)
-  if (!existing) throw new Error('User is not a member of this project.')
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export async function removeProjectMemberRole(projectId, userId, projectRoleId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  await checkProjectAdmin(projectId, user.id)
 
   const { error } = await supabase
     .from('ProjectUsers')
     .delete()
     .eq('FK_projectId', projectId)
     .eq('FK_userId', userId)
+    .eq('FK_projectRoleId', projectRoleId)
 
   if (error) throw new Error(error.message)
   return true

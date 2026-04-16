@@ -228,6 +228,12 @@ All service files live in `src/services/`. Each exports plain async functions.
 | `createProject(name, description, members)` | Creates project + inserts ProjectUsers |
 | `getProjectsForUser(userId)` | Returns projects the user belongs to |
 | `getProjectUsers(projectId)` | Returns members with their project roles |
+| `updateProjectName(projectId, name)` | Renames a project; unique constraint enforced by DB |
+| `addProjectMember(projectId, userId, roleId)` | Inserts a row into `ProjectUsers` |
+| `removeProjectMember(projectId, userId)` | Deletes the `ProjectUsers` row for that member |
+| `updateProjectMemberRole(projectId, userId, roleId)` | Updates the role of an existing project member |
+| `getProjectRoles()` | Returns all rows from `ProjectRoles` lookup table |
+| `getUsers()` | Returns all users (used to populate member-picker dropdowns) |
 
 ### `sprints.js`
 | Function | Description |
@@ -306,14 +312,22 @@ Fetches tasks for the active sprint, grouped by status.
 | Component | Responsibility |
 |---|---|
 | `NavbarComponent` | Top navigation, project selector, logout |
-| `TOBEDELETEDProductBacklog` | Renders the three backlog categories (realized / assigned / unassigned) |
+| `ProjectPageComponent` | Project landing page; renders Backlog + Sprint columns and the footer action bar. Shows the **NASTAVITVE PROJEKTA** button when the current user is a **Scrum Master** (project role) **or** a system **Admin**. |
+| `ProjectPageBacklogComponent` | Product Backlog panel: story list, add/edit/delete story, time complexity input |
+| `ProjectPageSprintComponent` | Sprint list panel: create sprint, open sprint settings |
+| `ProjectPageSettingsModalComponent` | Modal for renaming a project and managing its members (add, remove, change role). Accessible to Scrum Masters and system Admins. |
+| `ProjectPageSprintSettingsModalComponent` | Modal for editing or deleting a sprint that has not yet started |
+| `ProjectPageWallComponent` | Project wall: list of posts; create post, open post details |
+| `ProjectPageWallPostComponent` | Single wall-post card (preview + click to open) |
 | `BacklogStoryComponent` | Single story card with inline time complexity input |
+| `BacklogStoryDetailsComponent` | Story detail panel: edit/delete story, acceptance tests, comments, confirm/reject buttons |
 | `UserStoryForm` | Create/edit story modal (name, description, priority, business value, acceptance tests) |
-| `AddSprintComponent` | Sprint creation/edit form with date and speed validation |
-| `ProjectPageSprintComponent` | Sprint list within a project |
-| `TOBEDELETEDTaskCard` | Single task card showing status, assigned developer, accept/finish buttons |
+| `AddSprintComponent` | Sprint creation form with date and speed validation |
+| `BacklogSprintEntryComponent` | Sprint entry row in the sprint list |
 | `TaskForm` | Create/edit task form |
-| `TOBEDELETEDFirstTimeLoginPage` | Shown on first login to prompt password change |
+| `BurndownChartComponent` | SVG burndown chart for a sprint (ideal vs actual lines) |
+| `PasswordMeter` | Password strength indicator shown during registration/password change |
+| `MFASetup` | TOTP multi-factor authentication enrollment UI |
 
 ---
 
@@ -322,12 +336,28 @@ Fetches tasks for the active sprint, grouped by status.
 Routing is set up in `App.jsx` using React Router v7. `main.jsx` wraps everything in `<BrowserRouter>`.
 
 **Role checks** are done via `useAuth()`:
-- `isAdmin` — system-level Administrator role
+- `isAdmin` — system-level Administrator role (`Roles.name === 'Admin'`)
 - `isDeveloper` — Developer project role
 
 Sensitive routes redirect to `/login` if the user is not authenticated, or show an error if they lack the required role.
 
 The selected project is persisted in `localStorage` so it survives page refreshes.
+
+### Project management permission (`canManageProject`)
+
+`ProjectPageComponent` derives `canManageProject` on mount by calling both `getCurrentUser()` and `getProjectRolesForUser()`:
+
+```js
+const isAdmin = currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false;
+const roles   = await getProjectRolesForUser(project.id, currentUser?.id);
+setCanManageProject(isAdmin || roles.includes('Scrum Master'));
+```
+
+This means the **NASTAVITVE PROJEKTA** button (and the `ProjectPageSettingsModalComponent` it opens) is shown to:
+- Any user with the **Scrum Master** project role on that specific project, **or**
+- Any user with the system-level **Admin** role (regardless of project membership).
+
+> Do not rely solely on project-role checks when the action should also be available to system Admins. Always combine both checks as shown above.
 
 ---
 

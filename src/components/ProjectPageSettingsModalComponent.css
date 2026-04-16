@@ -98,8 +98,8 @@
 }
 
 .project-settings-modal__member {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   padding: 12px;
@@ -111,6 +111,7 @@
 .project-settings-modal__member-info {
   display: grid;
   gap: 4px;
+  min-width: 140px;
 }
 
 .project-settings-modal__member-info span,
@@ -123,6 +124,39 @@
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.project-settings-modal__role-checkboxes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.project-settings-modal__role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.project-settings-modal__role-checkbox input[type="checkbox"] {
+  accent-color: #3b82f6;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.project-settings-modal__role-checkbox:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.project-settings-modal__role-taken {
+  font-size: 0.78rem;
+  color: #f87171;
 }
 
 .project-settings-modal__danger-button {
