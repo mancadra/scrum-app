@@ -121,7 +121,7 @@ export async function getMyTimeEntries({ from = null, to = null } = {}) {
         .from('TimeTables')
         .select(`
             id, starttime, stoptime,
-            Tasks ( id, description, remaininghours,
+            Tasks ( id, description, remaininghours, timecomplexity,
                 UserStories ( id, name )
             )
         `)
@@ -152,6 +152,7 @@ export async function getMyTimeEntries({ from = null, to = null } = {}) {
         taskId:          entry.Tasks?.id ?? null,
         taskDescription: entry.Tasks?.description ?? '',
         remaininghours:  entry.Tasks?.remaininghours ?? null,
+        timecomplexity:  entry.Tasks?.timecomplexity ?? null,
         storyId:         entry.Tasks?.UserStories?.id ?? null,
         storyName:       entry.Tasks?.UserStories?.name ?? '',
     }));

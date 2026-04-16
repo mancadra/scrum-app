@@ -66,20 +66,37 @@ export default function UserProfile() {
     }
   };
 
-  const handleHoursChange = async (entryId, hours) => {
-    try {
-      setLoading(true);
-      await updateTimeEntry(entryId, hours);
-      setMessage({ text: 'Ure uspešno posodobljene.', type: 'success' });
-      // Ni potrebe po celotnem reloadu, če želiš hitrejši UI, 
-      // vendar loadWorkLogs zagotovi, da so podatki v sinhronu z bazo.
-      loadWorkLogs(selectedDate); 
-    } catch (err) {
-      setMessage({ text: err, type: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
+ const handleHoursChange = async (log, newHours) => {
+  const oldHours = log.hours || 0;
+  
+  // LOGIKA ZA ZAČETNO VREDNOST:
+  // 1. Če log.remaininghours obstaja, vzamemo to.
+  // 2. Če ne obstaja (null/undefined), vzamemo prvotno oceno (timecomplexity).
+  // 3. Če tudi te ni, začnemo pri 0.
+  const startingRemaining = (log.remaininghours !== null && log.remaininghours !== undefined) 
+    ? log.remaininghours 
+    : (log.timecomplexity || 0);
+
+  const delta = newHours - oldHours;
+  const newRemaining = Math.max(0, startingRemaining - delta);
+
+  try {
+    setLoading(true);
+    
+    // Posodobimo ure dela
+    await updateTimeEntry(log.id, newHours);
+    
+    // Posodobimo preostanek (to bo zdaj vpisalo vrednost v bazo, če je prej ni bilo)
+    await setRemainingHours(log.taskId, newRemaining);
+    
+    setMessage({ text: 'Ure posodobljene in preostanek izračunan.', type: 'success' });
+    loadWorkLogs(selectedDate); 
+  } catch (err) {
+    setMessage({ text: err.message || err, type: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleRemainingChange = async (taskId, hours) => {
     try {
@@ -236,21 +253,29 @@ export default function UserProfile() {
                               <input 
                                 type="number" min="0" max="24" step="0.5" 
                                 defaultValue={log.hours} 
-                                onBlur={(e) => handleHoursChange(log.id, parseFloat(e.target.value))}
+                                // Pošljemo cel 'log' in novo vrednost
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  if (val !== log.hours) {
+                                    handleHoursChange(log, val);
+                                  }
+                                }}
                               />
                               <span>h</span>
                             </div>
                           </td>
                           <td>
-                            <div className="input-with-unit">
-                              <input 
-                                type="number" min="0" step="0.5" 
-                                defaultValue={log.remaininghours} 
-                                onBlur={(e) => handleRemainingChange(log.taskId, parseFloat(e.target.value))}
-                              />
-                              <span>h</span>
-                            </div>
-                          </td>
+                          <div className="input-with-unit">
+                            <input 
+                              type="number" min="0" step="0.5" 
+                              // Če ni vpisanih preostalih ur, pokaži timecomplexity kot placeholder ali vrednost
+                              defaultValue={log.remaininghours ?? log.timecomplexity} 
+                              onBlur={(e) => handleRemainingChange(log.taskId, parseFloat(e.target.value))}
+                              placeholder={log.timecomplexity ? `Ocena: ${log.timecomplexity}` : "0"}
+                            />
+                            <span>h</span>
+                          </div>
+                        </td>
                         </tr>
                       ))
                     )}

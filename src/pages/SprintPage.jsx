@@ -71,8 +71,6 @@ const SprintPage = () => {
   const [showEditTask, setShowEditTask] = useState(false);
 const [taskToEdit, setTaskToEdit] = useState(null);
 
-const isScrumMaster = currentUserProjectRoles.includes('Scrum Master');
-const canManageTasks = isScrumMaster || isDeveloper;
 
   const openStoryDetails = (story) => {
     setSelectedStoryForDetails(story);
@@ -114,7 +112,7 @@ const canManageTasks = isScrumMaster || isDeveloper;
       await addStoriesToSprint(activeSprintId, [storyId]);
       await fetchSprintBacklog(activeSprintId);
       await loadBacklog();
-      alert("Zgodba uspešno dodana v sprint!");
+      //alert("Zgodba uspešno dodana v sprint!");
     } catch (err) {
       console.error("Napaka pri dodajanju zgodbe:", err);
       alert(`Napaka: ${err.message}`);
@@ -282,6 +280,8 @@ const handleDeleteTaskClick = async (taskId) => {
 
   const isProductOwner = currentUserProjectRoles.includes('Product Owner');
   const isDeveloper = currentUserProjectRoles.includes('Developer');
+  const isScrumMaster = currentUserProjectRoles.includes('Scrum Master');
+const canManageTasks = isScrumMaster || isDeveloper;
 
   return (
     <div className="dashboard-container p-4">
@@ -811,7 +811,27 @@ const handleDeleteTaskClick = async (taskId) => {
           </div>
         </div>
       )}
+      {showEditTask && taskToEdit && (
+  <div className="modal-overlay" style={{ zIndex: 10002 }} onClick={() => setShowEditTask(false)}>
+    <div className="custom-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '100%', maxWidth: '500px' }}>
+      <div className="modal-header-custom d-flex justify-content-between align-items-center mb-3">
+        <h5 className="m-0 fw-bold">Uredi nalogo</h5>
+        <button className="modal-close-btn" onClick={() => setShowEditTask(false)}>✕</button>
+      </div>
+      <div className="modal-body-custom">
+        <TaskForm
+          initialData={taskToEdit} // Pošljemo obstoječe podatke
+          isEditing={true}         // Povemo formi, da gre za urejanje
+          handleUpdateTask={handleEditTaskSubmit} // Pošljemo novo funkcijo
+          projectMembers={projectDevelopers}
+          onCancel={() => setShowEditTask(false)}
+        />
+      </div>
     </div>
+  </div>
+)}
+    </div>
+    
   );
 };
 
