@@ -31,10 +31,11 @@ const ProjectPageComponent = ({
 
       try {
         const currentUser = await getCurrentUser();
+        const isAdmin = currentUser?.profile?.UserRoles?.some(r => r.Roles?.name === 'Admin') ?? false;
         const roles = await getProjectRolesForUser(project.id, currentUser?.id);
 
         if (!cancelled) {
-          setCanManageProject(roles.includes('Scrum Master'));
+          setCanManageProject(isAdmin || roles.includes('Scrum Master'));
         }
       } catch {
         if (!cancelled) setCanManageProject(false);
