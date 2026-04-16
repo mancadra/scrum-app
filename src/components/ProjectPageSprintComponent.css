@@ -10,6 +10,10 @@
     padding-right: 4px;
 }
 
+.sprint-card__wrapper {
+    position: relative;
+}
+
 .sprint-card {
     width: 100%;
     min-height: 110px;
@@ -21,6 +25,8 @@
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     color: #0f172a;
+    position: relative;
+    box-sizing: border-box;
 }
 
 .sprint-card:hover {
@@ -29,10 +35,36 @@
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
+.sprint-card__settings-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.06);
+    color: #334155;
+    font-size: 14px;
+    line-height: 1;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.sprint-card__settings-button:hover {
+    background: rgba(15, 23, 42, 0.12);
+}
+
 .sprint-card__title {
     font-weight: 700;
     margin-bottom: 10px;
     color: #0f172a;
+    padding-right: 36px;
 }
 
 .sprint-card__row {
