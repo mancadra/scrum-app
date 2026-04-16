@@ -6,7 +6,10 @@ const TaskForm = ({
   handleCreateTask, 
   projectMembers = [], 
   onSuccess, 
-  preselectedStoryId // Dodano, da se avtomatsko izbere zgodba s kartice
+  preselectedStoryId,
+  handleUpdateTask, 
+  initialData, 
+  isEditing,
 }) => {
   const [selectedStoryId, setSelectedStoryId] = useState('');
   const [formData, setFormData] = useState({
@@ -16,38 +19,52 @@ const TaskForm = ({
   });
   const [error, setError] = useState('');
 
-  // Nastavi preizbrano zgodbo, če pride iz gumba na kartici
+  // 1. Logika za polnjenje forme ob urejanju ali preizbiri zgodbe
   useEffect(() => {
-    if (preselectedStoryId) {
+    if (isEditing && initialData) {
+      // Polnjenje za UREJANJE
+      setSelectedStoryId(initialData.FK_userStoryId?.toString() || '');
+      setFormData({
+        description: initialData.description || '',
+        estimatedTime: initialData.timecomplexity || '',
+        proposedMemberId: initialData.FK_proposedDeveloper || ''
+      });
+    } else if (preselectedStoryId) {
+      // Polnjenje za NOVO nalogo iz specifične zgodbe
       setSelectedStoryId(preselectedStoryId.toString());
     }
-  }, [preselectedStoryId]);
+  }, [preselectedStoryId, initialData, isEditing]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // 1. Validacija zgodbe
     const storyIdNum = parseInt(selectedStoryId);
     if (!storyIdNum) {
       setError("Prosimo, izberite uporabniško zgodbo.");
       return;
     }
 
-    // 2. Validacija časa
     const hours = parseFloat(formData.estimatedTime);
     if (isNaN(hours) || hours <= 0) {
       setError("Vnesite veljavno oceno v točkah (npr. 2.5).");
       return;
     }
 
-    // 3. Pošiljanje podatkov
     try {
-      await handleCreateTask(storyIdNum, {
+      const payload = {
         description: formData.description.trim(),
-        timecomplexity: hours, // Uporabi ime polja, ki ga pričakuje tvoj backend
+        timecomplexity: hours,
         FK_proposedDeveloper: formData.proposedMemberId || null
-      });
+      };
+
+      if (isEditing) {
+        // 2. Klic za POSODABLJANJE (tvoj backend editTask)
+        await handleUpdateTask(initialData.id, payload);
+      } else {
+        // 3. Klic za USTVARJANJE
+        await handleCreateTask(storyIdNum, payload);
+      }
       
       onSuccess(); 
     } catch (err) {
@@ -58,6 +75,7 @@ const TaskForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="task-form-container">
+      {/* Pri urejanju lahko onemogočimo izbiro zgodbe, če ne želiš, da se naloge selijo med zgodbami */}
       <div className="form-section">
         <label className="form-label-custom">
           <span className="icon">📖</span> Pripada User Story
@@ -66,6 +84,7 @@ const TaskForm = ({
           className="form-select-custom"
           value={selectedStoryId}
           onChange={(e) => setSelectedStoryId(e.target.value)}
+          disabled={isEditing} 
           required
         >
           <option value="">-- Izberi zgodbo --</option>
@@ -127,7 +146,7 @@ const TaskForm = ({
 
       <div className="form-actions mt-4 text-end">
         <button type="submit" className="btn btn-primary px-4 shadow-sm">
-          Ustvari nalogo
+          {isEditing ? 'Shrani spremembe' : 'Ustvari nalogo'}
         </button>
       </div>
     </form>

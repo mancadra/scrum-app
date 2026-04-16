@@ -11,6 +11,8 @@ import {
   getProjectDevelopers,
   getSprintNumber,
   getTaskLoggedHours,
+  editTask,
+  deleteTask,
 } from '../services/tasks';
 import TaskForm from '../components/TaskForm';
 import BurndownChartComponent from '../components/BurndownChartComponent';
@@ -66,6 +68,9 @@ const SprintPage = () => {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState('');
   const [canComment, setCanComment] = useState(false);
+  const [showEditTask, setShowEditTask] = useState(false);
+const [taskToEdit, setTaskToEdit] = useState(null);
+
 
   const openStoryDetails = (story) => {
     setSelectedStoryForDetails(story);
@@ -107,7 +112,7 @@ const SprintPage = () => {
       await addStoriesToSprint(activeSprintId, [storyId]);
       await fetchSprintBacklog(activeSprintId);
       await loadBacklog();
-      alert("Zgodba uspešno dodana v sprint!");
+      //alert("Zgodba uspešno dodana v sprint!");
     } catch (err) {
       console.error("Napaka pri dodajanju zgodbe:", err);
       alert(`Napaka: ${err.message}`);
@@ -181,6 +186,29 @@ const SprintPage = () => {
     }
   };
 
+  const handleEditTaskSubmit = async (taskId, updatedData) => {
+  try {
+    await editTask(taskId, updatedData); // Kliče tvoj backend
+    setShowEditTask(false);
+    fetchSprintBacklog(sprintId); // Osveži UI
+    alert("Naloga uspešno posodobljena!");
+  } catch (err) {
+    alert(`Napaka pri urejanju: ${err.message}`);
+  }
+};
+
+const handleDeleteTaskClick = async (taskId) => {
+  if (!window.confirm("Ali ste prepričani, da želite izbrisati to nalogo?")) return;
+  
+  try {
+    await deleteTask(taskId); // Kliče tvoj backend
+    fetchSprintBacklog(sprintId); // Osveži UI
+    alert("Naloga uspešno izbrisana!");
+  } catch (err) {
+    alert(`Napaka pri brisanju: ${err.message}`);
+  }
+};
+
   useEffect(() => {
     if (sprintData) loadBacklog();
   }, [sprintData]);
@@ -252,6 +280,8 @@ const SprintPage = () => {
 
   const isProductOwner = currentUserProjectRoles.includes('Product Owner');
   const isDeveloper = currentUserProjectRoles.includes('Developer');
+  const isScrumMaster = currentUserProjectRoles.includes('Scrum Master');
+const canManageTasks = isScrumMaster || isDeveloper;
 
   return (
     <div className="dashboard-container p-4">
@@ -565,6 +595,8 @@ const SprintPage = () => {
                       const canReject = canRejectTask(task, currentUser?.id);
                       const devName = formatUserName(task.acceptedDev);
                       const proposedDevName = formatUserName(task.proposedDev);
+                      const isAccepted = !!task.FK_acceptedDeveloper;
+                      const canDeleteThisTask = canManageTasks && !isAccepted;
 
                       return (
                         <div key={task.id} className={`sprint-modal-task ${isFinished ? 'sprint-modal-task--finished' : ''}`}>
@@ -580,6 +612,43 @@ const SprintPage = () => {
                                   : null}
                             </span>
                           </div>
+                          {canManageTasks && (
+                          <div className="d-flex gap-2 ms-3 border-start ps-3">
+                            <button 
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTaskToEdit(task);
+                                setShowEditTask(true);
+                              }}
+                              title="Uredi nalogo"
+                            >
+                              ✎ Uredi
+                            </button>
+                            
+                            {/* Gumb za brisanje prikažemo samo, če naloga še ni sprejeta */}
+                            {canDeleteThisTask ? (
+                              <button 
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteTaskClick(task.id);
+                                }}
+                                title="Izbriši nalogo"
+                              >
+                                🗑 Briši
+                              </button>
+                            ) : (
+                              <button 
+                                className="btn btn-sm btn-outline-secondary" 
+                                disabled 
+                                title="Naloge, ki je že sprejeta, ni mogoče izbrisati"
+                              >
+                                🗑 Briši
+                              </button>
+                            )}
+                          </div>
+                        )}
                           <div className="sprint-modal-task__action">
                             {isFinished ? (
                               <div className="d-flex align-items-center gap-2">
@@ -742,7 +811,27 @@ const SprintPage = () => {
           </div>
         </div>
       )}
+      {showEditTask && taskToEdit && (
+  <div className="modal-overlay" style={{ zIndex: 10002 }} onClick={() => setShowEditTask(false)}>
+    <div className="custom-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '100%', maxWidth: '500px' }}>
+      <div className="modal-header-custom d-flex justify-content-between align-items-center mb-3">
+        <h5 className="m-0 fw-bold">Uredi nalogo</h5>
+        <button className="modal-close-btn" onClick={() => setShowEditTask(false)}>✕</button>
+      </div>
+      <div className="modal-body-custom">
+        <TaskForm
+          initialData={taskToEdit} // Pošljemo obstoječe podatke
+          isEditing={true}         // Povemo formi, da gre za urejanje
+          handleUpdateTask={handleEditTaskSubmit} // Pošljemo novo funkcijo
+          projectMembers={projectDevelopers}
+          onCancel={() => setShowEditTask(false)}
+        />
+      </div>
     </div>
+  </div>
+)}
+    </div>
+    
   );
 };
 
