@@ -239,6 +239,12 @@ function App() {
                             sprints={selectedProjectSprints}
                             onStoryCreated={refreshSelectedProjectData}
                             onSprintCreated={refreshSelectedProjectData}
+                            onProjectUpdated={async () => {
+                              if (currentUser) {
+                                await loadProjects(currentUser);
+                              }
+                              await refreshSelectedProjectData();
+                            }}
                         />
                     ) : (
                         <Navigate to="/create-project" replace />
