@@ -19,13 +19,14 @@
   z-index: 1;
   width: min(920px, 100%);
   max-height: calc(100vh - 32px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #111827;
   color: #e5e7eb;
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 16px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-  padding: 20px;
+  padding: 20px 20px 0;
 }
 
 .project-settings-modal__header {
@@ -98,8 +99,8 @@
 }
 
 .project-settings-modal__member {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   padding: 12px;
@@ -111,6 +112,7 @@
 .project-settings-modal__member-info {
   display: grid;
   gap: 4px;
+  min-width: 140px;
 }
 
 .project-settings-modal__member-info span,
@@ -123,6 +125,39 @@
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.project-settings-modal__role-checkboxes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.project-settings-modal__role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.project-settings-modal__role-checkbox input[type="checkbox"] {
+  accent-color: #3b82f6;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.project-settings-modal__role-checkbox:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.project-settings-modal__role-taken {
+  font-size: 0.78rem;
+  color: #f87171;
 }
 
 .project-settings-modal__danger-button {
@@ -156,6 +191,21 @@
   background: rgba(20, 83, 45, 0.45);
   border: 1px solid rgba(74, 222, 128, 0.3);
   color: #bbf7d0;
+}
+
+.project-settings-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 32px 0 4px;
+  margin-top: 4px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, #111827 40%);
+  z-index: 1;
+}
+
+.project-settings-modal__save-button {
+  min-width: 160px;
 }
 
 @media (max-width: 720px) {
