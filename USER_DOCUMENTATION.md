@@ -176,14 +176,17 @@ Dostop: Zavihek **Sprinti** na strani projekta.
 
 ### Ustvarjanje sprinta *(Skrbnik metodologije)*
 1. Kliknite **+ Dodaj Sprint**.
-2. Določite **ime**, **začetni datum**, **končni datum** in **pričakovano hitrost**.
-3. Kliknite **Shrani**.
+2. Izberite **začetni datum** in **končni datum** s pomočjo izbirnika datuma (kalendar).
+3. Vnesite **pričakovano hitrost**.
+4. Kliknite **Shrani**.
 
 #### Pravila
 - Začetni datum ne sme biti v preteklosti.
 - Končni datum mora biti po začetnem.
-- Hitrost mora biti pozitivno število.
+- Hitrost mora biti pozitivno celo število.
 - Sprinti se ne smejo časovno prekrivati.
+- Začetni in končni datum ne smeta biti ob vikendu (sobota, nedelja).
+- Začetni in končni datum ne smeta biti na slovenski državni praznik.
 
 ### Urejanje obstoječega sprinta *(Skrbnik metodologije)*
 1. V seznamu sprintov kliknite ikono za nastavitve (zobnik) pri sprintu, ki se **še ni pričel**.
@@ -281,24 +284,25 @@ Dostop: **Profile** v navigacijski vrstici (kliknite ikono uporabnika ali ime).
 Dostop: gumb **Nastavitve projekta** (zobnik) na strani projekta (vidno Skrbniku metodologije in Administratorju).
 
 ### Sprememba imena projekta
-1. V modalnem oknu nastavitev spremenite **ime projekta**.
-2. Kliknite **Shrani ime**.
-
-> Ime mora biti edinstveno. Sistem bo opozoril na podvajanje.
+1. V modalnem oknu nastavitev spremenite **ime projekta** v polju na vrhu.
 
 ### Dodajanje novega člana
 1. Iz spustnega menija izberite **uporabnika**, ki ga želite dodati.
-2. Izberite njegovo **projektno vlogo**.
-3. Kliknite **+ Dodaj člana**.
+2. Kliknite **Dodaj člana** — nov član se doda v seznam z vlogo Razvijalec.
+3. Po potrebi mu spremenite vloge s kljukicami v seznamu članov.
 
 ### Sprememba vloge obstoječega člana
 1. V seznamu članov poiščite želenega člana.
-2. Iz spustnega menija poleg njegovega imena izberite novo vlogo.
-3. Sprememba se shrani samodejno (ali ob kliku na **Shrani**).
+2. Označite ali odznačite kljukice pri posameznih vlogah.
 
 ### Odstranitev člana iz projekta
-1. V seznamu članov kliknite ikono za odstranitev (koš) pri želenem članu.
-2. Potrdite odstranitev.
+1. V seznamu članov kliknite gumb **Odstrani** pri želenem članu.
+
+### Shranjevanje sprememb
+- Ko ste z vsemi spremembami zadovoljni, kliknite gumb **Shrani spremembe** na dnu okna.
+- Sistem preveri, da projekt ohrani natanko **enega Produktnega vodjo** in **enega Skrbnika metodologije** ter da ima vsak član vsaj eno vlogo. V nasprotnem primeru bo prikazana napaka.
+
+> Ime mora biti edinstveno. Sistem bo opozoril na podvajanje.
 
 ---
 
@@ -393,14 +397,18 @@ Dostop: gumb **Zid** na strani projekta.
 
 ### Komentiranje objave *(vsi člani projekta)*
 1. Kliknite na objavo, da se odpre podrobni pogled.
-2. Vpišite komentar v polje za komentar.
-3. Kliknite **Dodaj komentar**.
+2. Vpišite komentar v polje za komentar na dnu okna.
+3. Kliknite **Komentiraj**.
 
-### Brisanje objave ali komentarja *(Skrbnik metodologije)*
-1. V podrobnem pogledu objave kliknite ikono za brisanje (koš) pri objavi ali komentarju.
-2. Potrdite brisanje.
+### Brisanje objave *(Skrbnik metodologije)*
+1. Premaknite miško na objavo — v zgornjem desnem kotu kartice se prikaže ikona koša 🗑️.
+2. Kliknite ikono in potrdite brisanje.
 
 > Ob brisanju objave se **samodejno izbrišejo tudi vsi komentarji** k tej objavi.
+
+### Brisanje komentarja *(Skrbnik metodologije)*
+1. Odprite podrobni pogled objave.
+2. Poleg komentarja kliknite gumb **×** in potrdite brisanje.
 
 ---
 

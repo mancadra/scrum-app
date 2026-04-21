@@ -4,6 +4,7 @@ In this document are written all the LLMs we used in the course of this project 
 - Help with connecting the app to supabase db.
 - Planning project structure
 - Implementation of services and their tests
+- Implementing user stories
 - writting user documentation
 - writting developer documentation
 

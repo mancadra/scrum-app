@@ -225,12 +225,14 @@ All service files live in `src/services/`. Each exports plain async functions.
 ### `projects.js`
 | Function | Description |
 |---|---|
-| `createProject(name, description, members)` | Creates project + inserts ProjectUsers |
+| `createProject(name, description, members)` | Creates project + inserts ProjectUsers; enforces exactly 1 Product Owner and 1 Scrum Master |
 | `getProjectsForUser(userId)` | Returns projects the user belongs to |
 | `getProjectUsers(projectId)` | Returns members with their project roles |
-| `updateProjectName(projectId, name)` | Renames a project; unique constraint enforced by DB |
-| `addProjectMember(projectId, userId, roleId)` | Inserts a row into `ProjectUsers` |
-| `removeProjectMember(projectId, userId)` | Deletes the `ProjectUsers` row for that member |
+| `updateProjectName(projectId, name)` | Renames a project; checks for duplicate names |
+| `saveProjectMembers(projectId, desiredMembers)` | Batch-updates the full member list: diffs current vs desired state, applies inserts/deletes. Validates that exactly 1 Product Owner and 1 Scrum Master remain and all members have at least one role |
+| `addProjectMember(projectId, userId, roleId)` | Inserts a row into `ProjectUsers`; blocks exclusive roles already held by another member |
+| `removeProjectMember(projectId, userId)` | Deletes all `ProjectUsers` rows for that member; blocked if member is the sole Product Owner or Scrum Master |
+| `removeProjectMemberRole(projectId, userId, roleId)` | Removes a single role from a member; blocked if it would leave the project with no Product Owner or no Scrum Master |
 | `updateProjectMemberRole(projectId, userId, roleId)` | Updates the role of an existing project member |
 | `getProjectRoles()` | Returns all rows from `ProjectRoles` lookup table |
 | `getUsers()` | Returns all users (used to populate member-picker dropdowns) |
@@ -238,10 +240,15 @@ All service files live in `src/services/`. Each exports plain async functions.
 ### `sprints.js`
 | Function | Description |
 |---|---|
-| `createSprint(projectId, startingDate, endingDate, startingSpeed)` | Validates dates/speed/overlap, then inserts |
-| `getSprintsForProject(projectId)` | Returns all sprints ordered by start date |
-| `updateSprint(sprintId, data)` | Updates a sprint that hasn't started |
-| `deleteSprint(sprintId)` | Deletes a sprint that hasn't started |
+| `createSprint(projectId, { startingDate, endingDate, startingSpeed })` | Validates dates/speed/overlap/weekend/holiday, then inserts. Scrum Master only |
+| `getSprintsForProject(projectId)` | Returns all sprints ordered by start date descending |
+| `editSprint(sprintId, { startingDate, endingDate, startingSpeed })` | Updates a sprint that hasn't started; same validations as create. Scrum Master only |
+| `deleteSprint(sprintId)` | Removes `SprintUserStories` entries first (stories return to backlog, time logs preserved), then deletes the sprint. Scrum Master only |
+
+**Shared validation helpers (internal):**
+- `checkNotWeekend(date)` — throws if the date falls on Saturday or Sunday
+- `checkNotHoliday(date)` — fetches Slovenian public holidays from `date.nager.at` API and throws if the date matches
+- `checkSprintEditable(sprintId, userId)` — verifies the sprint hasn't started and the caller is a Scrum Master
 
 ### `stories.js`
 | Function | Description |
@@ -264,6 +271,16 @@ All service files live in `src/services/`. Each exports plain async functions.
 | `finishTask(taskId)` | Sets `finished=true` |
 | `startWork(taskId, userId)` | Inserts open TimeTables row (`stoptime` NULL) |
 | `stopWork(taskId, userId)` | Closes open TimeTables row (sets `stoptime`) |
+
+### `wallPosts.js`
+| Function | Description |
+|---|---|
+| `getWallPosts(projectId)` | Returns top-level posts (no comments) with author info, newest first. Project members only |
+| `getCommentsForPost(postId)` | Returns all comments for a post with author info, oldest first. Project members only |
+| `createWallPost(projectId, content)` | Creates a top-level post. Project members only |
+| `createWallComment(postId, content)` | Creates a comment on a post (`responseTo = postId`). Project members only; cannot comment on comments |
+| `deleteWallPost(postId)` | Deletes all comments first, then the post. Scrum Master or Admin only |
+| `deleteWallComment(commentId)` | Deletes a single comment. Scrum Master or Admin only |
 
 ### `productBacklog.js`
 | Function | Description |
@@ -315,10 +332,10 @@ Fetches tasks for the active sprint, grouped by status.
 | `ProjectPageComponent` | Project landing page; renders Backlog + Sprint columns and the footer action bar. Shows the **NASTAVITVE PROJEKTA** button when the current user is a **Scrum Master** (project role) **or** a system **Admin**. |
 | `ProjectPageBacklogComponent` | Product Backlog panel: story list, add/edit/delete story, time complexity input |
 | `ProjectPageSprintComponent` | Sprint list panel: create sprint, open sprint settings |
-| `ProjectPageSettingsModalComponent` | Modal for renaming a project and managing its members (add, remove, change role). Accessible to Scrum Masters and system Admins. |
-| `ProjectPageSprintSettingsModalComponent` | Modal for editing or deleting a sprint that has not yet started |
-| `ProjectPageWallComponent` | Project wall: list of posts; create post, open post details |
-| `ProjectPageWallPostComponent` | Single wall-post card (preview + click to open) |
+| `ProjectPageSettingsModalComponent` | Modal for renaming a project and managing its members (add, remove, change roles). All edits are staged locally; a single **Shrani spremembe** button at the bottom (sticky) validates and saves everything. Enforces exactly 1 Product Owner and 1 Scrum Master. Accessible to Scrum Masters and system Admins |
+| `ProjectPageSprintSettingsModalComponent` | Modal for editing or deleting a sprint that has not yet started. Uses native `type="date"` inputs |
+| `ProjectPageWallComponent` | Project wall: grid of post cards, create post modal, post detail modal with comments and comment form. Loads `canDelete` on mount (Scrum Master or Admin) to conditionally show delete controls |
+| `ProjectPageWallPostComponent` | Single wall-post card; when `canDelete` is true, shows a 🗑️ action button (top-right, visible on hover) following the same pattern as `BacklogStoryComponent` |
 | `BacklogStoryComponent` | Single story card with inline time complexity input |
 | `BacklogStoryDetailsComponent` | Story detail panel: edit/delete story, acceptance tests, comments, confirm/reject buttons |
 | `UserStoryForm` | Create/edit story modal (name, description, priority, business value, acceptance tests) |
