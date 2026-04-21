@@ -292,17 +292,19 @@ const ProjectPageSettingsModalComponent = ({ project, projectUsers = [], onClose
             </div>
 
             {/* Footer */}
-            {saveError && (
-              <div className="project-settings-modal__alert project-settings-modal__alert--error">
-                {saveError}
-              </div>
-            )}
-            {saveSuccess && (
-              <div className="project-settings-modal__alert project-settings-modal__alert--success">
-                {saveSuccess}
-              </div>
-            )}
             <div className="project-settings-modal__footer">
+              <div className="project-settings-modal__footer-message">
+                {saveError && (
+                  <div className="project-settings-modal__alert project-settings-modal__alert--error">
+                    {saveError}
+                  </div>
+                )}
+                {saveSuccess && (
+                  <div className="project-settings-modal__alert project-settings-modal__alert--success">
+                    {saveSuccess}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="project-panel__button project-settings-modal__save-button"

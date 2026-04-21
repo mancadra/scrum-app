@@ -193,9 +193,20 @@
   color: #bbf7d0;
 }
 
+.project-settings-modal__footer-message {
+  flex: 1;
+  min-width: 0;
+  margin-right: 16px;
+}
+
+.project-settings-modal__footer-message .project-settings-modal__alert {
+  margin: 0;
+}
+
 .project-settings-modal__footer {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   padding: 32px 0 4px;
   margin-top: 4px;
   position: sticky;
