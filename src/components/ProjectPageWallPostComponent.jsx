@@ -8,15 +8,26 @@ const getAuthorLabel = (post) => {
   return fullName || user.username || 'Neznani uporabnik';
 };
 
-const ProjectPageWallPostComponent = ({ post, onClick }) => {
+const ProjectPageWallPostComponent = ({ post, onClick, canDelete, onDelete }) => {
   const preview = (post.content ?? '').trim();
 
   return (
-    <button
-      type="button"
-      className="project-wall-post-card"
-      onClick={() => onClick(post)}
-    >
+    <div className="project-wall-post-card" onClick={() => onClick(post)} role="button" tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(post); }}>
+
+      {canDelete && (
+        <div className="project-wall-post-card__actions">
+          <button
+            type="button"
+            className="backlog-action-btn delete"
+            title="Izbriši objavo"
+            onClick={(e) => { e.stopPropagation(); onDelete(post.id); }}
+          >
+            🗑️
+          </button>
+        </div>
+      )}
+
       <div className="project-wall-post-card__header">
         <strong className="project-wall-post-card__author">{getAuthorLabel(post)}</strong>
         <span className="project-wall-post-card__date">
@@ -27,7 +38,7 @@ const ProjectPageWallPostComponent = ({ post, onClick }) => {
       <div className="project-wall-post-card__content">
         {preview.length > 180 ? `${preview.slice(0, 180)}…` : preview}
       </div>
-    </button>
+    </div>
   );
 };
 
