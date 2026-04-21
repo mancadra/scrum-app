@@ -11,7 +11,7 @@ import {
 } from '../services/productBacklog';
 import './ProjectPageBacklogComponent.css';
 
-const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreated }) => {
+const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreated, refreshKey = 0 }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [timeComplexityStory, setTimeComplexityStory] = useState(null);
@@ -103,7 +103,7 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
     };
 
     loadStories();
-  }, [project?.id]);
+  }, [project?.id, refreshKey]);
 
   if (!project) {
     return <div className="project-panel">Ni izbranega projekta.</div>;

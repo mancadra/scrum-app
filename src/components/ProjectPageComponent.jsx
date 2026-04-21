@@ -19,6 +19,7 @@ const ProjectPageComponent = ({
   const [canManageProject, setCanManageProject] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWall, setShowWall] = useState(false);
+  const [backlogRefreshKey, setBacklogRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,12 +67,16 @@ const ProjectPageComponent = ({
             projectUsers={projectUsers}
             stories={stories}
             onStoryCreated={onStoryCreated}
+            refreshKey={backlogRefreshKey}
           />
           <ProjectPageSprintComponent
             project={project}
             projectUsers={projectUsers}
             sprints={sprints}
-            onSprintCreated={onSprintCreated}
+            onSprintCreated={async () => {
+              setBacklogRefreshKey(k => k + 1);
+              if (onSprintCreated) await onSprintCreated();
+            }}
           />
         </div>
       )}

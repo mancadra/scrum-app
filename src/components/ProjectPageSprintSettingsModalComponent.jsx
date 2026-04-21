@@ -3,33 +3,9 @@ import { deleteSprint, editSprint } from '../services/sprints';
 import './ProjectPageSprintComponent.css';
 import './ProjectPageSprintSettingsModalComponent.css';
 
-const formatDate = (value) => {
-    if (!value) return '—';
-
-    const datePart = String(value).slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return value;
-
-    const [year, month, day] = datePart.split('-');
-    return `${day}.${month}.${year}`;
-};
-
-const normalizeDateInput = (value) => {
-    const digits = String(value).replace(/\D/g, '').slice(0, 8);
-
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
-    return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
-};
-
-const toApiDate = (value) => {
-    const digits = String(value).replace(/\D/g, '');
-    if (digits.length !== 8) return '';
-
-    const day = digits.slice(0, 2);
-    const month = digits.slice(2, 4);
-    const year = digits.slice(4, 8);
-
-    return `${year}-${month}-${day}`;
+const toDateInputValue = (isoString) => {
+    if (!isoString) return '';
+    return String(isoString).slice(0, 10); // YYYY-MM-DD
 };
 
 const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose, onSaved, onDeleted }) => {
@@ -44,16 +20,14 @@ const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose
     useEffect(() => {
         if (!sprint) return;
 
-        setStartingDate(formatDate(sprint.startingDate));
-        setEndingDate(formatDate(sprint.endingDate));
+        setStartingDate(toDateInputValue(sprint.startingDate));
+        setEndingDate(toDateInputValue(sprint.endingDate));
         setStartingSpeed(sprint.startingSpeed != null ? String(sprint.startingSpeed) : '');
         setError('');
         setSuccessMessage('');
     }, [sprint]);
 
-    if (!sprint) {
-        return null;
-    }
+    if (!sprint) return null;
 
     const handleSave = async (event) => {
         event.preventDefault();
@@ -64,8 +38,8 @@ const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose
 
         try {
             await editSprint(sprint.id, {
-                startingDate: toApiDate(startingDate) || undefined,
-                endingDate: toApiDate(endingDate) || undefined,
+                startingDate: startingDate || undefined,
+                endingDate: endingDate || undefined,
                 startingSpeed: startingSpeed === '' ? undefined : Number(startingSpeed),
             });
 
@@ -122,22 +96,18 @@ const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose
                         <label className="sprint-settings-modal__field">
                             <span>Datum začetka</span>
                             <input
-                                type="text"
-                                inputMode="numeric"
-                                placeholder="dd.mm.yyyy"
+                                type="date"
                                 value={startingDate}
-                                onChange={(e) => setStartingDate(normalizeDateInput(e.target.value))}
+                                onChange={(e) => setStartingDate(e.target.value)}
                             />
                         </label>
 
                         <label className="sprint-settings-modal__field">
                             <span>Datum konca</span>
                             <input
-                                type="text"
-                                inputMode="numeric"
-                                placeholder="dd.mm.yyyy"
+                                type="date"
                                 value={endingDate}
-                                onChange={(e) => setEndingDate(normalizeDateInput(e.target.value))}
+                                onChange={(e) => setEndingDate(e.target.value)}
                             />
                         </label>
                     </div>

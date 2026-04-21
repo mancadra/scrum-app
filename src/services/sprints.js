@@ -16,6 +16,11 @@ async function checkNotHoliday(date) {
   if (holidays.has(dateStr)) throw new Error(`Sprint se ne more začeti ali končati na praznik.`)
 }
 
+function checkNotWeekend(date) {
+  const day = date.getDay() // 0 = Sunday, 6 = Saturday
+  if (day === 0 || day === 6) throw new Error('Sprint se ne more začeti ali končati na vikend.')
+}
+
 export async function getSprintsForProject(projectId) {
   const { data, error } = await supabase
     .from('Sprints')
@@ -72,6 +77,8 @@ export async function createSprint(projectId, { startingDate, endingDate, starti
     throw new Error('Končni datum mora biti po začetnem datumu.')
   }
 
+  checkNotWeekend(start)
+  checkNotWeekend(end)
   await checkNotHoliday(start)
   await checkNotHoliday(end)
 
@@ -162,6 +169,8 @@ export async function editSprint(sprintId, { startingDate, endingDate, startingS
   if (start <= now) throw new Error('Začetni datum mora biti v prihodnosti.')
   if (end <= start) throw new Error('Končni datum mora biti po začetnem datumu.')
 
+  checkNotWeekend(start)
+  checkNotWeekend(end)
   await checkNotHoliday(start)
   await checkNotHoliday(end)
 
@@ -203,6 +212,14 @@ export async function deleteSprint(sprintId) {
   if (!user) throw new Error('Niste prijavljeni.')
 
   await checkSprintEditable(sprintId, user.id)
+
+  // Unassign stories from the sprint first so tasks and logged hours are preserved.
+  const { error: unassignError } = await supabase
+    .from('SprintUserStories')
+    .delete()
+    .eq('FK_sprintId', sprintId)
+
+  if (unassignError) throw new Error(unassignError.message)
 
   const { error } = await supabase
     .from('Sprints')
