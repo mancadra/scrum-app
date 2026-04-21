@@ -81,7 +81,8 @@ function BurndownSVG({ days, actualValues, idealValues, maxVal }) {
                 const step = Math.max(1, Math.floor(n / 10));
                 if (i % step !== 0 && i !== n - 1) return null;
                 const x = scaleX(i, n);
-                const label = day.slice(5); // MM-DD
+                const [y, m, d] = day.split('-');
+                const label = `${d}. ${m}. ${y}`;
                 return (
                     <text key={day} x={x} y={PAD.top + INNER_H + 18} textAnchor="middle" fontSize="11" fill="#6b7280">
                         {label}
@@ -237,7 +238,7 @@ export default function BurndownChartComponent({ sprintId, sprintNumber }) {
                             <tbody>
                                 {tableRows.map((row, i) => (
                                     <tr key={row.date} className={row.remaining === 0 && row.remaining !== null ? 'burndown-table__row--done' : ''}>
-                                        <td>{row.date}</td>
+                                        <td>{row.date.split('-').reverse().join('. ')}</td>
                                         <td>{row.logged ?? '—'}</td>
                                         <td>{row.cumulative ?? '—'}</td>
                                         <td className="burndown-table__remaining">{row.remaining ?? '—'}</td>

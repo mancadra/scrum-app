@@ -252,7 +252,7 @@ const handleDeleteTaskClick = async (taskId) => {
   // ── Burndown-only view ──────────────────────────────────────────────────────
   if (activeTab === 'burndown') {
     return (
-      <div className="dashboard-container p-4">
+      <div className="dashboard-container p-4" style={{ flexDirection: 'column' }}>
         <div className="d-flex align-items-center gap-3 mb-4">
           <h2 className="mb-0">{sprintNumber != null ? `Sprint #${sprintNumber}` : 'Sprint Board'}</h2>
           <div className="sprint-tab-bar">
