@@ -109,6 +109,72 @@ export async function createProject(name, description, users) {
     return project
 }
 
+export async function saveProjectMembers(projectId, desiredMembers) {
+  // desiredMembers: Array<{ userId: string, roleIds: number[] }>
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Not authenticated.')
+
+  await checkProjectAdmin(projectId, user.id)
+
+  const { data: allRoles, error: rolesError } = await supabase
+    .from('ProjectRoles')
+    .select('id, projectRole')
+  if (rolesError) throw new Error(rolesError.message)
+
+  const poRole = allRoles.find(r => r.projectRole === 'Product Owner')
+  const smRole = allRoles.find(r => r.projectRole === 'Scrum Master')
+
+  const poCount = desiredMembers.filter(m => m.roleIds.includes(poRole?.id)).length
+  const smCount = desiredMembers.filter(m => m.roleIds.includes(smRole?.id)).length
+
+  if (poCount === 0) throw new Error('Projekt mora imeti vsaj enega Produktnega vodjo.')
+  if (smCount === 0) throw new Error('Projekt mora imeti vsaj enega Skrbnika metodologije.')
+  if (poCount > 1) throw new Error('Projekt lahko ima samo enega Produktnega vodjo.')
+  if (smCount > 1) throw new Error('Projekt lahko ima samo enega Skrbnika metodologije.')
+
+  const noRole = desiredMembers.find(m => m.roleIds.length === 0)
+  if (noRole) throw new Error('Vsak član mora imeti vsaj eno vlogo.')
+
+  const { data: currentMembers, error: currentError } = await supabase
+    .from('ProjectUsers')
+    .select('FK_userId, FK_projectRoleId')
+    .eq('FK_projectId', projectId)
+  if (currentError) throw new Error(currentError.message)
+
+  const currentSet = new Set(currentMembers.map(m => `${m.FK_userId}:${m.FK_projectRoleId}`))
+
+  const desiredPairs = []
+  const desiredSet = new Set()
+  for (const m of desiredMembers) {
+    for (const roleId of m.roleIds) {
+      const key = `${m.userId}:${roleId}`
+      desiredSet.add(key)
+      desiredPairs.push({ FK_projectId: projectId, FK_userId: m.userId, FK_projectRoleId: roleId })
+    }
+  }
+
+  const toRemove = currentMembers.filter(m => !desiredSet.has(`${m.FK_userId}:${m.FK_projectRoleId}`))
+  const toAdd = desiredPairs.filter(p => !currentSet.has(`${p.FK_userId}:${p.FK_projectRoleId}`))
+
+  for (const m of toRemove) {
+    const { error } = await supabase
+      .from('ProjectUsers')
+      .delete()
+      .eq('FK_projectId', projectId)
+      .eq('FK_userId', m.FK_userId)
+      .eq('FK_projectRoleId', m.FK_projectRoleId)
+    if (error) throw new Error(error.message)
+  }
+
+  if (toAdd.length > 0) {
+    const { error } = await supabase.from('ProjectUsers').insert(toAdd)
+    if (error) throw new Error(error.message)
+  }
+
+  return true
+}
+
 async function checkProjectAdmin(projectId, userId) {
   // Check system-level admin OR project-level Scrum Master
   const { data: roleData, error: roleError } = await supabase
@@ -231,6 +297,29 @@ export async function removeProjectMember(projectId, userId) {
 
   await checkProjectAdmin(projectId, user.id)
 
+  const { data: allMembers, error: membersError } = await supabase
+    .from('ProjectUsers')
+    .select('FK_userId, FK_projectRoleId, ProjectRoles(projectRole)')
+    .eq('FK_projectId', projectId)
+
+  if (membersError) throw new Error(membersError.message)
+
+  const userRoles = allMembers
+    .filter(m => m.FK_userId === userId)
+    .map(m => m.ProjectRoles?.projectRole)
+
+  for (const exclusiveRole of ['Product Owner', 'Scrum Master']) {
+    if (userRoles.includes(exclusiveRole)) {
+      const othersWithRole = allMembers.filter(
+        m => m.FK_userId !== userId && m.ProjectRoles?.projectRole === exclusiveRole
+      )
+      if (othersWithRole.length === 0) {
+        const label = exclusiveRole === 'Product Owner' ? 'Produktni vodja' : 'Skrbnik metodologije'
+        throw new Error(`Ni mogoče odstraniti člana, ker je edini ${label} na projektu.`)
+      }
+    }
+  }
+
   const { error } = await supabase
     .from('ProjectUsers')
     .delete()
@@ -247,6 +336,30 @@ export async function removeProjectMemberRole(projectId, userId, projectRoleId) 
   if (!user) throw new Error('Not authenticated.')
 
   await checkProjectAdmin(projectId, user.id)
+
+  const { data: roleData, error: roleError } = await supabase
+    .from('ProjectRoles')
+    .select('projectRole')
+    .eq('id', projectRoleId)
+    .single()
+
+  if (roleError) throw new Error(roleError.message)
+
+  if (['Product Owner', 'Scrum Master'].includes(roleData?.projectRole)) {
+    const { data: others, error: othersError } = await supabase
+      .from('ProjectUsers')
+      .select('FK_userId')
+      .eq('FK_projectId', projectId)
+      .eq('FK_projectRoleId', projectRoleId)
+      .neq('FK_userId', userId)
+
+    if (othersError) throw new Error(othersError.message)
+
+    if (!others || others.length === 0) {
+      const label = roleData.projectRole === 'Product Owner' ? 'Produktni vodja' : 'Skrbnik metodologije'
+      throw new Error(`Ni mogoče odvzeti vloge "${label}", ker je ta član edini s to vlogo na projektu.`)
+    }
+  }
 
   const { error } = await supabase
     .from('ProjectUsers')
