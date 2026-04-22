@@ -14,6 +14,38 @@ async function getSessionUser() {
  * - Task must belong to an active sprint.
  * - No open timer may already be running for this user+task.
  */
+/**
+ * Creates a new completed time entry for a specific task and date.
+ * Useful for filling in empty cells in a matrix/grid view.
+ */
+export async function createTimeEntry(taskId, dateStr, hours) {
+    if (typeof hours !== 'number' || hours <= 0 || hours > 24) {
+        throw new Error('Število ur mora biti med 0 in 24.');
+    }
+
+    const user = await getSessionUser();
+
+    // Create a start time for that specific date (e.g., 08:00 AM)
+    const starttime = new Date(dateStr);
+    starttime.setHours(8, 0, 0, 0); 
+
+    // Calculate stop time based on hours
+    const stoptime = new Date(starttime.getTime() + hours * 3_600_000);
+
+    const { data, error } = await supabase
+        .from('TimeTables')
+        .insert({
+            FK_userId: user.id,
+            FK_taskId: taskId,
+            starttime: starttime.toISOString(),
+            stoptime: stoptime.toISOString()
+        })
+        .select()
+        .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+}
 export async function startTimer(taskId) {
     const user = await getSessionUser();
 
@@ -282,4 +314,55 @@ export async function setRemainingHours(taskId, hours) {
 
     if (updateError) throw new Error(updateError.message);
     return updated;
+}
+
+export async function getActiveSprint() {
+    const now = new Date().toISOString();
+    const user = await getSessionUser();
+    
+    // Poiščemo sprint, ki se trenutno izvaja
+    const { data, error } = await supabase
+        .from('Sprints')
+        .select(`
+            id, startingDate, endingDate,
+            SprintUserStories!inner (
+                UserStories!inner (
+                    Tasks!inner (
+                        FK_acceptedDeveloper
+                    )
+                )
+            )
+        `)
+        .lte('startingDate', now)
+        .gte('endingDate', now)
+        .eq('SprintUserStories.UserStories.Tasks.FK_acceptedDeveloper', user.id)
+        .limit(1);
+
+    if (error) throw new Error(error.message);
+    return data && data.length > 0 ? data[0] : null;
+}
+// Dodaj to funkcijo v services/timetables.js
+export async function getMyTasksForSprint(sprintId) {
+    const user = await getSessionUser();
+    
+    const { data, error } = await supabase
+        .from('Tasks')
+        .select(`
+            id, description, remaininghours, timecomplexity,
+            UserStories!inner (
+                name,
+                SprintUserStories!inner (FK_sprintId)
+            )
+        `)
+        .eq('FK_acceptedDeveloper', user.id)
+        .eq('UserStories.SprintUserStories.FK_sprintId', sprintId);
+
+    if (error) throw new Error(error.message);
+    return data.map(t => ({
+        id: t.id,
+        description: t.description,
+        remaininghours: t.remaininghours,
+        timecomplexity: t.timecomplexity,
+        storyName: t.UserStories?.name
+    }));
 }

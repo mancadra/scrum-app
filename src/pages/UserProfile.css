@@ -15,14 +15,15 @@ html, body, #root {
   
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-bottom: 50px; /* Malo prostora na dnu */
+  align-items: center; 
+
 }
 
 .user-profile-container {
   width: 100%;
-  max-width: 1000px;
+  max-width:  1300px;
   margin-top: 40px;
+  margin-left: 0;
   padding: 0 20px;
 }
 
@@ -160,36 +161,8 @@ html, body, #root {
   color: #f0fff4;
 }
 
-.date-selector {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 
-.date-selector input {
-  padding: 8px;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-}
 
-.timesheet-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.timesheet-table th, .timesheet-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.timesheet-table th {
-  background-color: #f7fafc;
-  font-weight: 600;
-  color: #4a5568;
-}
 
 .time-input {
   width: 80px;
@@ -225,4 +198,123 @@ html, body, #root {
   background-color: #fff5f5;
   color: #c53030;
   border: 1px solid #fed7d7;
+}
+/* --- Transposed Matrix Styles --- */
+.sprint-info-header {
+  color: white;
+}
+.sprint-matrix-table.transposed {
+  table-layout: fixed; /* Keeps columns consistent */
+  border: 1px solid #cbd5e0;
+  max-width: 100px;;
+}
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+}
+/* Make the header sticky at the top when scrolling down dates */
+.sprint-matrix-table.transposed thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 10;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+  padding: 15px 10px;
+  vertical-align: top;
+  border-bottom: 2px solid #cbd5e0;
+}
+
+/* Date column (First Column) */
+.sprint-matrix-table.transposed .date-cell {
+  background-color: #f1f5f9;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  width: 120px;
+  border-right: 2px solid #cbd5e0;
+}
+
+/* Style for the task info in the headers */
+.task-col {
+  min-width: 150px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.task-col strong {
+  display: block;
+  color: #1e3a8a;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.task-col small {
+  font-weight: 400;
+  color: #64748b;
+  display: block;
+  font-size: 0.75rem;
+}
+
+/* Input styling inside cells */
+.hour-cell {
+  background-color: white;
+}
+.hour-cell input {
+  width: 50px;
+  border: 1px solid transparent;
+  background: #f8fafc;
+  padding: 4px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.hour-cell input:focus {
+  border-color: #3b82f6;
+  background: rgb(216, 216, 216);
+  outline: none;
+}
+
+.hour-cell span {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+
+/* Footer / Summary Rows */
+.sprint-matrix-table tfoot {
+  border-top: 3px double #cbd5e0;
+}
+
+.summary-row {
+  background-color: #f8fafc;
+}
+
+.remaining-row {
+  background-color: #eff6ff; /* Light blue to highlight action area */
+}
+
+.summary-row td, .remaining-row td {
+  padding: 12px 10px;
+  font-weight: bold;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mini-input {
+  width: 60px;
+  padding: 5px;
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  text-align: center;
+  color: #1e3a8a;
+}
+
+/* Hover effect on rows for easier tracking */
+.sprint-matrix-table.transposed tbody tr:hover {
+  background-color: #a6a7a8;
+}
+
+.sum-cell {
+  font-weight: 700;
+  color: #0f172a;
+  background-color: #f8fafc;
 }
