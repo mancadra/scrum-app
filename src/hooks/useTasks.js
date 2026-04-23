@@ -144,17 +144,17 @@ export const useTasks = (projectId) => {
   const handleUpdateStoryStatus = async (storyId, newStatus) => {
     try {
       const statusMap = {
-        unassigned: { accepted: false, done: false, testing: false },
-        active:     { accepted: true,  done: false, testing: false },
-        testing:    { accepted: true,  done: false, testing: true  },
-        finished:   { accepted: true,  done: true,  testing: true  },
+        unassigned: { accepted: false, done: false, testing: false, realized: null },
+        active:     { accepted: true,  done: false, testing: false, realized: null },
+        testing:    { accepted: true,  done: false, testing: true,  realized: null },
+        finished:   { accepted: true,  done: true,  testing: true,  realized: true },
       };
       const updateData = statusMap[newStatus] ?? {};
 
       const { error: supabaseError } = await supabase
-        .from('UserStories')
-        .update(updateData)
-        .eq('id', storyId);
+          .from('UserStories')
+          .update(updateData)
+          .eq('id', storyId);
 
       if (supabaseError) throw supabaseError;
     } catch (err) {

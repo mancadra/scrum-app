@@ -208,27 +208,78 @@ export async function createUserStory(projectId, { name, description, acceptance
     }
 
     return story
-}       
-    
-export async function getStoriesForProject(projectId) {
-    const { data, error } = await supabase                                                                   
+}
+
+/*export async function getStoriesForProject(projectId) {
+    const { data, error } = await supabase
         .from('UserStories')
         .select(`
-            id, name, description, businessValue, timeComplexity, accepted, realized,                        
-            Priorities(priority), SprintUserStories(FK_sprintId)                                                                   
+            id, name, description, businessValue, timeComplexity, accepted, realized,
+            Priorities(priority), SprintUserStories(FK_sprintId)
         `).eq('FK_projectId', projectId)
-        .order('id')                                                                                         
+        .order('id')
     if (error) throw new Error(error.message)
 
     return data.map(story => ({
-        ...story,                                                                                            
+        ...story,
         priority: story.Priorities?.priority ?? null,
         sprintId: story.SprintUserStories?.[0]?.FK_sprintId ?? null,
         category: story.realized ? 'realized'
             : story.SprintUserStories?.length > 0 ? 'assigned'
-                : 'unassigned',                                                                               
+                : 'unassigned',
+    }))
+}*/
+/*THIS SHOULD REMOVE STORY FROM SPRINT IF STORY IS REJECTED AND SPRINT IS NO LONGER ACTIVE*/
+export async function getStoriesForProject(projectId) {
+    const now = new Date().toISOString()
+
+    const { data: stories, error } = await supabase
+        .from('UserStories')
+        .select(`
+            id, name, description, businessValue, timeComplexity, accepted, realized,
+            done, testing,
+            Priorities(priority), SprintUserStories(FK_sprintId, Sprints(id, endingDate))
+        `)
+        .eq('FK_projectId', projectId)
+        .order('id')
+
+    if (error) throw new Error(error.message)
+
+    const endedRejectedLinks = (stories ?? [])
+        .flatMap(story =>
+            (story.SprintUserStories ?? [])
+                .filter(link => {
+                    const endedAt = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
+                    return story.realized === false && endedAt && endedAt.toISOString() < now
+                })
+                .map(link => link.FK_sprintId)
+        )
+
+    if (endedRejectedLinks.length > 0) {
+        await supabase
+            .from('SprintUserStories')
+            .delete()
+            .in('FK_sprintId', endedRejectedLinks)
+    }
+
+    return (stories ?? []).map(story => ({
+        ...story,
+        priority: story.Priorities?.priority ?? null,
+        sprintId:
+            story.realized === false &&
+            (story.SprintUserStories ?? []).some(link => {
+                const endedAt = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
+                return endedAt && endedAt.toISOString() < now
+            })
+                ? null
+                : story.SprintUserStories?.[0]?.FK_sprintId ?? null,
+        category: story.realized ? 'realized'
+            : story.SprintUserStories?.length > 0 ? 'assigned'
+                : 'unassigned',
     }))
 }
+
+
 export async function markStoryRealized(storyId) {
   // 1. Check authentication
   const { data: { session } } = await supabase.auth.getSession()
@@ -292,7 +343,7 @@ export async function markStoryRealized(storyId) {
   // 7. Mark as realized
   const { data, error: updateError } = await supabase
     .from('UserStories')
-    .update({ realized: true })
+    .update({ realized: true, done: true, testing: null})
     .eq('id', storyId)
     .select()
     .single()
@@ -301,7 +352,7 @@ export async function markStoryRealized(storyId) {
   return data
 }
 
-export async function markStoryRejected(storyId) {
+export async function markStoryRejected(storyId, note = '') {
   // 1. Check authentication
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
@@ -310,7 +361,7 @@ export async function markStoryRejected(storyId) {
   // 2. Fetch the story
   const { data: story, error: storyError } = await supabase
     .from('UserStories')
-    .select('id, realized, FK_projectId')
+    .select('id, realized, accepted, done, testing, FK_projectId')
     .eq('id', storyId)
     .maybeSingle()
 
@@ -337,40 +388,63 @@ export async function markStoryRejected(storyId) {
   // 5. Check already realized
   if (story.realized === true) throw new Error('Story is already marked as realized.')
 
-  // 6. Check story is in active sprint
-  const now = new Date().toISOString()
-  const { data: activeSprints, error: sprintError } = await supabase
-    .from('Sprints')
-    .select('id')
-    .eq('FK_projectId', story.FK_projectId)
-    .lte('startingDate', now)
-    .gte('endingDate', now)
+  // 6. Fetch sprint links for this story
+  const { data: sprintLinks, error: sprintError } = await supabase
+    .from('SprintUserStories')
+    .select('FK_sprintId, Sprints(startingDate, endingDate)')
+    .eq('FK_userStoryId', storyId)
 
   if (sprintError) throw new Error(sprintError.message)
-  if (!activeSprints || activeSprints.length === 0) throw new Error('No active sprint found.')
 
-  const activeSprintIds = activeSprints.map(s => s.id)
+  // 7. Save optional note as a comment
+  const cleanedNote = typeof note === 'string' ? note.trim() : ''
+  if (cleanedNote) {
+    const { error: commentError } = await supabase
+      .from('UserStoryComments')
+      .insert({
+        FK_userStoryId: storyId,
+        FK_userId: user.id,
+        content: cleanedNote,
+      })
 
-  const { data: sprintLink, error: linkError } = await supabase
-    .from('SprintUserStories')
-    .select('FK_userStoryId')
-    .eq('FK_userStoryId', storyId)
-    .in('FK_sprintId', activeSprintIds)
-    .maybeSingle()
+    if (commentError) throw new Error(commentError.message)
+  }
 
-  if (linkError) throw new Error(linkError.message)
-  if (!sprintLink) throw new Error('Story is not part of the active sprint.')
-
-  // 7. Mark as rejected
+  // 8. Mark as rejected
   const { data, error: updateError } = await supabase
     .from('UserStories')
-    .update({ realized: false })
+    .update({
+      realized: false,
+      accepted: true,
+      done: false,
+      testing: false,
+    })
     .eq('id', storyId)
     .select()
     .single()
 
   if (updateError) throw new Error(updateError.message)
-  return data
+    // 9. If the sprint is over, remove the story from that sprint
+    const now = new Date()
+    const endedSprintIds = (sprintLinks ?? [])
+        .filter(link => {
+            const end = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
+            return end && end < now
+        })
+        .map(link => link.FK_sprintId)
+
+    if (endedSprintIds.length > 0) {
+        const { error: unlinkError } = await supabase
+            .from('SprintUserStories')
+            .delete()
+            .eq('FK_userStoryId', storyId)
+            .in('FK_sprintId', endedSprintIds)
+
+        if (unlinkError) throw new Error(unlinkError.message)
+    }
+
+
+    return data
 }
 
 async function checkStoryEditable(storyId, userId) {

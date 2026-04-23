@@ -70,6 +70,20 @@ const SprintPage = () => {
   const [canComment, setCanComment] = useState(false);
   const [showEditTask, setShowEditTask] = useState(false);
 const [taskToEdit, setTaskToEdit] = useState(null);
+  const [rejectStoryModal, setRejectStoryModal] = useState(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
+
+  const openRejectStoryModal = (story) => {
+    setRejectStoryModal(story);
+    setRejectNote('');
+  };
+
+  const closeRejectStoryModal = () => {
+    setRejectStoryModal(null);
+    setRejectNote('');
+    setRejectSubmitting(false);
+  };
 
 
   const openStoryDetails = (story) => {
@@ -137,16 +151,32 @@ const [taskToEdit, setTaskToEdit] = useState(null);
         if (story.id === storyId) {
           let accepted = story.accepted;
           let done = story.done;
-          console.log(done);
-          
           let testing = story.testing;
+          let realized = story.realized;
 
-          if (newStatus === 'unassigned')    { accepted = false; done = false; testing = false; }
-          else if (newStatus === 'active')   { accepted = true;  done = false; testing = false; }
-          else if (newStatus === 'testing')  { accepted = true;  done = false; testing = true;  }
-          else if (newStatus === 'finished') { accepted = true;  done = true;  testing = true;  }
+          if (newStatus === 'unassigned') {
+            accepted = false;
+            done = false;
+            testing = false;
+            realized = null;
+          } else if (newStatus === 'active') {
+            accepted = true;
+            done = false;
+            testing = false;
+            realized = null;
+          } else if (newStatus === 'testing') {
+            accepted = true;
+            done = false;
+            testing = true;
+            realized = null;
+          } else if (newStatus === 'finished') {
+            accepted = true;
+            done = true;
+            testing = true;
+            realized = true;
+          }
 
-          return { ...story, accepted, done, testing };
+          return { ...story, accepted, done, testing, realized };
         }
         return story;
       });
@@ -382,6 +412,7 @@ const canManageTasks = isScrumMaster || isDeveloper;
         </div>
       </div>
 
+
       <div className="kanban-board four-columns">
         {['unassigned', 'active', 'testing', 'finished'].map(status => (
           <div key={status} className="kanban-column" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status)}>
@@ -395,16 +426,16 @@ const canManageTasks = isScrumMaster || isDeveloper;
                 const priority = story.Priorities?.priority ?? null;
                 const priorityClass = priority === 'Must have' ? 'priority-high' : priority === 'Should have' ? 'priority-medium' : 'priority-low';
                 const canMarkRealized = status === 'testing' && isProductOwner && !story.realized;
-                const canRejectStory = status !== 'finished' && isProductOwner && !story.realized;
+                const canRejectStory = status === 'testing' && isProductOwner && !story.realized;
 
                 return (
-                  <div
-                    key={story.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, story.id)}
-                    onClick={() => openStoryDetails(story)}
-                    className={`user-story-kanban-card mb-3 ${priorityClass} ${story.realized ? 'user-story-kanban-card--realized' : ''}`}
-                  >
+                    <div
+                        key={story.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, story.id)}
+                        onClick={() => openStoryDetails(story)}
+                        className={`user-story-kanban-card mb-3 ${priorityClass} ${story.realized ? 'user-story-kanban-card--realized' : ''} ${story.realized === false ? 'user-story-kanban-card--rejected' : ''}`}
+                    >
                     <div className="card-main-content">
                       <div className="card-header-row">
                         <h6 className="story-title" title={story.name}>
@@ -440,6 +471,23 @@ const canManageTasks = isScrumMaster || isDeveloper;
                             e.stopPropagation();
                             try {
                               await markStoryRealized(story.id);
+                              setSprintData(prevData => {
+                                if (!prevData?.stories) return prevData;
+                                return {
+                                  ...prevData,
+                                  stories: prevData.stories.map(s =>
+                                    s.id === story.id
+                                      ? {
+                                          ...s,
+                                          realized: true,
+                                          done: true,
+                                          testing: false,
+                                          accepted: true,
+                                        }
+                                      : s
+                                  ),
+                                };
+                              });
                               await fetchSprintBacklog(sprintId);
                             } catch (err) {
                               alert(`Napaka: ${err.message}`);
@@ -451,21 +499,16 @@ const canManageTasks = isScrumMaster || isDeveloper;
                       )}
 
                       {canRejectStory && (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger mt-2"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await markStoryRejected(story.id);
-                              await fetchSprintBacklog(sprintId);
-                            } catch (err) {
-                              alert(`Napaka: ${err.message}`);
-                            }
-                          }}
-                        >
-                          Označi kot zavrnjeno
-                        </button>
+                          <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger mt-2"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                openRejectStoryModal(story);
+                              }}
+                          >
+                            Označi kot zavrnjeno
+                          </button>
                       )}
 
                       {totalTasks > 0 && (
@@ -519,6 +562,70 @@ const canManageTasks = isScrumMaster || isDeveloper;
           </div>
         </div>
       )}
+
+      {rejectStoryModal && (
+          <div
+              className="modal-overlay"
+              style={{ zIndex: 10003 }}
+              onClick={closeRejectStoryModal}
+          >
+            <div
+                className="custom-modal-content story-reject-modal"
+                onClick={(e) => e.stopPropagation()}
+                style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '100%', maxWidth: '520px' }}
+            >
+              <div className="story-reject-modal__header modal-header-custom mb-3">
+                <h5 className="m-0 fw-bold">Označi kot zavrnjeno</h5>
+                <button className="story-reject-modal__close" onClick={closeRejectStoryModal} aria-label="Zapri">✕</button>
+              </div>
+
+              <div className="story-reject-modal__body modal-body-custom">
+                <p className="text-muted small mb-3">
+                  Dodate lahko opombo za zavrnitev zgodbe. Opomba je neobvezna.
+                </p>
+
+                <textarea
+                    className="story-reject-modal__textarea"
+                    rows={4}
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                    placeholder="Dodajte opombo..."
+                    disabled={rejectSubmitting}
+                />
+
+                <div className="story-reject-modal__actions d-flex gap-2 justify-content-end mt-3">
+                  <button
+                      type="button"
+                      className="btn btn-danger story-reject-modal__cancel"
+                      onClick={closeRejectStoryModal}
+                      disabled={rejectSubmitting}
+                  >
+                    Prekliči
+                  </button>
+                  <button
+                      type="button"
+                      className="btn btn-danger story-reject-modal__confirm"
+                      onClick={async () => {
+                        try {
+                          setRejectSubmitting(true);
+                          await markStoryRejected(rejectStoryModal.id, rejectNote);
+                          closeRejectStoryModal();
+                          await fetchSprintBacklog(sprintId);
+                        } catch (err) {
+                          alert(`Napaka: ${err.message}`);
+                          setRejectSubmitting(false);
+                        }
+                      }}
+                      disabled={rejectSubmitting}
+                  >
+                    {rejectSubmitting ? 'Shranjevanje…' : 'Potrdi zavrnitev'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+      )}
+
 
       {/* Popup za dodajanje nalog */}
       {showAddTask && (

@@ -30,7 +30,7 @@ export async function getSprintBacklog(projectId) {
 
     const { data: sprintStories, error: storiesError } = await supabase
         .from('SprintUserStories')
-        .select('UserStories(id, name, description, businessValue, accepted, realized, testing, timeComplexity, FK_priorityId, Priorities(priority))')
+        .select('UserStories(id, name, description, businessValue, accepted, realized, done, testing, timeComplexity, FK_priorityId, Priorities(priority))')
         .eq('FK_sprintId', sprint.id)
 
     if (storiesError) throw new Error(storiesError.message)
@@ -112,9 +112,9 @@ export function canRejectTask(task, currentUserId) {
 }
 
 export function categorizeStoryForKanban(story) {
-    if (story.done) return 'finished'
+    if (story.done || story.realized) return 'finished'
     if (story.testing) return 'testing'
-    if (story.accepted || story.hasTimeLogs) return 'active'
+    if (story.accepted || story.hasTimeLogs || (story.realized === false && story.accepted)) return 'active'
     return 'unassigned'
 }
 
@@ -187,7 +187,7 @@ export async function getSprintBacklogById(projectId, sprintId) {
 
     const { data: sprintStories, error: storiesError } = await supabase
         .from('SprintUserStories')
-        .select('UserStories(id, name, description, businessValue, accepted, realized, testing, timeComplexity, FK_priorityId, Priorities(priority))')
+        .select('UserStories(id, name, description, businessValue, accepted, realized, done, testing, timeComplexity, FK_priorityId, Priorities(priority))')
         .eq('FK_sprintId', sprint.id)
 
     if (storiesError) throw new Error(storiesError.message)

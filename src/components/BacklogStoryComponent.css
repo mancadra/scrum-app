@@ -152,3 +152,162 @@
 .backlog-story-card:hover .backlog-story-card__actions {
   opacity: 1;
 }
+
+.story-reject-modal__textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.story-reject-modal__textarea:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* Glavna kartica */
+.user-story-kanban-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: grab;
+  margin-bottom: 8px;
+}
+
+
+.user-story-kanban-card--rejected {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.10), rgba(255, 255, 255, 0.96));
+    border-color: rgba(239, 68, 68, 0.28);
+}
+
+/* Optional: make the rejected state a bit more noticeable on hover */
+.user-story-kanban-card--rejected:hover {
+    border-color: rgba(239, 68, 68, 0.42);
+}
+
+
+.user-story-kanban-card--realized {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+.sprint-modal-footer__count {
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.button-start-timer {
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  padding: 2px 2px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* Rejection modal */
+.story-reject-modal {
+  width: 100%;
+  max-width: 520px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.story-reject-modal__header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-right: 44px;
+}
+
+.story-reject-modal__close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.story-reject-modal__close:hover {
+  background: #f8fafc;
+}
+
+.story-reject-modal__body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.story-reject-modal__textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 110px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.story-reject-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.story-reject-modal__cancel {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.story-reject-modal__cancel:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.story-reject-modal__confirm {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border: 1px solid #c2410c;
+  color: #ffffff;
+}
+
+.story-reject-modal__confirm:hover {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  border-color: #9a3412;
+}
+
+.story-reject-modal__confirm:disabled,
+.story-reject-modal__cancel:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
