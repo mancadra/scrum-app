@@ -7,7 +7,8 @@ import {
   updateTimeEntry, 
   setRemainingHours,
   getMyTasksForSprint,
-  createTimeEntry
+  createTimeEntry,
+  getMySprints
 } from '../services/timetables';
 import './UserProfile.css';
 
@@ -42,10 +43,6 @@ const [selectedSprintId, setSelectedSprintId] = useState('');
       initTimesheet();
     }
   }, [activeTab]);
-
-  // Add these to your component's state if you haven't already:
-const [sprintsList, setSprintsList] = useState([]);
-const [selectedSprintId, setSelectedSprintId] = useState('');
 
 // --- 1. INIT TIMESHEET ---
 const initTimesheet = async (specificSprintId = null) => {
