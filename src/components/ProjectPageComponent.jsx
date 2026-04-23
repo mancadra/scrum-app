@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ProjectPageBacklogComponent from './ProjectPageBacklogComponent';
 import ProjectPageSprintComponent from './ProjectPageSprintComponent';
 import ProjectPageWallComponent from './ProjectPageWallComponent';
+import ProjectapageDocumentationComponent from './ProjectPageDocumentationComponent';
 import ProjectPageSettingsModalComponent from './ProjectPageSettingsModalComponent';
 import { getCurrentUser } from '../services/auth';
 import { getProjectRolesForUser } from '../services/tasks';
@@ -19,6 +20,7 @@ const ProjectPageComponent = ({
   const [canManageProject, setCanManageProject] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWall, setShowWall] = useState(false);
+  const [showDocumentation, setShowDocumentation] = useState(false);
   const [backlogRefreshKey, setBacklogRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -56,7 +58,12 @@ const ProjectPageComponent = ({
 
   return (
     <div className="project-page">
-      {showWall ? (
+      {showDocumentation ? (
+        <ProjectapageDocumentationComponent
+          project={project}
+          onBackToProject={() => setShowDocumentation(false)}
+        />
+      ) : showWall ? (
         <ProjectPageWallComponent
           project={project}
         />
@@ -86,9 +93,23 @@ const ProjectPageComponent = ({
             <button
                 type="button"
                 className="project-panel__button project-page__footer-button project-page__wall-toggle-button"
-                onClick={() => setShowWall((prev) => !prev)}
+                onClick={() => {
+                  setShowDocumentation(false);
+                  setShowWall((prev) => !prev);
+                }}
             >
               {showWall ? 'POKAŽI PROJEKT' : 'POKAŽI ZID'}
+            </button>
+
+            <button
+                type="button"
+                className="project-panel__button project-page__footer-button"
+                onClick={() => {
+                  setShowWall(false);
+                  setShowDocumentation((prev) => !prev);
+                }}
+            >
+              {showDocumentation ? 'POKAŽI PROJEKT' : 'DOKUMENTACIJA'}
             </button>
 
             {canManageProject && (

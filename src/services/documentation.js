@@ -25,8 +25,36 @@ export async function getDocumentation(projectId) {
   const { data, error } = await supabase
     .from('Documentation')
     .select('id, content')
-    .eq('FK_ProjectId', projectId)
+    .eq('FK_projectId', projectId)
     .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// ─── Create empty documentation ──────────────────────────────────────────────
+
+export async function createDocumentation(projectId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) throw new Error('Niste prijavljeni.')
+
+  await checkProjectMembership(projectId, user.id)
+
+  const { data: existing, error: fetchError } = await supabase
+    .from('Documentation')
+    .select('id')
+    .eq('FK_projectId', projectId)
+    .maybeSingle()
+
+  if (fetchError) throw new Error(fetchError.message)
+  if (existing) return existing
+
+  const { data, error } = await supabase
+    .from('Documentation')
+    .insert({ FK_projectId: projectId, content: '' })
+    .select('id, content')
+    .single()
 
   if (error) throw new Error(error.message)
   return data
@@ -47,7 +75,7 @@ export async function saveDocumentation(projectId, content) {
   const { data: existing, error: fetchError } = await supabase
     .from('Documentation')
     .select('id')
-    .eq('FK_ProjectId', projectId)
+    .eq('FK_projectId', projectId)
     .maybeSingle()
 
   if (fetchError) throw new Error(fetchError.message)
@@ -76,15 +104,15 @@ export async function saveDocumentation(projectId, content) {
   }
 }
 
-// ─── Import documentation from markdown string ────────────────────────────────
+// ─── Import documentation from txt/markdown string ───────────────────────────
 // Replaces existing content with imported content
 
-export async function importDocumentation(projectId, markdownContent) {
-  if (typeof markdownContent !== 'string' || markdownContent.trim() === '') {
+export async function importDocumentation(projectId, content) {
+  if (typeof content !== 'string' || content.trim() === '') {
     throw new Error('Uvožena vsebina ne sme biti prazna.')
   }
 
-  return await saveDocumentation(projectId, markdownContent)
+  return await saveDocumentation(projectId, content)
 }
 
 // ─── Export documentation as markdown string ─────────────────────────────────
