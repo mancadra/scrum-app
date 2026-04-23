@@ -30,6 +30,8 @@ export default function UserProfile() {
   const [sprint, setSprint] = useState(null);
   const [taskMap, setTaskMap] = useState({}); // FIX 1: Spremenjeno iz useMemo v useState
   const [timesheetLoading, setTimesheetLoading] = useState(false);
+  const [sprintsList, setSprintsList] = useState([]);
+const [selectedSprintId, setSelectedSprintId] = useState('');
 
   useEffect(() => {
     loadUserData();
@@ -41,62 +43,88 @@ export default function UserProfile() {
     }
   }, [activeTab]);
 
-  const initTimesheet = async () => {
-    setLoading(true);
-    try {
-        const activeSprint = await getActiveSprint();
-        if (activeSprint) {
-            setSprint(activeSprint);
-            
-            // 1. Pridobimo vse naloge uporabnika v tem sprintu
-            const tasks = await getMyTasksForSprint(activeSprint.id);
-            // 2. Pridobimo vse vnose ur za ta sprint
-            const entries = await getMyTimeEntries({ 
-                from: activeSprint.startingDate, 
-                to: activeSprint.endingDate 
-            });
+  // Add these to your component's state if you haven't already:
+const [sprintsList, setSprintsList] = useState([]);
+const [selectedSprintId, setSelectedSprintId] = useState('');
 
-            // 3. Združimo: osnova so naloge, dodamo pa ure
-            const initialMap = {};
-            tasks.forEach(t => {
-                initialMap[t.id] = {
-                    description: t.description,
-                    storyName: t.storyName,
-                    remaining: t.remaininghours,
-                    timecomplexity: t.timecomplexity,
-                    days: {}
-                };
-            });
+// --- 1. INIT TIMESHEET ---
+const initTimesheet = async (specificSprintId = null) => {
+  setLoading(true);
+  try {
+      // Fetch all sprints for the dropdown
+      const allSprints = await getMySprints();
+      setSprintsList(allSprints);
 
-            entries.forEach(entry => {
-                const dateKey = entry.starttime.split('T')[0];
-                if (initialMap[entry.taskId]) {
-                    initialMap[entry.taskId].days[dateKey] = (initialMap[entry.taskId].days[dateKey] || 0) + entry.hours;
-                }
-            });
+      let activeSprint;
+      if (specificSprintId) {
+          activeSprint = allSprints.find(s => s.id === parseInt(specificSprintId));
+      } else {
+          activeSprint = await getActiveSprint(); 
+          if (!activeSprint && allSprints.length > 0) activeSprint = allSprints[0];
+      }
 
-            setWorkLogs(entries); 
-            setTaskMap(initialMap); 
-        }
-    } catch (err) {
-        console.error(err);
-    } finally {
-        setLoading(false);
-    }
-  };
+      if (activeSprint) {
+          setSprint(activeSprint);
+          setSelectedSprintId(activeSprint.id);
+          
+          const tasks = await getMyTasksForSprint(activeSprint.id);
+          const entries = await getMyTimeEntries({ 
+              from: activeSprint.startingDate, 
+              to: activeSprint.endingDate 
+          });
 
-  const sprintDays = useMemo(() => {
-    if (!sprint) return [];
-    const days = [];
-    let current = new Date(sprint.startingDate);
-    const end = new Date(sprint.endingDate);
-    
-    while (current <= end) {
-      days.push(current.toISOString().split('T')[0]);
-      current.setDate(current.getDate() + 1);
-    }
-    return days;
-  }, [sprint]);
+          const initialMap = {};
+          tasks.forEach(t => {
+              initialMap[t.id] = {
+                  description: t.description,
+                  storyName: t.storyName,
+                  timecomplexity: t.timecomplexity,
+                  remaininghours: t.remaininghours, // Store the single DB value here
+                  days: {}
+              };
+          });
+
+          // Map logged hours to specific days
+          entries.forEach(entry => {
+              const dateKey = entry.starttime.split('T')[0];
+              if (initialMap[entry.taskId]) {
+                  initialMap[entry.taskId].days[dateKey] = {
+                      logId: entry.id,
+                      hours: entry.hours || 0
+                  };
+              }
+          });
+
+          setWorkLogs(entries); 
+          setTaskMap(initialMap); 
+      }
+  } catch (err) {
+      setMessage({ text: err.message, type: 'error' });
+  } finally {
+      setLoading(false);
+  }
+};
+
+// --- 2. CALCULATE SPRINT DAYS (CUT OFF AT TODAY) ---
+const sprintDays = useMemo(() => {
+  if (!sprint) return [];
+  const days = [];
+  let current = new Date(sprint.startingDate);
+  current.setHours(0,0,0,0);
+  
+  const endOfSprint = new Date(sprint.endingDate);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  
+  // Cutoff is either Today OR the end of the sprint (whichever is earlier)
+  const end = today < endOfSprint ? today : endOfSprint;
+  
+  while (current <= end) {
+    days.push(current.toISOString().split('T')[0]);
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
+}, [sprint]);
 
   const loadUserData = async () => {
     try {
@@ -276,7 +304,30 @@ export default function UserProfile() {
               <p>{new Date(sprint.startingDate).toLocaleDateString()} - {new Date(sprint.endingDate).toLocaleDateString()}</p>
             </div>
 
-            <div className="table-responsive">
+            {/* SPRINT SELECTOR HEADER */}
+<div className="timesheet-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+  <div>
+    <h2>Dnevnik dela</h2>
+    <p>{new Date(sprint.startingDate).toLocaleDateString()} - {new Date(sprint.endingDate).toLocaleDateString()}</p>
+  </div>
+  <div className="form-group" style={{ minWidth: '200px', marginBottom: 0 }}>
+    <label style={{ color: '#f0fff4' }}>Izberi Sprint:</label>
+    <select 
+      value={selectedSprintId} 
+      onChange={(e) => initTimesheet(e.target.value)}
+      className="sprint-dropdown"
+    >
+      {sprintsList.map(s => (
+        <option key={s.id} value={s.id}>
+          Sprint {s.id} ({new Date(s.startingDate).toLocaleDateString()})
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
+{/* MAIN TABLE */}
+<div className="table-responsive">
   <table className="sprint-matrix-table transposed">
     <thead>
       <tr>
@@ -304,42 +355,61 @@ export default function UserProfile() {
             
             {Object.keys(taskMap).map(taskId => {
               const task = taskMap[taskId];
-              const hours = task.days[day] || 0;
-              totalDayHours += hours;
+              const dayData = task.days[day] || { hours: 0 };
+              totalDayHours += dayData.hours;
 
               return (
                 <td key={`${day}-${taskId}`} className="hour-cell">
-                  <input 
-                    type="number" min="0" step="0.5" 
-                    defaultValue={hours === 0 ? '' : hours} 
-                    // Inside your table mapping...
-                      onBlur={async (e) => {
-                        const newVal = parseFloat(e.target.value);
-                        if (isNaN(newVal) || newVal < 0) return;
-
-                        const existingLog = workLogs.find(l => 
-                          l.taskId === taskId && 
-                          l.starttime.split('T')[0] === day
-                        );
-
-                        try {
-                          if (existingLog) {
-                            // If newVal is 0, you might want to DELETE the entry, 
-                            // but for now we just update:
-                            await updateTimeEntry(existingLog.id, newVal);
-                          } else if (newVal > 0) {
-                            // Create new entry because it doesn't exist yet
-                            await createTimeEntry(taskId, day, newVal);
+                  <div className="daily-input-group">
+                    
+                    {/* 1. PORABLJENE URE (LOGGED HOURS) */}
+                    <div className="input-row">
+                      <span className="input-label">Ure:</span>
+                      <input 
+                        type="number" min="0" step="0.5" 
+                        defaultValue={dayData.hours === 0 ? '' : dayData.hours} 
+                        placeholder="0"
+                        onBlur={async (e) => {
+                          const newVal = parseFloat(e.target.value);
+                          if (isNaN(newVal) || newVal < 0) return;
+                          
+                          try {
+                            if (dayData.logId) {
+                                await updateTimeEntry(dayData.logId, newVal);
+                            } else if (newVal > 0) {
+                                await createTimeEntry(taskId, day, newVal);
+                            }
+                            initTimesheet(selectedSprintId); // Refresh totals
+                          } catch (err) {
+                            setMessage({ text: err.message, type: 'error' });
                           }
-                          // Refresh the whole grid to see new totals
-                          initTimesheet(); 
-                        } catch (err) {
-                          setMessage({ text: err.message, type: 'error' });
-                        }
-                      }}
-                    placeholder="0"
-                  />
-                  <span>h</span>
+                        }}
+                      />
+                    </div>
+                    
+                    {/* 2. PREOSTALE URE (REMAINING HOURS OVERWRITE) */}
+                    <div className="input-row remaining-row">
+                      <span className="input-label">Preostalo:</span>
+                      <input 
+                        type="number" min="0" step="0.5" 
+                        placeholder={task.remaininghours ?? task.timecomplexity}
+                        onBlur={async (e) => {
+                          const newVal = parseFloat(e.target.value);
+                          if (isNaN(newVal) || newVal < 0 || newVal === task.remaininghours) return;
+                          
+                          try {
+                            // Overwrites the main task remaining hours
+                            await setRemainingHours(taskId, newVal);
+                            initTimesheet(selectedSprintId); // Refresh to update placeholders
+                            e.target.value = ''; // Clear input so placeholder shows new value
+                          } catch (err) {
+                            setMessage({ text: err.message, type: 'error' });
+                          }
+                        }}
+                      />
+                    </div>
+
+                  </div>
                 </td>
               );
             })}
@@ -349,39 +419,6 @@ export default function UserProfile() {
         );
       })}
     </tbody>
-
-    {/* SUMMARY ROWS AT THE BOTTOM */}
-    <tfoot>
-      {/* 1. Total Hours per Task */}
-      <tr className="summary-row">
-        <td className="sticky-col"><strong>Doslej porabljeno</strong></td>
-        {Object.keys(taskMap).map(taskId => {
-            const task = taskMap[taskId];
-            const taskTotal = Object.values(task.days).reduce((sum, val) => sum + val, 0);
-            return <td key={`sum-${taskId}`} className="sum-cell">{taskTotal}h</td>;
-        })}
-        <td className="sum-cell"></td>
-      </tr>
-
-      {/* 2. Remaining Hours per Task */}
-      <tr className="remaining-row">
-        <td className="sticky-col"><strong>Preostalo (Ocena)</strong></td>
-        {Object.keys(taskMap).map(taskId => {
-            const task = taskMap[taskId];
-            return (
-              <td key={`rem-${taskId}`} className="remaining-cell">
-                <input 
-                  type="number" 
-                  className="mini-input"
-                  defaultValue={task.remaining ?? task.timecomplexity}
-                  onBlur={(e) => handleRemainingChange(taskId, parseFloat(e.target.value))}
-                />
-              </td>
-            );
-        })}
-        <td></td>
-      </tr>
-    </tfoot>
   </table>
 </div>
           </div>
