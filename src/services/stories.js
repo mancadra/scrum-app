@@ -245,34 +245,12 @@ export async function getStoriesForProject(projectId) {
 
     if (error) throw new Error(error.message)
 
-    const endedRejectedLinks = (stories ?? [])
-        .flatMap(story =>
-            (story.SprintUserStories ?? [])
-                .filter(link => {
-                    const endedAt = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
-                    return story.realized === false && endedAt && endedAt.toISOString() < now
-                })
-                .map(link => link.FK_sprintId)
-        )
-
-    if (endedRejectedLinks.length > 0) {
-        await supabase
-            .from('SprintUserStories')
-            .delete()
-            .in('FK_sprintId', endedRejectedLinks)
-    }
-
+// Keep sprint-story links intact even after the sprint ends.
+// Rejected/non-accepted stories should remain in the sprint history.
     return (stories ?? []).map(story => ({
         ...story,
         priority: story.Priorities?.priority ?? null,
-        sprintId:
-            story.realized === false &&
-            (story.SprintUserStories ?? []).some(link => {
-                const endedAt = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
-                return endedAt && endedAt.toISOString() < now
-            })
-                ? null
-                : story.SprintUserStories?.[0]?.FK_sprintId ?? null,
+        sprintId: story.SprintUserStories?.[0]?.FK_sprintId ?? null,
         category: story.realized ? 'realized'
             : story.SprintUserStories?.length > 0 ? 'assigned'
                 : 'unassigned',
@@ -388,15 +366,7 @@ export async function markStoryRejected(storyId, note = '') {
   // 5. Check already realized
   if (story.realized === true) throw new Error('Story is already marked as realized.')
 
-  // 6. Fetch sprint links for this story
-  const { data: sprintLinks, error: sprintError } = await supabase
-    .from('SprintUserStories')
-    .select('FK_sprintId, Sprints(startingDate, endingDate)')
-    .eq('FK_userStoryId', storyId)
-
-  if (sprintError) throw new Error(sprintError.message)
-
-  // 7. Save optional note as a comment
+  // 6. Save optional note as a comment
   const cleanedNote = typeof note === 'string' ? note.trim() : ''
   if (cleanedNote) {
     const { error: commentError } = await supabase
@@ -409,6 +379,14 @@ export async function markStoryRejected(storyId, note = '') {
 
     if (commentError) throw new Error(commentError.message)
   }
+
+  // 7. Remove the story from all sprints immediately
+  const { error: unlinkError } = await supabase
+    .from('SprintUserStories')
+    .delete()
+    .eq('FK_userStoryId', storyId)
+
+  if (unlinkError) throw new Error(unlinkError.message)
 
   // 8. Mark as rejected
   const { data, error: updateError } = await supabase
@@ -424,27 +402,8 @@ export async function markStoryRejected(storyId, note = '') {
     .single()
 
   if (updateError) throw new Error(updateError.message)
-    // 9. If the sprint is over, remove the story from that sprint
-    const now = new Date()
-    const endedSprintIds = (sprintLinks ?? [])
-        .filter(link => {
-            const end = link.Sprints?.endingDate ? new Date(link.Sprints.endingDate) : null
-            return end && end < now
-        })
-        .map(link => link.FK_sprintId)
 
-    if (endedSprintIds.length > 0) {
-        const { error: unlinkError } = await supabase
-            .from('SprintUserStories')
-            .delete()
-            .eq('FK_userStoryId', storyId)
-            .in('FK_sprintId', endedSprintIds)
-
-        if (unlinkError) throw new Error(unlinkError.message)
-    }
-
-
-    return data
+  return data
 }
 
 async function checkStoryEditable(storyId, userId) {
