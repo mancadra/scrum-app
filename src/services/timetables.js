@@ -366,3 +366,28 @@ export async function getMyTasksForSprint(sprintId) {
         storyName: t.UserStories?.name
     }));
 }
+export async function getMySprints() {
+    const user = await getSessionUser();
+    
+    // Fetch all sprints where the user has at least one assigned task
+    const { data, error } = await supabase
+        .from('Sprints')
+        .select(`
+            id, startingDate, endingDate,
+            SprintUserStories!inner (
+                UserStories!inner (
+                    Tasks!inner (FK_acceptedDeveloper)
+                )
+            )
+        `)
+        .eq('SprintUserStories.UserStories.Tasks.FK_acceptedDeveloper', user.id)
+        .order('startingDate', { ascending: false }); // Najnovejši najprej
+
+    if (error) throw new Error(error.message);
+    
+    // Remove duplicates since the join might return multiple rows per sprint
+    const uniqueSprints = Array.from(new Set(data.map(s => s.id)))
+        .map(id => data.find(s => s.id === id));
+        
+    return uniqueSprints;
+}
