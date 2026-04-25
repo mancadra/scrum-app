@@ -6,6 +6,20 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  const formatDateInput = (value) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+  };
+
+  const parseSlovenianDate = (value) => {
+    const [day, month, year] = value.split(".").map(Number);
+
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).toISOString();
+  };
+
   const handleSaveSprint = async (event) => {
     event.preventDefault();
 
@@ -13,8 +27,8 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
 
     const result = await onAddSprint({
       speed: Number(speed),
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
+      startDate: parseSlovenianDate(startDate),
+      endDate: parseSlovenianDate(endDate),
     });
 
     if (result) {
@@ -49,18 +63,22 @@ export default function AddSprintComponent({ onClose, onAddSprint, loading, erro
           <div className="form-group">
             <label>Datum začetka</label>
             <input
-              type="date"
+              type="text"
+              placeholder="dd.mm.yyyy"
               value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
+              onChange={(event) => setStartDate(formatDateInput(event.target.value))}
+              maxLength={10}
             />
           </div>
 
           <div className="form-group">
             <label>Datum zaključka</label>
             <input
-              type="date"
+              type="text"
+              placeholder="dd.mm.yyyy"
               value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
+              onChange={(event) => setEndDate(formatDateInput(event.target.value))}
+              maxLength={10}
             />
           </div>
 

@@ -5,7 +5,27 @@ import './ProjectPageSprintSettingsModalComponent.css';
 
 const toDateInputValue = (isoString) => {
     if (!isoString) return '';
-    return String(isoString).slice(0, 10); // YYYY-MM-DD
+
+    const date = new Date(isoString);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+
+    return `${day}.${month}.${year}`;
+};
+
+const formatDateInput = (value) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+};
+
+const parseSlovenianDate = (value) => {
+    const [day, month, year] = value.split('.').map(Number);
+
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).toISOString();
 };
 
 const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose, onSaved, onDeleted }) => {
@@ -38,8 +58,8 @@ const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose
 
         try {
             await editSprint(sprint.id, {
-                startingDate: startingDate || undefined,
-                endingDate: endingDate || undefined,
+                startingDate: startingDate ? parseSlovenianDate(startingDate) : undefined,
+                endingDate: endingDate ? parseSlovenianDate(endingDate) : undefined,
                 startingSpeed: startingSpeed === '' ? undefined : Number(startingSpeed),
             });
 
@@ -93,26 +113,30 @@ const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose
                     <h3>Uredi sprint</h3>
 
                     <div className="sprint-settings-modal__grid">
-                        <label className="sprint-settings-modal__field">
-                            <span>Datum začetka</span>
-                            <input
-                                type="date"
-                                value={startingDate}
-                                onChange={(e) => setStartingDate(e.target.value)}
-                            />
-                        </label>
+                            <label className="sprint-settings-modal__field">
+                                <span>Datum začetka</span>
+                                <input
+                                    type="text"
+                                    placeholder="dd.mm.yyyy"
+                                    value={startingDate}
+                                    onChange={(e) => setStartingDate(formatDateInput(e.target.value))}
+                                    maxLength={10}
+                                />
+                            </label>
+
+                            <label className="sprint-settings-modal__field">
+                                <span>Datum konca</span>
+                                <input
+                                    type="text"
+                                    placeholder="dd.mm.yyyy"
+                                    value={endingDate}
+                                    onChange={(e) => setEndingDate(formatDateInput(e.target.value))}
+                                    maxLength={10}
+                                />
+                            </label>
+                        </div>
 
                         <label className="sprint-settings-modal__field">
-                            <span>Datum konca</span>
-                            <input
-                                type="date"
-                                value={endingDate}
-                                onChange={(e) => setEndingDate(e.target.value)}
-                            />
-                        </label>
-                    </div>
-
-                    <label className="sprint-settings-modal__field">
                         <span>Začetna hitrost</span>
                         <input
                             type="number"
@@ -128,7 +152,8 @@ const ProjectPageSprintSettingsModalComponent = ({ sprint, sprintNumber, onClose
                         <button type="button" className="sprint-settings-modal__secondary-button" onClick={onClose}>
                             Prekliči
                         </button>
-                        <button type="submit" className="project-panel__button" disabled={saving}>
+                        <button type="submit" className="project-panel__button" disabled={saving}
+                        >
                             {saving ? 'Shranjevanje...' : 'Shrani spremembe'}
                         </button>
                     </div>
