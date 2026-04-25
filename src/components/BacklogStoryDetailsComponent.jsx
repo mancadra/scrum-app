@@ -19,7 +19,7 @@ const BacklogStoryDetailsComponent = ({ story, onClose, getAcceptanceTests, getS
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [onClose])
 
   useEffect(() => {
     if (!story?.id) return;

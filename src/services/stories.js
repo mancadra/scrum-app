@@ -238,7 +238,9 @@ export async function getStoriesForProject(projectId) {
         .select(`
             id, name, description, businessValue, timeComplexity, accepted, realized,
             done, testing,
-            Priorities(priority), SprintUserStories(FK_sprintId, Sprints(id, endingDate))
+            Priorities(priority),
+            AcceptanceTests(id, description),
+            SprintUserStories(FK_sprintId, Sprints(id, endingDate))
         `)
         .eq('FK_projectId', projectId)
         .order('id')
@@ -250,6 +252,7 @@ export async function getStoriesForProject(projectId) {
     return (stories ?? []).map(story => ({
         ...story,
         priority: story.Priorities?.priority ?? null,
+        acceptanceTests: story.AcceptanceTests?.map(test => test.description) ?? [],
         sprintId: story.SprintUserStories?.[0]?.FK_sprintId ?? null,
         category: story.realized ? 'realized'
             : story.SprintUserStories?.length > 0 ? 'assigned'
@@ -472,9 +475,36 @@ export async function editUserStory(storyId, { name, description, acceptanceTest
         .update({ name, description, FK_priorityId: priorityId, businessValue, timeComplexity })
         .eq('id', storyId)
         .select()
-        .single()   
+        .single()
 
   if (error) throw new Error(error.message)
+
+  if (Array.isArray(acceptanceTests)) {
+    const { error: deleteTestsError } = await supabase
+      .from('AcceptanceTests')
+      .delete()
+      .eq('FK_userStoryId', storyId)
+
+    if (deleteTestsError) throw new Error(deleteTestsError.message)
+
+    const cleanedTests = acceptanceTests
+      .map(test => typeof test === 'string' ? test.trim() : '')
+      .filter(Boolean)
+
+    if (cleanedTests.length > 0) {
+      const tests = cleanedTests.map(description => ({
+        description,
+        FK_userStoryId: storyId,
+      }))
+
+      const { error: insertTestsError } = await supabase
+        .from('AcceptanceTests')
+        .insert(tests)
+
+      if (insertTestsError) throw new Error(insertTestsError.message)
+    }
+  }
+
   return data
 }
 

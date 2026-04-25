@@ -227,15 +227,25 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
 
   const getAcceptanceTests = (story) => {
     if (Array.isArray(story.acceptanceTests)) return story.acceptanceTests;
+
+    if (Array.isArray(story.AcceptanceTests)) {
+      return story.AcceptanceTests
+          .map((test) => test.description)
+          .filter(Boolean);
+    }
+
     if (Array.isArray(story.tests)) return story.tests;
+
     if (typeof story.acceptanceTests === 'string' && story.acceptanceTests.trim()) {
       return story.acceptanceTests
-        .split('\n')
-        .map((test) => test.trim())
-        .filter(Boolean);
+          .split('\n')
+          .map((test) => test.trim())
+          .filter(Boolean);
     }
+
     return [];
   };
+
 
   const getStoryPriority = (story) => {
     const rawPriority = story.priority ?? story.Priorities?.priority ?? story.FK_priorityId;
@@ -380,7 +390,10 @@ const ProjectPageBacklogComponent = ({ project, projectUsers = [], onStoryCreate
       {editingStory && (
         <UserStoryForm
           projectId={project.id}
-          initialData={editingStory} // Predpostavka: UserStoryForm zna prebrati initialData
+          initialData={{
+            ...editingStory,
+            acceptanceTests: getAcceptanceTests(editingStory),
+          }}
           addStory={handleUpdateStory}
           loading={loading}
           error={error}
