@@ -64,12 +64,9 @@ export default function CreateProjectPage({ onProjectCreated }) {
         setProjectUsers((prev) =>
             prev.map((u) => {
                 if (u.id !== userId) return u
-                const has = u.projectRoleIds.includes(roleId)
                 return {
                     ...u,
-                    projectRoleIds: has
-                        ? u.projectRoleIds.filter((id) => id !== roleId)
-                        : [...u.projectRoleIds, roleId],
+                    projectRoleIds: [roleId],
                 }
             })
         )
@@ -206,7 +203,8 @@ export default function CreateProjectPage({ onProjectCreated }) {
                                                 className={`create-project-role-checkbox${takenByOther ? ' disabled' : ''}`}
                                             >
                                                 <input
-                                                    type="checkbox"
+                                                    type="radio"
+                                                    name={`project-role-${user.id}`}
                                                     checked={user.projectRoleIds.includes(role.id)}
                                                     onChange={() => handleRoleToggle(user.id, role.id)}
                                                     disabled={takenByOther}

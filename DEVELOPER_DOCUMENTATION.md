@@ -62,23 +62,17 @@ scrum-app/
 │   │   ├── LoginPage.jsx / .css
 │   │   ├── AdminPage.jsx / .css
 │   │   ├── CreateProjectPage.jsx / .css
-│   │   ├── TOBEDELETEDProductBacklogPage.jsx
 │   │   └── SprintPage.jsx / .css
 │   ├── components/                  # Reusable UI components
 │   │   ├── NavbarComponent.jsx / .css
 │   │   ├── AddSprintComponent.jsx / .css
 │   │   ├── BacklogStoryComponent.jsx
 │   │   ├── BacklogSprintEntryComponent.jsx
-│   │   ├── TOBEDELETEDProductBacklog.jsx / .css
 │   │   ├── ProjectPageComponent.jsx / .css
 │   │   ├── ProjectPageBacklogComponent.jsx / .css
 │   │   ├── ProjectPageSprintComponent.jsx / .css
-│   │   ├── TOBEDELETEDTaskCard.jsx / .css
 │   │   ├── TaskForm.jsx / .css
 │   │   ├── UserStoryForm.jsx / .css
-│   │   ├── TOBEDELETEDStorypoint.jsx / .css
-│   │   ├── TOBEDELETEDFirstTimeLoginPage.jsx / .css
-│   │   └── TOBEDELETEDDummySprintListComponent.jsx / .css
 │   ├── tests/
 │   │   ├── unit/                    # Unit tests per service
 │   │   └── integration/             # Integration tests

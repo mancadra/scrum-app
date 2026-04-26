@@ -2,6 +2,10 @@
 
 A Scrum project management tool built with React, Vite, and Supabase.
 
+
+## Link to live demo
+https://scrum-app-4mwh.onrender.com/
+
 ## Prerequisites
 
 - Node.js (v18+)

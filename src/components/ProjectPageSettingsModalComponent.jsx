@@ -97,21 +97,18 @@ const ProjectPageSettingsModalComponent = ({ project, projectUsers = [], onClose
     setSaveSuccess('');
   };
 
-  const handleRoleToggle = (userId, roleId) => {
+  const handleRoleSelect = (userId, roleId) => {
     const id = String(roleId);
+
+    if (exclusiveRoleIds.has(id) && takenExclusiveRoles.has(id) && takenExclusiveRoles.get(id) !== userId) {
+      return;
+    }
+
     setLocalMembers(prev => prev.map(m => {
       if (m.userId !== userId) return m;
-      const newRoleIds = new Set(m.roleIds);
-      if (newRoleIds.has(id)) {
-        newRoleIds.delete(id);
-      } else {
-        if (exclusiveRoleIds.has(id) && takenExclusiveRoles.has(id) && takenExclusiveRoles.get(id) !== userId) {
-          return m;
-        }
-        newRoleIds.add(id);
-      }
-      return { ...m, roleIds: newRoleIds };
+      return { ...m, roleIds: new Set([id]) };
     }));
+
     setSaveError('');
     setSaveSuccess('');
   };
@@ -262,10 +259,11 @@ const ProjectPageSettingsModalComponent = ({ project, projectUsers = [], onClose
                                 title={takenByOther ? `Že dodeljeno: ${holder?.user?.username ?? 'drug član'}` : undefined}
                               >
                                 <input
-                                  type="checkbox"
+                                  type="radio"
+                                  name={`project-role-${userId}`}
                                   checked={has}
                                   disabled={takenByOther}
-                                  onChange={() => handleRoleToggle(userId, role.id)}
+                                  onChange={() => handleRoleSelect(userId, role.id)}
                                 />
                                 {PROJECT_ROLE_LABELS[role.projectRole] ?? role.projectRole}
                                 {takenByOther && (
