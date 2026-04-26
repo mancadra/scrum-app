@@ -62,15 +62,47 @@ function mockAdminRole() {
     })
 }
 
-function mockDeleteChain() {
-    let eqCallCount = 0
-    const chain = mockChain({
+// Update with two .eq() calls ending in .select().single()
+function mockUpdateTwoEq(data) {
+    const chain = {
+        update: vi.fn().mockReturnThis(),
+        eq:     vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data, error: null }),
+    }
+    return chain
+}
+
+// Delete with two .eq() calls
+function mockDeleteTwoEq() {
+    let count = 0
+    const chain = {
+        delete: vi.fn().mockReturnThis(),
         eq: vi.fn().mockImplementation(() => {
-            eqCallCount++
-            if (eqCallCount >= 2) return Promise.resolve({ error: null })
+            count++
+            if (count >= 2) return Promise.resolve({ error: null })
             return chain
         }),
-    })
+    }
+    return chain
+}
+
+// membership check resolving at second .eq()
+function mockMemberCheck(data) {
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    chain.eq
+        .mockReturnValueOnce(chain)
+        .mockReturnValueOnce({ maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) })
+    return chain
+}
+
+// duplicate check resolving at third .eq()
+function mockDupCheck(data) {
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn() }
+    chain.eq
+        .mockReturnValueOnce(chain)
+        .mockReturnValueOnce(chain)
+        .mockReturnValueOnce({ maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) })
     return chain
 }
 
@@ -388,7 +420,7 @@ describe('addProjectMember()', () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockAdminRole())
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce(mockDupCheck(null))
             .mockReturnValueOnce(mockChain({ single: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
 
         const result = await addProjectMember(projectId, userId, roleId)
@@ -404,7 +436,7 @@ describe('addProjectMember()', () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockAdminRole())
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
+            .mockReturnValueOnce(mockDupCheck({ FK_userId: userId }))
 
         await expect(addProjectMember(projectId, userId, roleId)).rejects.toThrow('already a member')
     })
@@ -419,8 +451,8 @@ describe('updateProjectMemberRole()', () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockAdminRole())
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
-            .mockReturnValueOnce(mockChain({ single: vi.fn().mockResolvedValue({ data: { FK_userId: userId, FK_projectRoleId: 3 }, error: null }) }))
+            .mockReturnValueOnce(mockMemberCheck({ FK_userId: userId }))
+            .mockReturnValueOnce(mockUpdateTwoEq({ FK_userId: userId, FK_projectRoleId: 3 }))
 
         const result = await updateProjectMemberRole(projectId, userId, 3)
         expect(result).toMatchObject({ FK_projectRoleId: 3 })
@@ -435,7 +467,7 @@ describe('updateProjectMemberRole()', () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockAdminRole())
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce(mockMemberCheck(null))
 
         await expect(updateProjectMemberRole(projectId, userId, 3)).rejects.toThrow('not a member')
     })
@@ -450,8 +482,17 @@ describe('removeProjectMember()', () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockAdminRole())
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: { FK_userId: userId }, error: null }) }))
-            .mockReturnValueOnce(mockDeleteChain())
+            .mockReturnValueOnce(mockChain({
+                eq: vi.fn().mockResolvedValue({
+                    data: [
+                        { FK_userId: userId,    FK_projectRoleId: 3, ProjectRoles: { projectRole: 'Developer' } },
+                        { FK_userId: 'po-uuid', FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Product Owner' } },
+                        { FK_userId: 'sm-uuid', FK_projectRoleId: 2, ProjectRoles: { projectRole: 'Scrum Master' } },
+                    ],
+                    error: null,
+                }),
+            }))
+            .mockReturnValueOnce(mockDeleteTwoEq())
 
         const result = await removeProjectMember(projectId, userId)
         expect(result).toBe(true)
@@ -462,13 +503,22 @@ describe('removeProjectMember()', () => {
         await expect(removeProjectMember(projectId, userId)).rejects.toThrow('Not authenticated.')
     })
 
-    it('throws if user is not a member', async () => {
+    it('throws if user is the only Product Owner', async () => {
         mockAuth()
         supabase.from
             .mockReturnValueOnce(mockAdminRole())
-            .mockReturnValueOnce(mockChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }))
+            .mockReturnValueOnce(mockChain({
+                eq: vi.fn().mockResolvedValue({
+                    data: [
+                        { FK_userId: userId,     FK_projectRoleId: 1, ProjectRoles: { projectRole: 'Product Owner' } },
+                        { FK_userId: 'dev-uuid', FK_projectRoleId: 3, ProjectRoles: { projectRole: 'Developer' } },
+                    ],
+                    error: null,
+                }),
+            }))
 
-        await expect(removeProjectMember(projectId, userId)).rejects.toThrow('not a member')
+        await expect(removeProjectMember(projectId, userId))
+            .rejects.toThrow('Ni mogoče odstraniti člana, ker je edini Produktni vodja na projektu.')
     })
 
 })

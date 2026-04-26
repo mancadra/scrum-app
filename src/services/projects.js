@@ -136,6 +136,9 @@ export async function saveProjectMembers(projectId, desiredMembers) {
   const noRole = desiredMembers.find(m => m.roleIds.length === 0)
   if (noRole) throw new Error('Vsak član mora imeti vsaj eno vlogo.')
 
+  const multiRole = desiredMembers.find(m => m.roleIds.length > 1)
+  if (multiRole) throw new Error('Vsak član ima lahko samo eno vlogo na projektu.')
+
   const { data: currentMembers, error: currentError } = await supabase
     .from('ProjectUsers')
     .select('FK_userId, FK_projectRoleId')
@@ -176,7 +179,6 @@ export async function saveProjectMembers(projectId, desiredMembers) {
 }
 
 async function checkProjectAdmin(projectId, userId) {
-  // Check system-level admin OR project-level Scrum Master
   const { data: roleData, error: roleError } = await supabase
     .from('UserRoles')
     .select('Roles(name)')
@@ -209,7 +211,6 @@ export async function updateProjectName(projectId, name) {
 
   await checkProjectAdmin(projectId, user.id)
 
-  // Check duplicate name
   const { data: existing, error: dupError } = await supabase
     .from('Projects')
     .select('id')
@@ -238,7 +239,6 @@ export async function addProjectMember(projectId, userId, projectRoleId) {
 
   await checkProjectAdmin(projectId, user.id)
 
-  // Check not already a member with this role
   const { data: existing, error: existError } = await supabase
     .from('ProjectUsers')
     .select('FK_userId')
@@ -267,7 +267,6 @@ export async function updateProjectMemberRole(projectId, userId, newProjectRoleI
 
   await checkProjectAdmin(projectId, user.id)
 
-  // Check member exists
   const { data: existing, error: existError } = await supabase
     .from('ProjectUsers')
     .select('FK_userId')
